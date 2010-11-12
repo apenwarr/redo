@@ -1,12 +1,6 @@
 import sys, os, errno
 
 
-def log(s):
-    sys.stdout.flush()
-    sys.stderr.write(s)
-    sys.stderr.flush()
-
-
 def unlink(f):
     """Delete a file at path 'f' if it currently exists.
 
@@ -18,5 +12,23 @@ def unlink(f):
     except OSError, e:
         if e.errno == errno.ENOENT:
             pass  # it doesn't exist, that's what you asked for
+
+
+def mkdirp(d, mode=None):
+    """Recursively create directories on path 'd'.
+
+    Unlike os.makedirs(), it doesn't raise an exception if the last element of
+    the path already exists.
+    """
+    try:
+        if mode:
+            os.makedirs(d, mode)
+        else:
+            os.makedirs(d)
+    except OSError, e:
+        if e.errno == errno.EEXIST:
+            pass
+        else:
+            raise
 
 
