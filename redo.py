@@ -31,17 +31,19 @@ def build(t):
             raise Exception('no rule to make %r' % t)
     unlink(t)
     os.putenv('REDO_TARGET', t)
+    depth = os.getenv('REDO_DEPTH', '')
+    os.putenv('REDO_DEPTH', depth + '  ')
     tmpname = '%s.redo.tmp' % t
     unlink(tmpname)
     f = open(tmpname, 'w+')
-    log('running: %r\n' % dofile)
-    rv = subprocess.call(['sh', '-e', dofile, t , 'FIXME', tmpname],
-                         stdout=f.fileno())
+    argv = ['sh', '-e', dofile, t, 'FIXME', tmpname]
+    log('redo: %s%s\n' % (depth, t))
+    rv = subprocess.call(argv, stdout=f.fileno())
     st = os.stat(tmpname)
-    log('rv: %d (%d bytes) (%r)\n' % (rv, st.st_size, dofile))
+    #log('rv: %d (%d bytes) (%r)\n' % (rv, st.st_size, dofile))
     if rv==0 and st.st_size:
         os.rename(tmpname, t)
-        log('made %r\n' % t)
+        #log('made %r\n' % t)
     else:
         unlink(tmpname)
     f.close()
