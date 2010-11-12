@@ -7,6 +7,7 @@ optspec = """
 redo [targets...]
 --
 d,debug    print dependency checks as they happen
+v,verbose  print commands as they are run
 ifchange   only redo if the file is modified or deleted
 ifcreate   only redo if the file is created
 """
@@ -110,6 +111,8 @@ def build(t):
     unlink(tmpname)
     f = open(tmpname, 'w+')
     argv = ['sh', '-e', dofile, t, 'FIXME', tmpname]
+    if REDO_VERBOSE:
+        argv[1] += 'v'
     log('%s\n' % t)
     rv = subprocess.call(argv, stdout=f.fileno())
     st = os.stat(tmpname)
@@ -139,6 +142,11 @@ if opt.debug:
     os.putenv('REDO_DEBUG', '1')
 else:
     REDO_DEBUG = os.getenv('REDO_DEBUG', '') and 1 or 0
+if opt.verbose:
+    REDO_VERBOSE = 1
+    os.putenv('REDO_VERBOSE', '1')
+else:
+    REDO_VERBOSE = os.getenv('REDO_VERBOSE', '') and 1 or 0
 
 for t in targets:
     if REDO_TARGET:
