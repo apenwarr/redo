@@ -15,6 +15,15 @@ j,jobs=    maximum jobs to run at once
 _fds = None
 _tokens = {}
 _waitfds = {}
+_fake_token = 0
+
+
+def _release(n):
+    global _fake_token
+    if _fake_token:
+        _fake_token = 0
+        n -= 1
+    os.write(_fds[1], 't' * n)
 
 
 def setup(maxjobs):
@@ -36,9 +45,9 @@ def setup(maxjobs):
     if maxjobs and not _fds:
         # need to start a new server
         _fds = os.pipe()
-        os.write(_fds[1], 't' * maxjobs)
+        _release(maxjobs)
         os.putenv('MAKEFLAGS',
-                  '%s --jobserver-fds=%d,%d -j ' % (os.getenv('MAKEFLAGS'),
+                  '%s --jobserver-fds=%d,%d -j' % (os.getenv('MAKEFLAGS'),
                                                     _fds[0], _fds[1]))
 
 
@@ -53,7 +62,7 @@ def wait(want_token):
             pass
         else:
             p = _waitfds[fd]
-            os.write(_fds[1], 't' * _tokens[fd])
+            _release(_tokens[fd])
             b = os.read(fd, 1)
             #print 'read: %r' % b
             if b:
@@ -70,8 +79,14 @@ def wait_for_token():
     pfd = atoi(os.getenv('JWACK_PARENT_FD', ''))
     #print 'pfd is %d' % pfd
     if pfd:
-        #print 'wrote to pfd'
-        os.write(pfd, 'j')  # tell parent to give back his token
+        # tell parent jwack to give back his token
+        os.write(pfd, 'j')
+    else:
+        # parent is a "real" GNU make.  He'll assume we already have a token,
+        # so manufacture one and don't bother waiting.
+        global _fake_token
+        _fake_token = 1
+        return
     while 1:
         print 'waiting for tokens...'
         wait(want_token=1)
@@ -87,7 +102,7 @@ def wait_for_token():
                     raise
             if b:
                 break
-    print 'got a token.'
+    print 'got a token (%r).' % b
 
 
 def wait_all():
@@ -99,7 +114,7 @@ def force_return_tokens():
     n = sum(_tokens.values())
     print 'returning %d tokens' % n
     if _fds:
-        os.write(_fds[1], 't' * n)
+        _release(n)
         for k in _tokens.keys():
             _tokens[k] = 0
 
