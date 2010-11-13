@@ -1,10 +1,11 @@
 #!/usr/bin/python
 import sys, os, subprocess, glob, time
-import options
+import options, jwack
 
 optspec = """
 redo [targets...]
 --
+j,jobs=    maximum number of jobs to build at once
 d,debug    print dependency checks as they happen
 v,verbose  print commands as they are run
 """
@@ -34,8 +35,8 @@ if not os.environ.get('REDO_BASE', ''):
     # only do this from the toplevel redo process, so unless the user
     # deliberately starts more than one redo on the same repository, it's
     # sort of ok.
-    for f in glob.glob('%s/lock.*' % base):
-        unlink(f)
+    for f in glob.glob('%s/.redo/lock^*' % base):
+        os.unlink(f)
 
 import vars
 from helpers import *
@@ -120,20 +121,58 @@ def _build(t):
 
 
 def build(t):
+    mkdirp('%s/.redo' % vars.BASE)
     lockname = sname('lock', t)
     try:
         fd = os.open(lockname, os.O_CREAT|os.O_EXCL)
     except OSError, e:
         if e.errno == errno.EEXIST:
             log('%s (locked...)\n' % relpath(t, vars.STARTDIR))
-            raise BuildLocked(t)
+            os._exit(199)
         else:
             raise
     os.close(fd)
     try:
-        return _build(t)
+        try:
+            return _build(t)
+        except BuildError, e:
+            err('%s\n' % e)
+            os._exit(1)
     finally:
         unlink(lockname)
+
+
+def main():
+    retcode = 0
+    locked = {}
+    waits = {}
+    for t in targets:
+        if os.path.exists('%s/all.do' % t):
+            # t is a directory, but it has a default target
+            t = '%s/all' % t
+        waits[t] = jwack.start_job(t, lambda: build(t))
+    jwack.wait_all()
+    for t,pd in waits.items():
+        assert(pd.rv != None)
+        if pd.rv == 199:
+            # target was locked
+            locked[t] = 1
+        elif pd.rv:
+            err('%s: exit code was %r\n' % (t, pd.rv))
+            retcode = 1
+    while locked:
+        for t in locked.keys():
+            lockname = sname('lock', t)
+            stampname = sname('stamp', t)
+            if not os.path.exists(lockname):
+                relp = relpath(t, vars.STARTDIR)
+                log('%s (...unlocked!)\n' % relp)
+                if not os.path.exists(stampname):
+                    err('%s: failed in another thread\n' % relp)
+                    retcode = 2
+                del locked[t]
+        time.sleep(0.2)
+    return retcode
 
 
 if not vars.DEPTH:
@@ -145,32 +184,16 @@ if not vars.DEPTH:
     os.environ['PATH'] = ':'.join(dirnames) + ':' + os.environ['PATH']
 
 try:
-    retcode = 0
-    locked = {}
-    for t in targets:
-        if os.path.exists('%s/all.do' % t):
-            # t is a directory, but it has a default target
-            t = '%s/all' % t
-        mkdirp('%s/.redo' % vars.BASE)
-        try:
-            build(t)
-        except BuildError, e:
-            err('%s\n' % e)
-            retcode = 1
-        except BuildLocked, e:
-            locked[t] = 1
-    while locked:
-        for l in locked.keys():
-            lockname = sname('lock', t)
-            stampname = sname('stamp', t)
-            if not os.path.exists(lockname):
-                relp = relpath(t, vars.STARTDIR)
-                log('%s (...unlocked!)\n' % relp)
-                if not os.path.exists(stampname):
-                    err('%s: failed in another thread\n' % relp)
-                    retcode = 2
-                del locked[l]
-        time.sleep(0.2)
+    j = atoi(opt.jobs or 1)
+    if j < 1 or j > 1000:
+        err('invalid --jobs value: %r\n' % opt.jobs)
+    jwack.setup(j)
+    try:
+        retcode = main()
+    finally:
+        jwack.force_return_tokens()
+    if retcode:
+        err('exiting: %d\n' % retcode)
     sys.exit(retcode)
 except KeyboardInterrupt:
     sys.exit(200)
