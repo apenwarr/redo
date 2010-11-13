@@ -115,8 +115,8 @@ def stamp(t):
 
 
 def _preexec(t):
-    os.putenv('REDO_TARGET', t)
-    os.putenv('REDO_DEPTH', REDO_DEPTH + '  ')
+    os.environ['REDO_TARGET'] = t
+    os.environ['REDO_DEPTH'] = REDO_DEPTH + '  '
 
 
 def build(t):
@@ -157,15 +157,15 @@ def build(t):
 
 
 if opt.debug:
-    os.putenv('REDO_DEBUG', '1')
+    os.environ['REDO_DEBUG'] = '1'
 if opt.verbose:
-    os.putenv('REDO_VERBOSE', '1')
+    os.environ['REDO_VERBOSE'] = '1'
 assert(not (opt.ifchange and opt.ifcreate))
 
-if not os.getenv('REDO_BASE', ''):
+if not os.environ.get('REDO_BASE', ''):
     base = os.path.commonprefix([os.path.abspath(os.path.dirname(t))
                                  for t in targets])
-    os.putenv('REDO_BASE', base)
+    os.environ['REDO_BASE'] = base
     mkdirp('%s/.redo' % base)
 
 from vars import *
@@ -176,7 +176,7 @@ if not REDO_DEPTH:
     if exenames[0] == exenames[1]:
         exenames = [exenames[0]]
     dirnames = [os.path.dirname(p) for p in exenames]
-    os.putenv('PATH', ':'.join(dirnames) + ':' + os.getenv('PATH'))
+    os.environ['PATH'] = ':'.join(dirnames) + ':' + os.environ['PATH']
 
 for t in targets:
     if REDO_TARGET:
