@@ -11,7 +11,7 @@ v,verbose  print commands as they are run
 o = options.Options('redo', optspec)
 (opt, flags, extra) = o.parse(sys.argv[1:])
 
-targets = extra or ['it']
+targets = extra or ['all']
 
 if opt.debug:
     os.environ['REDO_DEBUG'] = '1'

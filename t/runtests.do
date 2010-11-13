@@ -1,2 +1,2 @@
-redo-ifchange it
+redo-ifchange all
 ./hello >&2

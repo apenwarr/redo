@@ -1,5 +1,5 @@
 . wvtest.sh
 
-redo t/it
+redo t/all
 WVSTART "t/runtests"
 WVPASS redo t/runtests

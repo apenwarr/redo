@@ -1,4 +1,4 @@
-it:
+all:
 
 %: FORCE
 	./redo $@
