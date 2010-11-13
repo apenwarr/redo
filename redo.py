@@ -1,5 +1,5 @@
 #!/usr/bin/python
-import sys, os, subprocess
+import sys, os, subprocess, glob, time
 import options
 
 optspec = """
@@ -30,11 +30,20 @@ if not os.environ.get('REDO_BASE', ''):
     os.environ['REDO_BASE'] = base
     os.environ['REDO_STARTDIR'] = os.getcwd()
 
+    # FIXME: just wiping out all the locks is kind of cheating.  But we
+    # only do this from the toplevel redo process, so unless the user
+    # deliberately starts more than one redo on the same repository, it's
+    # sort of ok.
+    for f in glob.glob('%s/lock.*' % base):
+        unlink(f)
+
 import vars
 from helpers import *
 
 
 class BuildError(Exception):
+    pass
+class BuildLocked(Exception):
     pass
 
 
@@ -71,7 +80,7 @@ def _preexec(t):
         os.chdir(dn)
 
 
-def build(t):
+def _build(t):
     unlink(sname('dep', t))
     open(sname('dep', t), 'w').close()
     dofile = find_do_file(t)
@@ -110,6 +119,23 @@ def build(t):
         raise BuildError('%s: exit code %d' % (t,rv))
 
 
+def build(t):
+    lockname = sname('lock', t)
+    try:
+        fd = os.open(lockname, os.O_CREAT|os.O_EXCL)
+    except OSError, e:
+        if e.errno == errno.EEXIST:
+            log('%s (locked...)\n' % relpath(t, vars.STARTDIR))
+            raise BuildLocked(t)
+        else:
+            raise
+    os.close(fd)
+    try:
+        return _build(t)
+    finally:
+        unlink(lockname)
+
+
 if not vars.DEPTH:
     # toplevel call to redo
     exenames = [os.path.abspath(sys.argv[0]), os.path.realpath(sys.argv[0])]
@@ -120,18 +146,31 @@ if not vars.DEPTH:
 
 try:
     retcode = 0
-    startdir = os.getcwd()
+    locked = {}
     for t in targets:
         if os.path.exists('%s/all.do' % t):
             # t is a directory, but it has a default target
             t = '%s/all' % t
         mkdirp('%s/.redo' % vars.BASE)
-        os.chdir(startdir)
         try:
             build(t)
         except BuildError, e:
             err('%s\n' % e)
             retcode = 1
+        except BuildLocked, e:
+            locked[t] = 1
+    while locked:
+        for l in locked.keys():
+            lockname = sname('lock', t)
+            stampname = sname('stamp', t)
+            if not os.path.exists(lockname):
+                relp = relpath(t, vars.STARTDIR)
+                log('%s (...unlocked!)\n' % relp)
+                if not os.path.exists(stampname):
+                    err('%s: failed in another thread\n' % relp)
+                    retcode = 2
+                del locked[l]
+        time.sleep(0.2)
     sys.exit(retcode)
 except KeyboardInterrupt:
     sys.exit(200)
