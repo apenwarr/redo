@@ -121,6 +121,9 @@ if not vars.DEPTH:
 retcode = 0
 startdir = os.getcwd()
 for t in targets:
+    if os.path.exists('%s/all.do' % t):
+        # t is a directory, but it has a default target
+        t = '%s/all' % t
     mkdirp('%s/.redo' % vars.BASE)
     os.chdir(startdir)
     try:
