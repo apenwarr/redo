@@ -39,15 +39,24 @@ def sname(typ, t):
     return REDO_BASE + ('/.redo/%s^%s' % (typ, tnew.replace('/', '^')))
 
 
-def log(s):
+def _log(s):
     sys.stdout.flush()
-    sys.stderr.write('redo: %s%s' % (REDO_DEPTH, s))
+    sys.stderr.write(s)
     sys.stderr.flush()
 
 
+def _clog(s):
+    _log('\x1b[32mredo: %s\x1b[1m%s\x1b[m' % (REDO_DEPTH, s))
+def _bwlog(s):
+    _log('redo: %s%s' % (REDO_DEPTH, s))
+if os.isatty(2):
+    log = _clog
+else:
+    log = _bwlog
+
 def debug(s):
     if REDO_DEBUG:
-        log(s)
+        _log('redo: %s%s' % (REDO_DEPTH, s))
 
 
 def add_dep(t, mode, dep):
