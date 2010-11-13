@@ -2,8 +2,6 @@
 import sys, os
 import vars
 from helpers import *
-from log import *
-from libdo import *
 
 
 def _dirty_deps(t, depth):

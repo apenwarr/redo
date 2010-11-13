@@ -1,4 +1,5 @@
 import sys, os, errno
+import vars
 
 
 def atoi(v):
@@ -39,3 +40,49 @@ def mkdirp(d, mode=None):
             raise
 
 
+def _log(s):
+    sys.stdout.flush()
+    sys.stderr.write(s)
+    sys.stderr.flush()
+
+
+def _clog(s):
+    _log('\x1b[32mredo: %s\x1b[1m%s\x1b[m' % (vars.DEPTH, s))
+def _bwlog(s):
+    _log('redo: %s%s' % (vars.DEPTH, s))
+if os.isatty(2):
+    log = _clog
+else:
+    log = _bwlog
+
+
+def debug(s):
+    if vars.DEBUG:
+        _log('redo: %s%s' % (vars.DEPTH, s))
+
+
+
+def relpath(t, base):
+    t = os.path.abspath(t)
+    tparts = t.split('/')
+    bparts = base.split('/')
+    for tp,bp in zip(tparts,bparts):
+        if tp != bp:
+            break
+        tparts.pop(0)
+        bparts.pop(0)
+    while bparts:
+        tparts.insert(0, '..')
+        bparts.pop(0)
+    return '/'.join(tparts)
+
+
+def sname(typ, t):
+    # FIXME: t.replace(...) is non-reversible and non-unique here!
+    tnew = relpath(t, vars.BASE)
+    #log('sname: (%r) %r -> %r\n' % (vars.BASE, t, tnew))
+    return vars.BASE + ('/.redo/%s^%s' % (typ, tnew.replace('/', '^')))
+
+
+def add_dep(t, mode, dep):
+    open(sname('dep', t), 'a').write('%s %s\n' % (mode, dep))

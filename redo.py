@@ -1,7 +1,6 @@
 #!/usr/bin/python
 import sys, os, subprocess
 import options
-from helpers import *
 
 optspec = """
 redo [targets...]
@@ -13,6 +12,25 @@ o = options.Options('redo', optspec)
 (opt, flags, extra) = o.parse(sys.argv[1:])
 
 targets = extra or ['it']
+
+if opt.debug:
+    os.environ['REDO_DEBUG'] = '1'
+if opt.verbose:
+    os.environ['REDO_VERBOSE'] = '1'
+
+if not os.environ.get('REDO_BASE', ''):
+    base = os.path.commonprefix([os.path.abspath(os.path.dirname(t))
+                                 for t in targets] + [os.getcwd()])
+    bsplit = base.split('/')
+    for i in range(len(bsplit)-1, 0, -1):
+        newbase = '%s/.redo' % '/'.join(bsplit[:i])
+        if os.path.exists(newbase):
+            base = newbase
+            break
+    os.environ['REDO_BASE'] = base
+
+import vars
+from helpers import *
 
 
 def find_do_file(t):
@@ -86,26 +104,6 @@ def build(t):
     if rv != 0:
         raise Exception('non-zero return code building %r' % t)
 
-
-if opt.debug:
-    os.environ['REDO_DEBUG'] = '1'
-if opt.verbose:
-    os.environ['REDO_VERBOSE'] = '1'
-
-if not os.environ.get('REDO_BASE', ''):
-    base = os.path.commonprefix([os.path.abspath(os.path.dirname(t))
-                                 for t in targets] + [os.getcwd()])
-    bsplit = base.split('/')
-    for i in range(len(bsplit)-1, 0, -1):
-        newbase = '%s/.redo' % '/'.join(bsplit[:i])
-        if os.path.exists(newbase):
-            base = newbase
-            break
-    os.environ['REDO_BASE'] = base
-
-import vars
-from log import *
-from libdo import *
 
 if not vars.DEPTH:
     # toplevel call to redo
