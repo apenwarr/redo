@@ -103,6 +103,9 @@ def dirty_deps(t, depth):
 
 def stamp(t):
     stampfile = sname('stamp', t)
+    if not os.path.exists(REDO_BASE + '/.redo'):
+        # .redo might not exist in a 'make clean' target
+        return
     open(stampfile, 'w').close()
     try:
         mtime = os.stat(t).st_mtime
