@@ -3,7 +3,11 @@
 	jwack jobserver
 		make compatibility
 		sockety interface
-	sqlite .redo database
+	sqlite .redo database?
 	rename --ifchange/--ifcreate to separate programs
 	rewrite ifchange/ifcreate in C
-	
+	always update database atomically?
+	find the right .repo dir automatically
+	cd into subdir automatically
+	'redo clean' should work
+	aggressively mark stuff as done in the .redo database

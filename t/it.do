@@ -1,1 +1,2 @@
-redo --ifchange hello
+redo --ifchange hello yellow bellow
+
