@@ -17,6 +17,23 @@ o = options.Options('redo', optspec)
 targets = extra or ['it']
 
 
+def sname(typ, t):
+    # FIXME: t.replace(...) is non-reversible and non-unique here!
+    t = os.path.abspath(t)
+    tparts = t.split('/')
+    bparts = REDO_BASE.split('/')
+    for tp,bp in zip(tparts,bparts):
+        if tp != bp:
+            break
+        tparts.pop(0)
+        bparts.pop(0)
+    while bparts:
+        tparts.insert(0, '..')
+        bparts.pop(0)
+    tnew = '/'.join(tparts)
+    return REDO_BASE + ('/.redo/%s^%s' % (typ, tnew.replace('/', '^')))
+
+
 def log(s):
     sys.stdout.flush()
     sys.stderr.write('redo: %s%s' % (REDO_DEPTH, s))
@@ -29,7 +46,7 @@ def debug(s):
 
 
 def add_dep(t, mode, dep):
-    open('.redo/dep.%s' % t, 'a').write('%s %s\n' % (mode, dep))
+    open(sname('dep', t), 'a').write('%s %s\n' % (mode, dep))
     
 
 def find_do_file(t):
@@ -46,11 +63,11 @@ def find_do_file(t):
 
 def _dirty_deps(t, depth):
     debug('%s?%s\n' % (depth, t))
-    if not os.path.exists('.redo/stamp.%s' % t):
+    if not os.path.exists(sname('stamp', t)):
         debug('%s-- DIRTY (no stamp)\n' % depth)
         return True
 
-    stamptime = os.stat('.redo/stamp.%s' % t).st_mtime
+    stamptime = os.stat(sname('stamp', t)).st_mtime
     try:
         realtime = os.stat(t).st_mtime
     except OSError:
@@ -60,7 +77,7 @@ def _dirty_deps(t, depth):
         debug('%s-- DIRTY (mtime)\n' % depth)
         return True
     
-    for sub in open('.redo/dep.%s' % t).readlines():
+    for sub in open(sname('dep', t)).readlines():
         assert(sub[0] in ('c','m'))
         assert(sub[1] == ' ')
         assert(sub[-1] == '\n')
@@ -79,13 +96,13 @@ def _dirty_deps(t, depth):
 
 def dirty_deps(t, depth):
     if _dirty_deps(t, depth):
-        unlink('.redo/stamp.%s' % t)  # short circuit future checks
+        unlink(sname('stamp', t))  # short circuit future checks
         return True
     return False
 
 
 def stamp(t):
-    stampfile = '.redo/stamp.%s' % t
+    stampfile = sname('stamp', t)
     open(stampfile, 'w').close()
     try:
         mtime = os.stat(t).st_mtime
@@ -100,8 +117,8 @@ def _preexec(t):
 
 
 def build(t):
-    unlink('.redo/dep.%s' % t)
-    open('.redo/dep.%s' % t, 'w').close()
+    unlink(sname('dep', t))
+    open(sname('dep', t), 'w').close()
     dofile = find_do_file(t)
     if not dofile:
         if os.path.exists(t):  # an existing source file
@@ -121,7 +138,7 @@ def build(t):
                          stdout=f.fileno())
     st = os.stat(tmpname)
     #log('rv: %d (%d bytes) (%r)\n' % (rv, st.st_size, dofile))
-    stampfile = '.redo/stamp.%s' % t
+    stampfile = sname('stamp', t)
     if rv==0:
         if st.st_size:
             os.rename(tmpname, t)
@@ -142,12 +159,13 @@ if opt.verbose:
     os.putenv('REDO_VERBOSE', '1')
 assert(not (opt.ifchange and opt.ifcreate))
 
-REDO_TARGET = os.getenv('REDO_TARGET', '')
-REDO_DEPTH = os.getenv('REDO_DEPTH', '')
-REDO_DEBUG = os.getenv('REDO_DEBUG', '') and 1 or 0
-REDO_VERBOSE = os.getenv('REDO_VERBOSE', '') and 1 or 0
+if not os.getenv('REDO_BASE', ''):
+    base = os.path.commonprefix([os.path.abspath(os.path.dirname(t))
+                                 for t in targets])
+    os.putenv('REDO_BASE', base)
+    mkdirp('%s/.redo' % base)
 
-mkdirp('.redo')
+from vars import *
 
 if not REDO_DEPTH:
     # toplevel call to redo
