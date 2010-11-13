@@ -1,7 +1,7 @@
 all:
 
 %: FORCE
-	./redo $@
+	+./redo $@
 
 .PHONY: FORCE
 

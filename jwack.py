@@ -65,6 +65,14 @@ def setup(maxjobs):
         b = _atoi(b)
         if a <= 0 or b <= 0:
             raise ValueError('invalid --jobserver-fds: %r' % arg)
+        try:
+            fcntl.fcntl(a, fcntl.F_GETFL)
+            fcntl.fcntl(b, fcntl.F_GETFL)
+        except IOError, e:
+            if e.errno == errno.EBADF:
+                raise ValueError('broken --jobserver-fds from make; prefix your Makefile rule with a "+"')
+            else:
+                raise
         _fds = (a,b)
     if maxjobs and not _fds:
         # need to start a new server
@@ -81,7 +89,7 @@ def wait(want_token):
     if _fds and want_token:
         rfds.append(_fds[0])
     r,w,x = select.select(rfds, [], [])
-    #print 'readable: %r' % r
+    _debug('_fds=%r; wfds=%r; readable: %r\n' % (_fds, _waitfds, r))
     for fd in r:
         if _fds and fd == _fds[0]:
             pass
