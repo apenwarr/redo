@@ -45,8 +45,8 @@ def dirty_deps(t, depth):
 
 
 if not vars.TARGET:
-    sys.stderr.write('redo-ifchange: error: must be run from inside a .do\n')
-    sys.exit(1)
+    err('redo-ifchange: error: must be run from inside a .do\n')
+    sys.exit(100)
 
 want_build = []
 for t in sys.argv[1:]:

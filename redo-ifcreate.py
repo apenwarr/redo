@@ -5,8 +5,8 @@ from helpers import *
 
 
 if not vars.TARGET:
-    sys.stderr.write('redo-ifcreate: error: must be run from inside a .do\n')
-    sys.exit(1)
+    err('redo-ifcreate: error: must be run from inside a .do\n')
+    sys.exit(100)
 
 for t in sys.argv[1:]:
     mkdirp('%s/.redo' % vars.BASE)

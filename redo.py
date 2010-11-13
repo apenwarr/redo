@@ -33,6 +33,10 @@ import vars
 from helpers import *
 
 
+class BuildError(Exception):
+    pass
+
+
 def find_do_file(t):
     dofile = '%s.do' % t
     if os.path.exists(dofile):
@@ -75,7 +79,7 @@ def build(t):
             stamp(t)
             return  # success
         else:
-            raise Exception('no rule to make %r' % t)
+            raise BuildError('no rule to make %r' % t)
     stamp(dofile)
     unlink(t)
     tmpname = '%s.redo.tmp' % t
@@ -102,7 +106,7 @@ def build(t):
         unlink(stampfile)
     f.close()
     if rv != 0:
-        raise Exception('non-zero return code building %r' % t)
+        raise BuildError('%s: exit code %d' % (t,rv))
 
 
 if not vars.DEPTH:
@@ -113,8 +117,14 @@ if not vars.DEPTH:
     dirnames = [os.path.dirname(p) for p in exenames]
     os.environ['PATH'] = ':'.join(dirnames) + ':' + os.environ['PATH']
 
+retcode = 0
 startdir = os.getcwd()
 for t in targets:
     mkdirp('%s/.redo' % vars.BASE)
     os.chdir(startdir)
-    build(t)
+    try:
+        build(t)
+    except BuildError, e:
+        err('%s\n' % e)
+        retcode = 1
+sys.exit(retcode)
