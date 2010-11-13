@@ -85,7 +85,8 @@ def build(t):
     tmpname = '%s.redo.tmp' % t
     unlink(tmpname)
     f = open(tmpname, 'w+')
-    argv = ['sh', '-e', os.path.basename(dofile),
+    argv = [os.environ.get('SHELL', 'sh'), '-e',
+            os.path.basename(dofile),
             os.path.basename(t), 'FIXME', os.path.basename(tmpname)]
     if vars.VERBOSE:
         argv[1] += 'v'
