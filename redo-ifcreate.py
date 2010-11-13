@@ -1,7 +1,7 @@
 #!/usr/bin/python
 import sys, os
 import vars
-from helpers import *
+from helpers import err, add_dep, mkdirp
 
 
 if not vars.TARGET:

@@ -1,7 +1,7 @@
 #!/usr/bin/python
 import sys, os
 import vars
-from helpers import *
+from helpers import sname, add_dep, debug, err, mkdirp, unlink
 
 
 def _dirty_deps(t, depth):
