@@ -117,7 +117,4 @@ startdir = os.getcwd()
 for t in targets:
     mkdirp('%s/.redo' % vars.BASE)
     os.chdir(startdir)
-    
-    if vars.TARGET:
-        add_dep(vars.TARGET, 'm', t)
     build(t)
