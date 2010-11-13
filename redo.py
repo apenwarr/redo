@@ -118,17 +118,20 @@ if not vars.DEPTH:
     dirnames = [os.path.dirname(p) for p in exenames]
     os.environ['PATH'] = ':'.join(dirnames) + ':' + os.environ['PATH']
 
-retcode = 0
-startdir = os.getcwd()
-for t in targets:
-    if os.path.exists('%s/all.do' % t):
-        # t is a directory, but it has a default target
-        t = '%s/all' % t
-    mkdirp('%s/.redo' % vars.BASE)
-    os.chdir(startdir)
-    try:
-        build(t)
-    except BuildError, e:
-        err('%s\n' % e)
-        retcode = 1
-sys.exit(retcode)
+try:
+    retcode = 0
+    startdir = os.getcwd()
+    for t in targets:
+        if os.path.exists('%s/all.do' % t):
+            # t is a directory, but it has a default target
+            t = '%s/all' % t
+        mkdirp('%s/.redo' % vars.BASE)
+        os.chdir(startdir)
+        try:
+            build(t)
+        except BuildError, e:
+            err('%s\n' % e)
+            retcode = 1
+    sys.exit(retcode)
+except KeyboardInterrupt:
+    sys.exit(200)

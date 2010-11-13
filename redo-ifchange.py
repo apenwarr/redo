@@ -48,12 +48,15 @@ if not vars.TARGET:
     err('redo-ifchange: error: must be run from inside a .do\n')
     sys.exit(100)
 
-want_build = []
-for t in sys.argv[1:]:
-    mkdirp('%s/.redo' % vars.BASE)
-    add_dep(vars.TARGET, 'm', t)
-    if dirty_deps(t, depth = ''):
-        want_build.append(t)
+try:
+    want_build = []
+    for t in sys.argv[1:]:
+        mkdirp('%s/.redo' % vars.BASE)
+        add_dep(vars.TARGET, 'm', t)
+        if dirty_deps(t, depth = ''):
+            want_build.append(t)
 
-if want_build:
-    os.execvp('redo', ['redo', '--'] + want_build)
+    if want_build:
+        os.execvp('redo', ['redo', '--'] + want_build)
+except KeyboardInterrupt:
+    sys.exit(200)
