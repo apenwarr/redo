@@ -32,14 +32,20 @@ def _release(n):
 
 
 def _try_read(fd, n):
+    # FIXME: this isn't actually safe, because GNU make can't handle it if
+    # the socket is nonblocking.  Ugh.  That means we'll have to do their
+    # horrible SIGCHLD hack after all.
     fcntl.fcntl(_fds[0], fcntl.F_SETFL, os.O_NONBLOCK)
     try:
-        b = os.read(_fds[0], 1)  # FIXME try: block
-    except OSError, e:
-        if e.errno == errno.EAGAIN:
-            return ''
-        else:
-            raise
+        try:
+            b = os.read(_fds[0], 1)
+        except OSError, e:
+            if e.errno == errno.EAGAIN:
+                return ''
+            else:
+                raise
+    finally:
+        fcntl.fcntl(_fds[0], fcntl.F_SETFL, 0)
     return b and b or None
 
 
