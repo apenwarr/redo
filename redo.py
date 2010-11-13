@@ -28,6 +28,7 @@ if not os.environ.get('REDO_BASE', ''):
             base = newbase
             break
     os.environ['REDO_BASE'] = base
+    os.environ['REDO_STARTDIR'] = os.getcwd()
 
 import vars
 from helpers import *
@@ -90,11 +91,10 @@ def build(t):
             os.path.basename(t), 'FIXME', os.path.basename(tmpname)]
     if vars.VERBOSE:
         argv[1] += 'v'
-    log('%s\n' % t)
+    log('%s\n' % relpath(t, vars.STARTDIR))
     rv = subprocess.call(argv, preexec_fn=lambda: _preexec(t),
                          stdout=f.fileno())
     st = os.stat(tmpname)
-    #log('rv: %d (%d bytes) (%r)\n' % (rv, st.st_size, dofile))
     stampfile = sname('stamp', t)
     if rv==0:
         if st.st_size:
