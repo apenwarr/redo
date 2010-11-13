@@ -1,5 +1,5 @@
 #!/usr/bin/python
-import sys, os, subprocess, glob, time
+import sys, os, subprocess, glob, time, random
 import options, jwack
 
 optspec = """
@@ -146,6 +146,7 @@ def main():
     retcode = 0
     locked = {}
     waits = {}
+    random.shuffle(targets)  # make it unpredictable for better testing
     for t in targets:
         if os.path.exists('%s/all.do' % t):
             # t is a directory, but it has a default target
