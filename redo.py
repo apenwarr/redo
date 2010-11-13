@@ -94,6 +94,11 @@ def stamp(t):
     os.utime(stampfile, (mtime, mtime))
 
 
+def _preexec(t):
+    os.putenv('REDO_TARGET', t)
+    os.putenv('REDO_DEPTH', REDO_DEPTH + '  ')
+
+
 def build(t):
     unlink('.redo/dep.%s' % t)
     open('.redo/dep.%s' % t, 'w').close()
@@ -105,8 +110,6 @@ def build(t):
         else:
             raise Exception('no rule to make %r' % t)
     unlink(t)
-    os.putenv('REDO_TARGET', t)
-    os.putenv('REDO_DEPTH', REDO_DEPTH + '  ')
     tmpname = '%s.redo.tmp' % t
     unlink(tmpname)
     f = open(tmpname, 'w+')
@@ -114,7 +117,8 @@ def build(t):
     if REDO_VERBOSE:
         argv[1] += 'v'
     log('%s\n' % t)
-    rv = subprocess.call(argv, stdout=f.fileno())
+    rv = subprocess.call(argv, preexec_fn=lambda: _preexec(t),
+                         stdout=f.fileno())
     st = os.stat(tmpname)
     #log('rv: %d (%d bytes) (%r)\n' % (rv, st.st_size, dofile))
     stampfile = '.redo/stamp.%s' % t
@@ -132,29 +136,26 @@ def build(t):
         raise Exception('non-zero return code building %r' % t)
 
 
+if opt.debug:
+    os.putenv('REDO_DEBUG', '1')
+if opt.verbose:
+    os.putenv('REDO_VERBOSE', '1')
 assert(not (opt.ifchange and opt.ifcreate))
 
-mkdirp('.redo')
 REDO_TARGET = os.getenv('REDO_TARGET', '')
 REDO_DEPTH = os.getenv('REDO_DEPTH', '')
+REDO_DEBUG = os.getenv('REDO_DEBUG', '') and 1 or 0
+REDO_VERBOSE = os.getenv('REDO_VERBOSE', '') and 1 or 0
+
+mkdirp('.redo')
 
 if not REDO_DEPTH:
+    # toplevel call to redo
     exenames = [os.path.abspath(sys.argv[0]), os.path.realpath(sys.argv[0])]
     if exenames[0] == exenames[1]:
         exenames = [exenames[0]]
     dirnames = [os.path.dirname(p) for p in exenames]
     os.putenv('PATH', ':'.join(dirnames) + ':' + os.getenv('PATH'))
-
-if opt.debug:
-    REDO_DEBUG = 1
-    os.putenv('REDO_DEBUG', '1')
-else:
-    REDO_DEBUG = os.getenv('REDO_DEBUG', '') and 1 or 0
-if opt.verbose:
-    REDO_VERBOSE = 1
-    os.putenv('REDO_VERBOSE', '1')
-else:
-    REDO_VERBOSE = os.getenv('REDO_VERBOSE', '') and 1 or 0
 
 for t in targets:
     if REDO_TARGET:
