@@ -17,11 +17,10 @@ o = options.Options('redo', optspec)
 targets = extra or ['it']
 
 
-def sname(typ, t):
-    # FIXME: t.replace(...) is non-reversible and non-unique here!
+def relpath(t, base):
     t = os.path.abspath(t)
     tparts = t.split('/')
-    bparts = REDO_BASE.split('/')
+    bparts = base.split('/')
     for tp,bp in zip(tparts,bparts):
         if tp != bp:
             break
@@ -30,7 +29,13 @@ def sname(typ, t):
     while bparts:
         tparts.insert(0, '..')
         bparts.pop(0)
-    tnew = '/'.join(tparts)
+    return '/'.join(tparts)
+
+
+def sname(typ, t):
+    # FIXME: t.replace(...) is non-reversible and non-unique here!
+    tnew = relpath(t, REDO_BASE)
+    #log('sname: (%r) %r -> %r\n' % (REDO_BASE, t, tnew))
     return REDO_BASE + ('/.redo/%s^%s' % (typ, tnew.replace('/', '^')))
 
 
@@ -117,6 +122,9 @@ def stamp(t):
 def _preexec(t):
     os.environ['REDO_TARGET'] = t
     os.environ['REDO_DEPTH'] = REDO_DEPTH + '  '
+    dn = os.path.dirname(t)
+    if dn:
+        os.chdir(dn)
 
 
 def build(t):
@@ -133,7 +141,8 @@ def build(t):
     tmpname = '%s.redo.tmp' % t
     unlink(tmpname)
     f = open(tmpname, 'w+')
-    argv = ['sh', '-e', dofile, t, 'FIXME', tmpname]
+    argv = ['sh', '-e', os.path.basename(dofile),
+            os.path.basename(t), 'FIXME', os.path.basename(tmpname)]
     if REDO_VERBOSE:
         argv[1] += 'v'
     log('%s\n' % t)
@@ -178,7 +187,10 @@ if not REDO_DEPTH:
     dirnames = [os.path.dirname(p) for p in exenames]
     os.environ['PATH'] = ':'.join(dirnames) + ':' + os.environ['PATH']
 
+startdir = os.getcwd()
 for t in targets:
+    os.chdir(startdir)
+    
     if REDO_TARGET:
         add_dep(REDO_TARGET, opt.ifcreate and 'c' or 'm', t)
     if opt.ifcreate:
