@@ -173,7 +173,13 @@ assert(not (opt.ifchange and opt.ifcreate))
 
 if not os.environ.get('REDO_BASE', ''):
     base = os.path.commonprefix([os.path.abspath(os.path.dirname(t))
-                                 for t in targets])
+                                 for t in targets] + [os.getcwd()])
+    bsplit = base.split('/')
+    for i in range(len(bsplit)-1, 0, -1):
+        newbase = '%s/.redo' % '/'.join(bsplit[:i])
+        if os.path.exists(newbase):
+            base = newbase
+            break
     os.environ['REDO_BASE'] = base
     mkdirp('%s/.redo' % base)
 
