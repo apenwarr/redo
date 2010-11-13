@@ -1,2 +1,2 @@
-redo --ifchange LD yellow.o
+redo-ifchange LD yellow.o
 ./LD bellow yellow.o
