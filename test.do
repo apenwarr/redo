@@ -1,3 +1,3 @@
-redo --ifchange it
-./hello >&2
+wvtestrun redo runtests >&2
+
 

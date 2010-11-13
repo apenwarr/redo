@@ -132,11 +132,19 @@ def build(t):
         raise Exception('non-zero return code building %r' % t)
 
 
+assert(not (opt.ifchange and opt.ifcreate))
+
 mkdirp('.redo')
 REDO_TARGET = os.getenv('REDO_TARGET', '')
 REDO_DEPTH = os.getenv('REDO_DEPTH', '')
 
-assert(not (opt.ifchange and opt.ifcreate))
+if not REDO_DEPTH:
+    exenames = [os.path.abspath(sys.argv[0]), os.path.realpath(sys.argv[0])]
+    if exenames[0] == exenames[1]:
+        exenames = [exenames[0]]
+    dirnames = [os.path.dirname(p) for p in exenames]
+    os.putenv('PATH', ':'.join(dirnames) + ':' + os.getenv('PATH'))
+
 if opt.debug:
     REDO_DEBUG = 1
     os.putenv('REDO_DEBUG', '1')
