@@ -34,29 +34,9 @@ def relpath(t, base):
 
 def sname(typ, t):
     # FIXME: t.replace(...) is non-reversible and non-unique here!
-    tnew = relpath(t, REDO_BASE)
-    #log('sname: (%r) %r -> %r\n' % (REDO_BASE, t, tnew))
-    return REDO_BASE + ('/.redo/%s^%s' % (typ, tnew.replace('/', '^')))
-
-
-def _log(s):
-    sys.stdout.flush()
-    sys.stderr.write(s)
-    sys.stderr.flush()
-
-
-def _clog(s):
-    _log('\x1b[32mredo: %s\x1b[1m%s\x1b[m' % (REDO_DEPTH, s))
-def _bwlog(s):
-    _log('redo: %s%s' % (REDO_DEPTH, s))
-if os.isatty(2):
-    log = _clog
-else:
-    log = _bwlog
-
-def debug(s):
-    if REDO_DEBUG:
-        _log('redo: %s%s' % (REDO_DEPTH, s))
+    tnew = relpath(t, vars.BASE)
+    #log('sname: (%r) %r -> %r\n' % (vars.BASE, t, tnew))
+    return vars.BASE + ('/.redo/%s^%s' % (typ, tnew.replace('/', '^')))
 
 
 def add_dep(t, mode, dep):
@@ -117,7 +97,7 @@ def dirty_deps(t, depth):
 
 def stamp(t):
     stampfile = sname('stamp', t)
-    if not os.path.exists(REDO_BASE + '/.redo'):
+    if not os.path.exists(vars.BASE + '/.redo'):
         # .redo might not exist in a 'make clean' target
         return
     open(stampfile, 'w').close()
@@ -130,7 +110,7 @@ def stamp(t):
 
 def _preexec(t):
     os.environ['REDO_TARGET'] = t
-    os.environ['REDO_DEPTH'] = REDO_DEPTH + '  '
+    os.environ['REDO_DEPTH'] = vars.DEPTH + '  '
     dn = os.path.dirname(t)
     if dn:
         os.chdir(dn)
@@ -152,7 +132,7 @@ def build(t):
     f = open(tmpname, 'w+')
     argv = ['sh', '-e', os.path.basename(dofile),
             os.path.basename(t), 'FIXME', os.path.basename(tmpname)]
-    if REDO_VERBOSE:
+    if vars.VERBOSE:
         argv[1] += 'v'
     log('%s\n' % t)
     rv = subprocess.call(argv, preexec_fn=lambda: _preexec(t),
@@ -191,9 +171,10 @@ if not os.environ.get('REDO_BASE', ''):
             break
     os.environ['REDO_BASE'] = base
 
-from vars import *
+import vars
+from log import *
 
-if not REDO_DEPTH:
+if not vars.DEPTH:
     # toplevel call to redo
     exenames = [os.path.abspath(sys.argv[0]), os.path.realpath(sys.argv[0])]
     if exenames[0] == exenames[1]:
@@ -203,11 +184,11 @@ if not REDO_DEPTH:
 
 startdir = os.getcwd()
 for t in targets:
-    mkdirp('%s/.redo' % REDO_BASE)
+    mkdirp('%s/.redo' % vars.BASE)
     os.chdir(startdir)
     
-    if REDO_TARGET:
-        add_dep(REDO_TARGET, opt.ifcreate and 'c' or 'm', t)
+    if vars.TARGET:
+        add_dep(vars.TARGET, opt.ifcreate and 'c' or 'm', t)
     if opt.ifcreate:
         pass # just adding the dependency (above) is enough
     elif opt.ifchange:
