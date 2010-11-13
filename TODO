@@ -1,0 +1,9 @@
+
+	.gitignore
+	jwack jobserver
+		make compatibility
+		sockety interface
+	sqlite .redo database
+	rename --ifchange/--ifcreate to separate programs
+	rewrite ifchange/ifcreate in C
+	

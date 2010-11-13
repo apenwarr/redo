@@ -1,6 +1,13 @@
 import sys, os, errno
 
 
+def atoi(v):
+    try:
+        return int(v or 0)
+    except ValueError:
+        return 0
+
+
 def unlink(f):
     """Delete a file at path 'f' if it currently exists.
 
