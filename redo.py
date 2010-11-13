@@ -190,7 +190,6 @@ if not os.environ.get('REDO_BASE', ''):
             base = newbase
             break
     os.environ['REDO_BASE'] = base
-    mkdirp('%s/.redo' % base)
 
 from vars import *
 
@@ -204,6 +203,7 @@ if not REDO_DEPTH:
 
 startdir = os.getcwd()
 for t in targets:
+    mkdirp('%s/.redo' % REDO_BASE)
     os.chdir(startdir)
     
     if REDO_TARGET:
