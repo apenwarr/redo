@@ -47,8 +47,10 @@ def _log(s):
 
 
 def _clog(s):
+    if vars.VERBOSE: _log('\n')
     _log('\x1b[32mredo: %s\x1b[1m%s\x1b[m' % (vars.DEPTH, s))
 def _bwlog(s):
+    if vars.VERBOSE: _log('\n')
     _log('redo: %s%s' % (vars.DEPTH, s))
 
 def _cerr(s):
