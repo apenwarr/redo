@@ -99,7 +99,8 @@ def _preexec(t):
 
 
 def _build(t):
-    if os.path.exists(t) and not os.path.exists(sname('gen', t)):
+    if (os.path.exists(t) and not os.path.exists(sname('gen', t))
+        and not os.path.exists('%s.do' % t)):
         # an existing source file that is not marked as a generated file.
         # This step is mentioned by djb in his notes.  It turns out to be
         # important to prevent infinite recursion.  For example, a rule
