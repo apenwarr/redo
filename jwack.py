@@ -2,6 +2,7 @@
 # beware the jobberwack
 #
 import sys, os, errno, select, fcntl
+import atoi
 
 _toplevel = 0
 _mytokens = 1
@@ -13,13 +14,6 @@ def _debug(s):
     if 0:
         sys.stderr.write('jwack#%d: %s' % (os.getpid(),s))
     
-
-def _atoi(v):
-    try:
-        return int(v or 0)
-    except ValueError:
-        return 0
-
 
 def _release(n):
     global _mytokens
@@ -60,8 +54,8 @@ def setup(maxjobs):
         s = flags[ofs+len(FIND):]
         (arg,junk) = s.split(' ', 1)
         (a,b) = arg.split(',', 1)
-        a = _atoi(a)
-        b = _atoi(b)
+        a = atoi.atoi(a)
+        b = atoi.atoi(b)
         if a <= 0 or b <= 0:
             raise ValueError('invalid --jobserver-fds: %r' % arg)
         try:

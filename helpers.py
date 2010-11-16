@@ -2,13 +2,6 @@ import sys, os, errno
 import vars
 
 
-def atoi(v):
-    try:
-        return int(v or 0)
-    except ValueError:
-        return 0
-
-
 def unlink(f):
     """Delete a file at path 'f' if it currently exists.
 
@@ -68,7 +61,10 @@ else:
 
 
 def debug(s):
-    if vars.DEBUG:
+    if vars.DEBUG >= 1:
+        _log('redo: %s%s' % (vars.DEPTH, s))
+def debug2(s):
+    if vars.DEBUG >= 2:
         _log('redo: %s%s' % (vars.DEPTH, s))
 
 

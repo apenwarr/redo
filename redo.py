@@ -1,6 +1,6 @@
 #!/usr/bin/python
 import sys, os, subprocess, glob, time, random
-import options, jwack
+import options, jwack, atoi
 
 optspec = """
 redo [targets...]
@@ -16,7 +16,7 @@ o = options.Options('redo', optspec)
 targets = extra or ['all']
 
 if opt.debug:
-    os.environ['REDO_DEBUG'] = '1'
+    os.environ['REDO_DEBUG'] = str(opt.debug or 0)
 if opt.verbose:
     os.environ['REDO_VERBOSE'] = '1'
 if opt.shuffle:
@@ -67,6 +67,7 @@ def _possible_do_files(t):
 
 def find_do_file(t):
     for dofile,basename,ext in _possible_do_files(t):
+        debug2('%s: %s ?\n' % (t, dofile))
         if os.path.exists(dofile):
             add_dep(t, 'm', dofile)
             return dofile,basename,ext
@@ -214,7 +215,7 @@ if not vars.DEPTH:
     os.environ['PATH'] = ':'.join(dirnames) + ':' + os.environ['PATH']
 
 try:
-    j = atoi(opt.jobs or 1)
+    j = atoi.atoi(opt.jobs or 1)
     if j < 1 or j > 1000:
         err('invalid --jobs value: %r\n' % opt.jobs)
     jwack.setup(j)
