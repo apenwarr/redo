@@ -20,10 +20,17 @@ fi
 _do()
 {
 	TARGET="$1"
-	DOFILE="$TARGET.do"
 	if [ ! -e "$TARGET" ]; then
 		printf '\033[32mdo  \033[1m%s\033[m\n' "$PWD/$TARGET" >&2
 		echo "$PWD/$TARGET" >>"$DO_BUILT"
+		dof=".$TARGET"
+		DOFILE="$TARGET.do"
+		while [ ! -e "$DOFILE" ]; do
+			dof2=$(echo "$dof" | sed 's/\.[^\.]*//')
+			[ "$dof" = "$dof2" ] && break
+			dof="$dof2"
+			DOFILE="default$dof.do"
+		done
 		set "$TARGET" "" "$TARGET.tmp"
 		( . "$PWD/$DOFILE" >"$TARGET.tmp" ) && 
 		mv "$TARGET.tmp" "$TARGET"
