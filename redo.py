@@ -62,7 +62,8 @@ def _possible_do_files(t):
         basename = '.'.join(l[:i])
         ext = '.'.join(l[i:])
         if ext: ext = '.' + ext
-        yield "default%s.do" % ext, basename, ext
+        yield (os.path.join(dirname, "default%s.do" % ext),
+               os.path.join(dirname, basename), ext)
 
 
 def find_do_file(t):
