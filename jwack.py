@@ -1,4 +1,3 @@
-#!/usr/bin/python
 #
 # beware the jobberwack
 #
