@@ -1,4 +1,4 @@
-. wvtest.sh
+. ./wvtest.sh
 
 redo t/all
 WVSTART "t/runtests"

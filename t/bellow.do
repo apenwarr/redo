@@ -1,3 +1,3 @@
 redo-ifchange LD yellow.o
-./LD bellow yellow.o
+./LD "$3" yellow.o
 ./sleep 2

@@ -30,6 +30,7 @@ if not os.environ.get('REDO_BASE', ''):
             break
     os.environ['REDO_BASE'] = base
     os.environ['REDO_STARTDIR'] = os.getcwd()
+    os.environ['REDO'] = os.path.abspath(sys.argv[0])
 
     # FIXME: just wiping out all the locks is kind of cheating.  But we
     # only do this from the toplevel redo process, so unless the user
