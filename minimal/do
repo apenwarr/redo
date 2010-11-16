@@ -20,15 +20,15 @@ fi
 _do()
 {
 	TARGET="$1"
-	DOFILE="$1.do"
+	DOFILE="$TARGET.do"
 	if [ ! -e "$TARGET" ]; then
 		printf '\033[32mdo  \033[1m%s\033[m\n' "$PWD/$TARGET" >&2
 		echo "$PWD/$TARGET" >>"$DO_BUILT"
-		set "$TARGET" FIXME "$TARGET.tmp"
+		set "$TARGET" "" "$TARGET.tmp"
 		( . "$PWD/$DOFILE" >"$TARGET.tmp" ) && 
 		mv "$TARGET.tmp" "$TARGET"
 	else
-		echo "$1 exists." >&2
+		echo "$TARGET exists." >&2
 	fi
 }
 
@@ -36,6 +36,9 @@ _do()
 redo()
 {
 	for i in "$@"; do
+		if [ -e "$i/." ]; then
+			i="$i/all"
+		fi
 		D="$(dirname "$i")"
 		B="$(basename "$i")"
 		( cd "$D" && _do "$B" )
