@@ -83,12 +83,17 @@ def relpath(t, base):
     return '/'.join(tparts)
 
 
-def sname(typ, t):
+def sname(typ, t, fromdir=None):
     # FIXME: t.replace(...) is non-reversible and non-unique here!
+    if fromdir:
+        t = os.path.join(fromdir, t)
     tnew = relpath(t, vars.BASE)
-    #log('sname: (%r) %r -> %r\n' % (vars.BASE, t, tnew))
-    return vars.BASE + ('/.redo/%s^%s' % (typ, tnew.replace('/', '^')))
+    v = vars.BASE + ('/.redo/%s^%s' % (typ, tnew.replace('/', '^')))
+    debug2('sname: (%r) %r -> %r\n' % (os.getcwd(), t, tnew))
+    return v
 
 
 def add_dep(t, mode, dep):
-    open(sname('dep', t), 'a').write('%s %s\n' % (mode, dep))
+    debug2('add-dep(%r)\n' % t)
+    open(sname('dep', t), 'a').write('%s %s\n'
+                                     % (mode, relpath(dep, vars.BASE)))

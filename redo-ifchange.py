@@ -4,15 +4,15 @@ import vars
 from helpers import sname, add_dep, debug, err, mkdirp, unlink
 
 
-def _dirty_deps(t, depth):
+def _dirty_deps(t, depth, fromdir):
     debug('%s?%s\n' % (depth, t))
-    if not os.path.exists(sname('stamp', t)):
+    if not os.path.exists(sname('stamp', t, fromdir)):
         debug('%s-- DIRTY (no stamp)\n' % depth)
         return True
 
-    stamptime = os.stat(sname('stamp', t)).st_mtime
+    stamptime = os.stat(sname('stamp', t, fromdir)).st_mtime
     try:
-        realtime = os.stat(t).st_mtime
+        realtime = os.stat(os.path.join(fromdir or '', t)).st_mtime
     except OSError:
         realtime = 0
 
@@ -20,7 +20,7 @@ def _dirty_deps(t, depth):
         debug('%s-- DIRTY (mtime)\n' % depth)
         return True
     
-    for sub in open(sname('dep', t)).readlines():
+    for sub in open(sname('dep', t, fromdir)).readlines():
         assert(sub[0] in ('c','m'))
         assert(sub[1] == ' ')
         assert(sub[-1] == '\n')
@@ -31,15 +31,15 @@ def _dirty_deps(t, depth):
                 debug('%s-- DIRTY (created)\n' % depth)
                 return True
         elif mode == 'm':
-            if dirty_deps(name, depth + '  '):
+            if dirty_deps(name, depth + '  ', fromdir=vars.BASE):
                 #debug('%s-- DIRTY (sub)\n' % depth)
                 return True
     return False
 
 
-def dirty_deps(t, depth):
-    if _dirty_deps(t, depth):
-        unlink(sname('stamp', t))  # short circuit future checks
+def dirty_deps(t, depth, fromdir=None):
+    if _dirty_deps(t, depth, fromdir):
+        unlink(sname('stamp', t, fromdir))  # short circuit future checks
         return True
     return False
 

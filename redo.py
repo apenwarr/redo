@@ -93,7 +93,7 @@ def stamp(t):
 
 
 def _preexec(t):
-    os.environ['REDO_TARGET'] = t
+    os.environ['REDO_TARGET'] = os.path.basename(t)
     os.environ['REDO_DEPTH'] = vars.DEPTH + '  '
     dn = os.path.dirname(t)
     if dn:
