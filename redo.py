@@ -42,6 +42,7 @@ if not os.environ.get('REDO_BASE', ''):
     for f in glob.glob('%s/.redo/lock^*' % base):
         os.unlink(f)
 
+
 import vars
 from helpers import *
 
@@ -52,14 +53,26 @@ class BuildLocked(Exception):
     pass
 
 
+def _possible_do_files(t):
+    yield "%s.do" % t, t, ''
+    dirname,filename = os.path.split(t)
+    l = filename.split('.')
+    l[0] = os.path.join(dirname, l[0])
+    for i in range(1,len(l)+1):
+        basename = '.'.join(l[:i])
+        ext = '.'.join(l[i:])
+        if ext: ext = '.' + ext
+        yield "default%s.do" % ext, basename, ext
+
+
 def find_do_file(t):
-    dofile = '%s.do' % t
-    if os.path.exists(dofile):
-        add_dep(t, 'm', dofile)
-        return dofile
-    else:
-        add_dep(t, 'c', dofile)
-        return None
+    for dofile,basename,ext in _possible_do_files(t):
+        if os.path.exists(dofile):
+            add_dep(t, 'm', dofile)
+            return dofile,basename,ext
+        else:
+            add_dep(t, 'c', dofile)
+    return None,None,None
 
 
 def stamp(t):
@@ -86,23 +99,33 @@ def _preexec(t):
 
 
 def _build(t):
+    if os.path.exists(t) and not os.path.exists(sname('gen', t)):
+        # an existing source file that is not marked as a generated file.
+        # This step is mentioned by djb in his notes.  It turns out to be
+        # important to prevent infinite recursion.  For example, a rule
+        # called default.o.do could be used to try to produce hello.c.o,
+        # which is stupid since hello.c is a static file.
+        stamp(t)
+        return  # success
     unlink(sname('dep', t))
     open(sname('dep', t), 'w').close()
-    dofile = find_do_file(t)
+    open(sname('gen', t), 'w').close()  # it's definitely a generated file
+    (dofile, basename, ext) = find_do_file(t)
     if not dofile:
-        if os.path.exists(t):  # an existing source file
-            stamp(t)
-            return  # success
-        else:
-            raise BuildError('no rule to make %r' % t)
+        raise BuildError('no rule to make %r' % t)
     stamp(dofile)
     unlink(t)
     tmpname = '%s.redo.tmp' % t
     unlink(tmpname)
     f = open(tmpname, 'w+')
+
+    # this will run in the dofile's directory, so use only basenames here
     argv = ['sh', '-e',
             os.path.basename(dofile),
-            os.path.basename(t), 'FIXME', os.path.basename(tmpname)]
+            os.path.basename(basename),  # target name (extension removed)
+            ext,  # extension (if any), including leading dot
+            os.path.basename(tmpname)  # randomized output file name
+            ]
     if vars.VERBOSE:
         argv[1] += 'v'
     log('%s\n' % relpath(t, vars.STARTDIR))
