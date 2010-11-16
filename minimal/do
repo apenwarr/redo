@@ -19,9 +19,11 @@ fi
 
 _do()
 {
-	TARGET="$1"
+	DIR="$1"
+	TARGET="$2"
 	if [ ! -e "$TARGET" ]; then
-		printf '\033[32mdo  \033[1m%s\033[m\n' "$PWD/$TARGET" >&2
+		printf '\033[32mdo  %s\033[1m%s\033[m\n' \
+			"$DO_DEPTH" "$DIR$TARGET" >&2
 		echo "$PWD/$TARGET" >>"$DO_BUILT"
 		dof=".$TARGET"
 		DOFILE="$TARGET.do"
@@ -32,10 +34,13 @@ _do()
 			DOFILE="default$dof.do"
 		done
 		set "$TARGET" "" "$TARGET.tmp"
-		( . "$PWD/$DOFILE" >"$TARGET.tmp" ) && 
+		( 
+			export DO_DEPTH="$DO_DEPTH  "
+			. "$PWD/$DOFILE" >"$TARGET.tmp"
+		) && 
 		mv "$TARGET.tmp" "$TARGET"
 	else
-		echo "$TARGET exists." >&2
+		echo "do  $DO_DEPTH$TARGET exists." >&2
 	fi
 }
 
@@ -46,9 +51,10 @@ redo()
 		if [ -e "$i/." ]; then
 			i="$i/all"
 		fi
-		D="$(dirname "$i")"
+		D="$(dirname "$i")/"
+		[ "$D" = "./" ] && D=""
 		B="$(basename "$i")"
-		( cd "$D" && _do "$B" )
+		( cd "$D" && _do "$D" "$B" )
 	done
 }
 
