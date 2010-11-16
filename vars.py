@@ -4,6 +4,7 @@ TARGET = os.environ.get('REDO_TARGET', '')
 DEPTH = os.environ.get('REDO_DEPTH', '')
 DEBUG = os.environ.get('REDO_DEBUG', '') and 1 or 0
 VERBOSE = os.environ.get('REDO_VERBOSE', '') and 1 or 0
+SHUFFLE = os.environ.get('REDO_SHUFFLE', '') and 1 or 0
 STARTDIR = os.environ.get('REDO_STARTDIR', '')
 BASE = os.environ.get('REDO_BASE', '')
 if BASE:

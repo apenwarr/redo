@@ -8,6 +8,7 @@ redo [targets...]
 j,jobs=    maximum number of jobs to build at once
 d,debug    print dependency checks as they happen
 v,verbose  print commands as they are run
+shuffle    randomize the build order to find dependency bugs
 """
 o = options.Options('redo', optspec)
 (opt, flags, extra) = o.parse(sys.argv[1:])
@@ -18,6 +19,8 @@ if opt.debug:
     os.environ['REDO_DEBUG'] = '1'
 if opt.verbose:
     os.environ['REDO_VERBOSE'] = '1'
+if opt.shuffle:
+    os.environ['REDO_SHUFFLE'] = '1'
 
 if not os.environ.get('REDO_BASE', ''):
     base = os.path.commonprefix([os.path.abspath(os.path.dirname(t))
@@ -147,7 +150,8 @@ def main():
     retcode = 0
     locked = {}
     waits = {}
-    random.shuffle(targets)  # make it unpredictable for better testing
+    if vars.SHUFFLE:
+        random.shuffle(targets)
     for t in targets:
         if os.path.exists('%s/all.do' % t):
             # t is a directory, but it has a default target
