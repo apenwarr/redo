@@ -165,9 +165,9 @@ def build(t):
             return _build(t)
         except BuildError, e:
             err('%s\n' % e)
-            os._exit(1)
     finally:
         unlink(lockname)
+    os._exit(1)
 
 
 def main():
