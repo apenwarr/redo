@@ -1,0 +1,2 @@
+redo-ifchange CC
+. ./CC "$@"
