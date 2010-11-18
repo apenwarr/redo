@@ -134,10 +134,12 @@ def _build(t):
     log('%s\n' % relpath(t, vars.STARTDIR))
     rv = subprocess.call(argv, preexec_fn=lambda: _preexec(t),
                          stdout=f.fileno())
-    st = os.stat(tmpname)
     stampfile = sname('stamp', t)
     if rv==0:
-        if st.st_size:
+        if os.path.exists(tmpname) and os.stat(tmpname).st_size:
+            # there's a race condition here, but if the tmpfile disappears
+            # at *this* point you deserve to get an error, because you're
+            # doing something totally scary.
             os.rename(tmpname, t)
         else:
             unlink(tmpname)

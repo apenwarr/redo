@@ -38,7 +38,7 @@ _do()
 			export DO_DEPTH="$DO_DEPTH  "
 			. "$PWD/$DOFILE" >"$TARGET.tmp"
 		) && 
-		mv "$TARGET.tmp" "$TARGET"
+		mv "$TARGET.tmp" "$TARGET" 2>/dev/null || touch "$TARGET"
 	else
 		echo "do  $DO_DEPTH$TARGET exists." >&2
 	fi
