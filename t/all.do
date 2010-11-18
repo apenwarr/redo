@@ -1,3 +1,3 @@
-redo-ifchange hello yellow bellow c d deltest deltest2
+redo-ifchange hello yellow bellow c d
 
 

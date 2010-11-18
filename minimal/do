@@ -4,14 +4,13 @@
 # For the full version, visit http://github.com/apenwarr/redo
 #
 export REDO="$(dirname "$0")/$(basename "$0")"
-IFS="
-"
 
 if [ -z "$DO_BUILT" ]; then
 	export DO_BUILT="$PWD/.do_built"
 	if [ -e "$DO_BUILT" ]; then
 		echo "Removing previously built files..." >&2
-		sort "$DO_BUILT" | uniq | tee "$DO_BUILT.new" | xargs rm -f
+		sort "$DO_BUILT" | uniq | tee "$DO_BUILT.new" |
+		while read f; do rm -f "$f"; done
 		mv "$DO_BUILT.new" "$DO_BUILT"
 	fi
 fi
@@ -27,18 +26,29 @@ _do()
 		echo "$PWD/$TARGET" >>"$DO_BUILT"
 		dof=".$TARGET"
 		DOFILE="$TARGET.do"
+		BASE="$TARGET"
+		EXT=""
 		while [ ! -e "$DOFILE" ]; do
 			dof2=$(echo "$dof" | sed 's/\.[^\.]*//')
 			[ "$dof" = "$dof2" ] && break
 			dof="$dof2"
 			DOFILE="default$dof.do"
+			BASE="$(basename "$TARGET" "$dof")"
+			EXT="$dof"
 		done
-		set "$TARGET" "" "$TARGET.tmp"
+		set "$BASE" "$EXT" "$TARGET.tmp"
+		RV=
 		( 
 			export DO_DEPTH="$DO_DEPTH  "
+			set -e
 			. "$PWD/$DOFILE" >"$TARGET.tmp"
-		) && 
-		mv "$TARGET.tmp" "$TARGET" 2>/dev/null || touch "$TARGET"
+		) || RV="$?"
+		[ -z "$RV" ] && mv "$TARGET.tmp" "$TARGET" 2>/dev/null
+		: >>"$TARGET"
+		if [ -n "$RV" ]; then
+			printf "do: %s%s\n" "$DO_DEPTH" "got exit code $RV" >&2
+			exit $RV
+		fi
 	else
 		echo "do  $DO_DEPTH$TARGET exists." >&2
 	fi
@@ -54,7 +64,7 @@ redo()
 		D="$(dirname "$i")/"
 		[ "$D" = "./" ] && D=""
 		B="$(basename "$i")"
-		( cd "$D" && _do "$D" "$B" )
+		( cd "$D" && _do "$D" "$B" ) || exit $?
 	done
 }
 
