@@ -103,7 +103,6 @@ def _build(t):
     if not dofile:
         raise BuildError('no rule to make %r' % t)
     state.stamp(dofile)
-    unlink(t)
     tmpname = '%s.redo.tmp' % t
     unlink(tmpname)
     f = open(tmpname, 'w+')
@@ -190,10 +189,10 @@ def main():
             if state.stamped(t) == None:
                 err('%s: failed in another thread\n' % relp)
                 retcode[0] = 2
+                l.unlock()
+            else:
                 l.unlock()  # build() reacquires it
                 jwack.start_job(t, lambda: build(t), lambda t,rv: done(t,rv))
-            else:
-                l.unlock()
     return retcode[0]
 
 
