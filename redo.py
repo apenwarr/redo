@@ -131,6 +131,7 @@ def _build(t):
             ]
     if vars.VERBOSE:
         argv[1] += 'v'
+        log_('\n')
     log('%s\n' % relpath(t, vars.STARTDIR))
     rv = subprocess.call(argv, preexec_fn=lambda: _preexec(t),
                          stdout=f.fileno())
@@ -150,6 +151,8 @@ def _build(t):
     f.close()
     if rv != 0:
         raise BuildError('%s: exit code %d' % (t,rv))
+    if vars.VERBOSE:
+        log('%s (done)\n\n' % relpath(t, vars.STARTDIR))
 
 
 def build(t):

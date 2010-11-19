@@ -33,23 +33,21 @@ def mkdirp(d, mode=None):
             raise
 
 
-def _log(s):
+def log_(s):
     sys.stdout.flush()
     sys.stderr.write(s)
     sys.stderr.flush()
 
 
 def _clog(s):
-    if vars.VERBOSE: _log('\n')
-    _log('\x1b[32mredo  %s\x1b[1m%s\x1b[m' % (vars.DEPTH, s))
+    log_('\x1b[32mredo  %s\x1b[1m%s\x1b[m' % (vars.DEPTH, s))
 def _bwlog(s):
-    if vars.VERBOSE: _log('\n')
-    _log('redo  %s%s' % (vars.DEPTH, s))
+    log_('redo  %s%s' % (vars.DEPTH, s))
 
 def _cerr(s):
-    _log('\x1b[31mredo: %s\x1b[1m%s\x1b[m' % (vars.DEPTH, s))
+    log_('\x1b[31mredo: %s\x1b[1m%s\x1b[m' % (vars.DEPTH, s))
 def _bwerr(s):
-    _log('redo: %s%s' % (vars.DEPTH, s))
+    log_('redo: %s%s' % (vars.DEPTH, s))
 
 
 if os.isatty(2):
@@ -62,10 +60,10 @@ else:
 
 def debug(s):
     if vars.DEBUG >= 1:
-        _log('redo: %s%s' % (vars.DEPTH, s))
+        log_('redo: %s%s' % (vars.DEPTH, s))
 def debug2(s):
     if vars.DEBUG >= 2:
-        _log('redo: %s%s' % (vars.DEPTH, s))
+        log_('redo: %s%s' % (vars.DEPTH, s))
 
 
 def relpath(t, base):
