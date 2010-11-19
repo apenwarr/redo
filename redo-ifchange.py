@@ -46,7 +46,6 @@ if not vars.TARGET:
 try:
     want_build = []
     for t in sys.argv[1:]:
-        mkdirp('%s/.redo' % vars.BASE)
         state.add_dep(vars.TARGET, 'm', t)
         if dirty_deps(t, depth = ''):
             want_build.append(t)

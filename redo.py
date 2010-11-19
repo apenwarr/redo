@@ -22,7 +22,9 @@ if opt.verbose:
 if opt.shuffle:
     os.environ['REDO_SHUFFLE'] = '1'
 
+is_root = False
 if not os.environ.get('REDO_BASE', ''):
+    is_root = True
     base = os.path.commonprefix([os.path.abspath(os.path.dirname(t))
                                  for t in targets] + [os.getcwd()])
     bsplit = base.split('/')
@@ -35,16 +37,19 @@ if not os.environ.get('REDO_BASE', ''):
     os.environ['REDO_STARTDIR'] = os.getcwd()
     os.environ['REDO'] = os.path.abspath(sys.argv[0])
 
+
+import vars, state
+from helpers import *
+
+
+if is_root:
     # FIXME: just wiping out all the locks is kind of cheating.  But we
     # only do this from the toplevel redo process, so unless the user
     # deliberately starts more than one redo on the same repository, it's
     # sort of ok.
+    mkdirp('%s/.redo' % base)
     for f in glob.glob('%s/.redo/lock^*' % base):
         os.unlink(f)
-
-
-import vars, state
-from helpers import *
 
 
 class BuildError(Exception):
@@ -139,7 +144,6 @@ def _build(t):
 
 
 def build(t):
-    mkdirp('%s/.redo' % vars.BASE)
     lock = state.Lock(t)
     lock.lock()
     if not lock.owned:
