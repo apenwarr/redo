@@ -174,7 +174,8 @@ def start_job(reason, jobfunc):
                 jobfunc()
                 os._exit(0)
             except Exception, e:
-                sys.stderr.write("Exception: %s\n" % e)
+                import traceback
+                traceback.print_exc()
         finally:
             os._exit(201)
     # else we're the parent process
