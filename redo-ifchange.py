@@ -1,6 +1,6 @@
 #!/usr/bin/python
 import sys, os, errno
-import vars, state
+import vars, state, builder
 from helpers import debug, err, mkdirp, unlink
 
 
@@ -39,10 +39,16 @@ def dirty_deps(t, depth, fromdir=None):
     return False
 
 
+def maybe_build(t):
+    if dirty_deps(t, depth = ''):
+        builder.build(t)
+
+
 if not vars.TARGET:
     err('redo-ifchange: error: must be run from inside a .do\n')
     sys.exit(100)
 
+rv = 202
 try:
     want_build = []
     for t in sys.argv[1:]:
@@ -50,7 +56,7 @@ try:
         if dirty_deps(t, depth = ''):
             want_build.append(t)
 
-    if want_build:
-        os.execvp('redo', ['redo', '--'] + want_build)
+    rv = builder.main(want_build, maybe_build)
 except KeyboardInterrupt:
     sys.exit(200)
+sys.exit(rv)
