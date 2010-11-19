@@ -1,16 +1,20 @@
 #!/usr/bin/python
-import sys, os
+import sys, os, errno
 import vars
 from helpers import sname, add_dep, debug, err, mkdirp, unlink
 
 
 def _dirty_deps(t, depth, fromdir):
     debug('%s?%s\n' % (depth, t))
-    if not os.path.exists(sname('stamp', t, fromdir)):
-        debug('%s-- DIRTY (no stamp)\n' % depth)
-        return True
+    try:
+        stamptime = os.stat(sname('stamp', t, fromdir)).st_mtime
+    except OSError, e:
+        if e.errno == errno.ENOENT:
+            debug('%s-- DIRTY (no stamp)\n' % depth)
+            return True
+        else:
+            raise
 
-    stamptime = os.stat(sname('stamp', t, fromdir)).st_mtime
     try:
         realtime = os.stat(os.path.join(fromdir or '', t)).st_mtime
     except OSError:

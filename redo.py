@@ -79,17 +79,19 @@ def find_do_file(t):
 
 def stamp(t):
     stampfile = sname('stamp', t)
+    newstampfile = sname('stamp' + str(os.getpid()), t)
     depfile = sname('dep', t)
     if not os.path.exists(vars.BASE + '/.redo'):
         # .redo might not exist in a 'make clean' target
         return
-    open(stampfile, 'w').close()
-    open(depfile, 'a').close()
+    open(newstampfile, 'w').close()
     try:
         mtime = os.stat(t).st_mtime
     except OSError:
         mtime = 0
-    os.utime(stampfile, (mtime, mtime))
+    os.utime(newstampfile, (mtime, mtime))
+    os.rename(newstampfile, stampfile)
+    open(depfile, 'a').close()
 
 
 def _preexec(t):
@@ -106,8 +108,8 @@ def _build(t):
         # an existing source file that is not marked as a generated file.
         # This step is mentioned by djb in his notes.  It turns out to be
         # important to prevent infinite recursion.  For example, a rule
-        # called default.o.do could be used to try to produce hello.c.o,
-        # which is stupid since hello.c is a static file.
+        # called default.c.do could be used to try to produce hello.c,
+        # which is undesirable since hello.c existed already.
         stamp(t)
         return  # success
     unlink(sname('dep', t))
