@@ -1,7 +1,7 @@
 *~
 *.pyc
 *.tmp
-.redo
+/.redo
 t/CC
 t/LD
 t/[yb]ellow
