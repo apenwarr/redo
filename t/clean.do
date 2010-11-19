@@ -1,2 +1,2 @@
-redo example/clean
+redo example/clean curse/clean
 rm -f c c.c c.c.c c.c.c.b c.c.c.b.b d
