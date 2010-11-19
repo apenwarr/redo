@@ -140,22 +140,14 @@ def _build(t):
 
 
 def build(t):
-    lock = state.Lock(t)
-    lock.trylock()
-    if not lock.owned:
-        log('%s (locked...)\n' % relpath(t, vars.STARTDIR))
-        os._exit(199)
     try:
-        try:
-            return _build(t)
-        except BuildError, e:
-            err('%s\n' % e)
-    finally:
-        lock.unlock()
-    os._exit(1)
+        return _build(t)
+    except BuildError, e:
+        err('%s\n' % e)
+    return 1
 
 
-def main():
+def main(targets, buildfunc):
     retcode = [0]  # a list so that it can be reassigned from done()
     if vars.SHUFFLE:
         random.shuffle(targets)
@@ -169,30 +161,41 @@ def main():
             err('%s: exit code was %r\n' % (t, rv))
             retcode[0] = 1
 
-    for t in targets:
+    for i in range(len(targets)):
+        t = targets[i]
         if os.path.exists('%s/all.do' % t):
             # t is a directory, but it has a default target
-            t = '%s/all' % t
-        tt = t
-        jwack.start_job(t, lambda: build(t), lambda t,rv: done(t,rv))
+            targets[i] = '%s/all' % t
+    
+    for t in targets:
+        jwack.get_token(t)
+        lock = state.Lock(t)
+        lock.trylock()
+        if not lock.owned:
+            log('%s (locked...)\n' % relpath(t, vars.STARTDIR))
+            locked.append(t)
+        else:
+            jwack.start_job(t, lock,
+                            lambda: buildfunc(t), lambda t,rv: done(t,rv))
+    
     while locked or jwack.running():
         jwack.wait_all()
         if locked:
             t = locked.pop(0)
-            l = state.Lock(t)
-            while not l.owned:
-                l.wait()
-                l.trylock()
-            assert(l.owned)
+            lock = state.Lock(t)
+            while not lock.owned:
+                lock.wait()
+                lock.trylock()
+            assert(lock.owned)
             relp = relpath(t, vars.STARTDIR)
             log('%s (...unlocked!)\n' % relp)
             if state.stamped(t) == None:
                 err('%s: failed in another thread\n' % relp)
                 retcode[0] = 2
-                l.unlock()
+                lock.unlock()
             else:
-                l.unlock()  # build() reacquires it
-                jwack.start_job(t, lambda: build(t), lambda t,rv: done(t,rv))
+                jwack.start_job(t, lock, 
+                                lambda: buildfunc(t), lambda t,rv: done(t,rv))
     return retcode[0]
 
 
@@ -210,7 +213,7 @@ try:
         err('invalid --jobs value: %r\n' % opt.jobs)
     jwack.setup(j)
     try:
-        retcode = main()
+        retcode = main(targets, build)
     finally:
         jwack.force_return_tokens()
     if retcode:

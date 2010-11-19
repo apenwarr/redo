@@ -105,10 +105,10 @@ def wait(want_token):
 
 def get_token(reason):
     global _mytokens
+    setup(1)
     while 1:
         if _mytokens >= 1:
             _debug('(%r) used my own token...\n' % reason)
-            _mytokens -= 1
             return
         _debug('(%r) waiting for tokens...\n' % reason)
         wait(want_token=1)
@@ -118,6 +118,7 @@ def get_token(reason):
                 raise Exception('unexpected EOF on token read')
             if b:
                 break
+    _mytokens += 1
     _debug('(%r) got a token (%r).\n' % (reason, b))
 
 
@@ -171,24 +172,29 @@ class Job:
         return 'Job(%s,%d)' % (self.name, self.pid)
 
             
-def start_job(reason, jobfunc, donefunc):
-    setup(1)
+def start_job(reason, lock, jobfunc, donefunc):
+    global _mytokens
+    assert(lock.owned)
     get_token(reason)
+    assert(_mytokens >= 1)
+    _mytokens -= 1
     r,w = os.pipe()
     pid = os.fork()
     if pid == 0:
         # child
         os.close(r)
+        rv = 201
         try:
             try:
-                jobfunc()
-                os._exit(0)
-            except Exception, e:
+                rv = jobfunc() or 0
+            except Exception:
                 import traceback
                 traceback.print_exc()
+            lock.unlock()
         finally:
-            os._exit(201)
+            os._exit(rv)
     # else we're the parent process
+    lock.owned = False # child owns it now
     os.close(w)
     pd = Job(reason, pid, donefunc)
     _waitfds[r] = pd
