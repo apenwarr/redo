@@ -81,6 +81,7 @@ def wait(want_token):
     rfds = _waitfds.keys()
     if _fds and want_token:
         rfds.append(_fds[0])
+    assert(rfds)
     r,w,x = select.select(rfds, [], [])
     _debug('_fds=%r; wfds=%r; readable: %r\n' % (_fds, _waitfds, r))
     for fd in r:
@@ -99,6 +100,7 @@ def wait(want_token):
                 pd.rv = os.WEXITSTATUS(rv)
             else:
                 pd.rv = -os.WTERMSIG(rv)
+            pd.donefunc(pd.name, pd.rv)
 
 
 def get_token(reason):
@@ -119,9 +121,13 @@ def get_token(reason):
     _debug('(%r) got a token (%r).\n' % (reason, b))
 
 
+def running():
+    return len(_waitfds)
+
+
 def wait_all():
     _debug("wait_all\n")
-    while _waitfds:
+    while running():
         _debug("wait_all: wait()\n")
         wait(want_token=0)
     _debug("wait_all: empty list\n")
@@ -134,7 +140,7 @@ def wait_all():
         if len(bb) != _toplevel-1:
             raise Exception('on exit: expected %d tokens; found only %d' 
                             % (_toplevel-1, len(b)))
-    _debug("wait_all: done\n")
+        os.write(_fds[1], bb)
 
 
 def force_return_tokens():
@@ -155,13 +161,17 @@ def _pre_job(r, w, pfn):
 
 
 class Job:
-    def __init__(self, name, pid):
+    def __init__(self, name, pid, donefunc):
         self.name = name
         self.pid = pid
         self.rv = None
+        self.donefunc = donefunc
+        
+    def __repr__(self):
+        return 'Job(%s,%d)' % (self.name, self.pid)
 
             
-def start_job(reason, jobfunc):
+def start_job(reason, jobfunc, donefunc):
     setup(1)
     get_token(reason)
     r,w = os.pipe()
@@ -180,6 +190,5 @@ def start_job(reason, jobfunc):
             os._exit(201)
     # else we're the parent process
     os.close(w)
-    pd = Job(reason, pid)
+    pd = Job(reason, pid, donefunc)
     _waitfds[r] = pd
-    return pd

@@ -70,6 +70,7 @@ def is_generated(t):
 
 
 def start(t):
+    unstamp(t)
     open(_sname('dep', t), 'w').close()
     open(_sname('gen', t), 'w').close()  # it's definitely a generated file
 
@@ -77,13 +78,14 @@ def start(t):
 class Lock:
     def __init__(self, t):
         self.lockname = _sname('lock', t)
+        self.tmpname = _sname('lock%d' % os.getpid(), t)
         self.owned = False
 
     def __del__(self):
         if self.owned:
             self.unlock()
 
-    def lock(self):
+    def trylock(self):
         try:
             os.mkfifo(self.lockname, 0600)
             self.owned = True
@@ -97,18 +99,22 @@ class Lock:
         if not self.owned:
             raise Exception("can't unlock %r - we don't own it" 
                             % self.lockname)
-        fd = None
+        # make sure no readers can connect
         try:
-            fd = os.open(self.lockname, os.O_WRONLY|os.O_NONBLOCK)
+            os.rename(self.lockname, self.tmpname)
+        except OSError, e:
+            if e.errno == errno.ENOENT: # 'make clean' might do this
+                self.owned = False
+                return
+        try:
+            # ping any connected readers
+            os.close(os.open(self.tmpname, os.O_WRONLY|os.O_NONBLOCK))
         except OSError, e:
             if e.errno == errno.ENXIO: # no readers open; that's ok
                 pass
-            elif e.errno == errno.ENOENT: # 'make clean' might do this
-                pass
             else:
                 raise
-        unlink(self.lockname)  # make sure no new readers can connect
-        if fd != None: os.close(fd)  # now unlock any existing readers
+        os.unlink(self.tmpname)
         self.owned = False
 
     def wait(self):
@@ -117,10 +123,8 @@ class Lock:
         try:
             # open() will finish only when a writer exists and does close()
             os.close(os.open(self.lockname, os.O_RDONLY))
-            #sys.stderr.write('lock %r waited ok\n' % self.lockname)
         except OSError, e:
             if e.errno == errno.ENOENT:
-                #sys.stderr.write('lock %r missing\n' % self.lockname)
                 pass  # it's not even unlocked or was unlocked earlier
             else:
                 raise

@@ -48,13 +48,11 @@ if is_root:
     # deliberately starts more than one redo on the same repository, it's
     # sort of ok.
     mkdirp('%s/.redo' % base)
-    for f in glob.glob('%s/.redo/lock^*' % base):
+    for f in glob.glob('%s/.redo/lock*' % base):
         os.unlink(f)
 
 
 class BuildError(Exception):
-    pass
-class BuildLocked(Exception):
     pass
 
 
@@ -100,7 +98,6 @@ def _build(t):
         # which is undesirable since hello.c existed already.
         state.stamp(t)
         return  # success
-    state.unstamp(t)
     state.start(t)
     (dofile, basename, ext) = find_do_file(t)
     if not dofile:
@@ -145,7 +142,7 @@ def _build(t):
 
 def build(t):
     lock = state.Lock(t)
-    lock.lock()
+    lock.trylock()
     if not lock.owned:
         log('%s (locked...)\n' % relpath(t, vars.STARTDIR))
         os._exit(199)
@@ -160,34 +157,44 @@ def build(t):
 
 
 def main():
-    retcode = 0
-    locked = {}
-    waits = {}
+    retcode = [0]  # a list so that it can be reassigned from done()
     if vars.SHUFFLE:
         random.shuffle(targets)
+
+    locked = []
+
+    def done(t, rv):
+        if rv == 199:
+            locked.append(t)
+        elif rv:
+            err('%s: exit code was %r\n' % (t, rv))
+            retcode[0] = 1
+
     for t in targets:
         if os.path.exists('%s/all.do' % t):
             # t is a directory, but it has a default target
             t = '%s/all' % t
-        waits[t] = jwack.start_job(t, lambda: build(t))
-    jwack.wait_all()
-    for t,pd in waits.items():
-        assert(pd.rv != None)
-        if pd.rv == 199:
-            # target was locked
-            locked[t] = 1
-        elif pd.rv:
-            err('%s: exit code was %r\n' % (t, pd.rv))
-            retcode = 1
-    for t in locked.keys():
-        lock = state.Lock(t)
-        lock.wait()
-        relp = relpath(t, vars.STARTDIR)
-        log('%s (...unlocked!)\n' % relp)
-        if state.stamped(t) == None:
-            err('%s: failed in another thread\n' % relp)
-            retcode = 2
-    return retcode
+        tt = t
+        jwack.start_job(t, lambda: build(t), lambda t,rv: done(t,rv))
+    while locked or jwack.running():
+        jwack.wait_all()
+        if locked:
+            t = locked.pop(0)
+            l = state.Lock(t)
+            while not l.owned:
+                l.wait()
+                l.trylock()
+            assert(l.owned)
+            relp = relpath(t, vars.STARTDIR)
+            log('%s (...unlocked!)\n' % relp)
+            if state.stamped(t) == None:
+                err('%s: failed in another thread\n' % relp)
+                retcode[0] = 2
+                l.unlock()  # build() reacquires it
+                jwack.start_job(t, lambda: build(t), lambda t,rv: done(t,rv))
+            else:
+                l.unlock()
+    return retcode[0]
 
 
 if not vars.DEPTH:
