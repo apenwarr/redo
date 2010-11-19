@@ -27,8 +27,8 @@ if not os.environ.get('REDO_BASE', ''):
                                  for t in targets] + [os.getcwd()])
     bsplit = base.split('/')
     for i in range(len(bsplit)-1, 0, -1):
-        newbase = '%s/.redo' % '/'.join(bsplit[:i])
-        if os.path.exists(newbase):
+        newbase = '/'.join(bsplit[:i])
+        if os.path.exists(newbase + '/.redo'):
             base = newbase
             break
     os.environ['REDO_BASE'] = base
