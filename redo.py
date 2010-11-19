@@ -43,7 +43,7 @@ if not os.environ.get('REDO_BASE', ''):
         os.unlink(f)
 
 
-import vars
+import vars, state
 from helpers import *
 
 
@@ -70,28 +70,11 @@ def find_do_file(t):
     for dofile,basename,ext in _possible_do_files(t):
         debug2('%s: %s ?\n' % (t, dofile))
         if os.path.exists(dofile):
-            add_dep(t, 'm', dofile)
+            state.add_dep(t, 'm', dofile)
             return dofile,basename,ext
         else:
-            add_dep(t, 'c', dofile)
+            state.add_dep(t, 'c', dofile)
     return None,None,None
-
-
-def stamp(t):
-    stampfile = sname('stamp', t)
-    newstampfile = sname('stamp' + str(os.getpid()), t)
-    depfile = sname('dep', t)
-    if not os.path.exists(vars.BASE + '/.redo'):
-        # .redo might not exist in a 'make clean' target
-        return
-    open(newstampfile, 'w').close()
-    try:
-        mtime = os.stat(t).st_mtime
-    except OSError:
-        mtime = 0
-    os.utime(newstampfile, (mtime, mtime))
-    os.rename(newstampfile, stampfile)
-    open(depfile, 'a').close()
 
 
 def _preexec(t):
@@ -103,22 +86,21 @@ def _preexec(t):
 
 
 def _build(t):
-    if (os.path.exists(t) and not os.path.exists(sname('gen', t))
-        and not os.path.exists('%s.do' % t)):
+    if (os.path.exists(t) and not state.is_generated(t)
+          and not os.path.exists('%s.do' % t)):
         # an existing source file that is not marked as a generated file.
         # This step is mentioned by djb in his notes.  It turns out to be
         # important to prevent infinite recursion.  For example, a rule
         # called default.c.do could be used to try to produce hello.c,
         # which is undesirable since hello.c existed already.
-        stamp(t)
+        state.stamp(t)
         return  # success
-    unlink(sname('dep', t))
-    open(sname('dep', t), 'w').close()
-    open(sname('gen', t), 'w').close()  # it's definitely a generated file
+    state.unstamp(t)
+    state.start(t)
     (dofile, basename, ext) = find_do_file(t)
     if not dofile:
         raise BuildError('no rule to make %r' % t)
-    stamp(dofile)
+    state.stamp(dofile)
     unlink(t)
     tmpname = '%s.redo.tmp' % t
     unlink(tmpname)
@@ -137,7 +119,6 @@ def _build(t):
     log('%s\n' % relpath(t, vars.STARTDIR))
     rv = subprocess.call(argv, preexec_fn=lambda: _preexec(t),
                          stdout=f.fileno())
-    stampfile = sname('stamp', t)
     if rv==0:
         if os.path.exists(tmpname) and os.stat(tmpname).st_size:
             # there's a race condition here, but if the tmpfile disappears
@@ -146,10 +127,10 @@ def _build(t):
             os.rename(tmpname, t)
         else:
             unlink(tmpname)
-        stamp(t)
+        state.stamp(t)
     else:
         unlink(tmpname)
-        unlink(stampfile)
+        state.unstamp(t)
     f.close()
     if rv != 0:
         raise BuildError('%s: exit code %d' % (t,rv))
@@ -159,33 +140,18 @@ def _build(t):
 
 def build(t):
     mkdirp('%s/.redo' % vars.BASE)
-    lockname = sname('lock', t)
-    try:
-        os.mkfifo(lockname, 0600)
-    except OSError, e:
-        if e.errno == errno.EEXIST:
-            log('%s (locked...)\n' % relpath(t, vars.STARTDIR))
-            os._exit(199)
-        else:
-            raise
+    lock = state.Lock(t)
+    lock.lock()
+    if not lock.owned:
+        log('%s (locked...)\n' % relpath(t, vars.STARTDIR))
+        os._exit(199)
     try:
         try:
             return _build(t)
         except BuildError, e:
             err('%s\n' % e)
     finally:
-        fd = None
-        try:
-            fd = os.open(lockname, os.O_WRONLY|os.O_NONBLOCK)
-        except OSError, e:
-            if e.errno == errno.ENXIO: # no readers open; that's ok
-                pass
-            elif e.errno == errno.ENOENT: # 'make clean' might do this
-                pass
-            else:
-                raise
-        unlink(lockname)
-        if fd != None: os.close(fd)
+        lock.unlock()
     os._exit(1)
 
 
@@ -210,19 +176,11 @@ def main():
             err('%s: exit code was %r\n' % (t, pd.rv))
             retcode = 1
     for t in locked.keys():
-        lockname = sname('lock', t)
-        stampname = sname('stamp', t)
-        try:
-            # open() will finish only when an existing writer does close()
-            os.close(os.open(lockname, os.O_RDONLY))
-        except OSError, e:
-            if e.errno == errno.ENOENT:
-                pass  # already got unlocked
-            else:
-                raise
+        lock = state.Lock(t)
+        lock.wait()
         relp = relpath(t, vars.STARTDIR)
         log('%s (...unlocked!)\n' % relp)
-        if not os.path.exists(stampname):
+        if state.stamped(t) == None:
             err('%s: failed in another thread\n' % relp)
             retcode = 2
     return retcode

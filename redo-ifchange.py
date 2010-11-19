@@ -1,19 +1,15 @@
 #!/usr/bin/python
 import sys, os, errno
-import vars
-from helpers import sname, add_dep, debug, err, mkdirp, unlink
+import vars, state
+from helpers import debug, err, mkdirp, unlink
 
 
 def _dirty_deps(t, depth, fromdir):
     debug('%s?%s\n' % (depth, t))
-    try:
-        stamptime = os.stat(sname('stamp', t, fromdir)).st_mtime
-    except OSError, e:
-        if e.errno == errno.ENOENT:
-            debug('%s-- DIRTY (no stamp)\n' % depth)
-            return True
-        else:
-            raise
+    stamptime = state.stamped(t, fromdir)
+    if stamptime == None:
+        debug('%s-- DIRTY (no stamp)\n' % depth)
+        return True
 
     try:
         realtime = os.stat(os.path.join(fromdir or '', t)).st_mtime
@@ -24,12 +20,7 @@ def _dirty_deps(t, depth, fromdir):
         debug('%s-- DIRTY (mtime)\n' % depth)
         return True
     
-    for sub in open(sname('dep', t, fromdir)).readlines():
-        assert(sub[0] in ('c','m'))
-        assert(sub[1] == ' ')
-        assert(sub[-1] == '\n')
-        mode = sub[0]
-        name = sub[2:-1]
+    for mode,name in state.deps(t, fromdir):
         if mode == 'c':
             if os.path.exists(name):
                 debug('%s-- DIRTY (created)\n' % depth)
@@ -43,7 +34,7 @@ def _dirty_deps(t, depth, fromdir):
 
 def dirty_deps(t, depth, fromdir=None):
     if _dirty_deps(t, depth, fromdir):
-        unlink(sname('stamp', t, fromdir))  # short circuit future checks
+        state.unstamp(t, fromdir)
         return True
     return False
 
@@ -56,7 +47,7 @@ try:
     want_build = []
     for t in sys.argv[1:]:
         mkdirp('%s/.redo' % vars.BASE)
-        add_dep(vars.TARGET, 'm', t)
+        state.add_dep(vars.TARGET, 'm', t)
         if dirty_deps(t, depth = ''):
             want_build.append(t)
 

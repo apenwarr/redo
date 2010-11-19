@@ -1,7 +1,7 @@
 #!/usr/bin/python
 import sys, os
-import vars
-from helpers import err, add_dep, mkdirp
+import vars, state
+from helpers import err, mkdirp
 
 
 if not vars.TARGET:
@@ -15,6 +15,6 @@ try:
             err('redo-ifcreate: error: %r already exists\n' % t)
             sys.exit(1)
         else:
-            add_dep(vars.TARGET, 'c', t)
+            state.add_dep(vars.TARGET, 'c', t)
 except KeyboardInterrupt:
     sys.exit(200)
