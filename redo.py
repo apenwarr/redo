@@ -156,21 +156,31 @@ def build(t):
     mkdirp('%s/.redo' % vars.BASE)
     lockname = sname('lock', t)
     try:
-        fd = os.open(lockname, os.O_CREAT|os.O_EXCL)
+        os.mkfifo(lockname, 0600)
     except OSError, e:
         if e.errno == errno.EEXIST:
             log('%s (locked...)\n' % relpath(t, vars.STARTDIR))
             os._exit(199)
         else:
             raise
-    os.close(fd)
     try:
         try:
             return _build(t)
         except BuildError, e:
             err('%s\n' % e)
     finally:
+        fd = None
+        try:
+            fd = os.open(lockname, os.O_WRONLY|os.O_NONBLOCK)
+        except OSError, e:
+            if e.errno == errno.ENXIO: # no readers open; that's ok
+                pass
+            elif e.errno == errno.ENOENT: # 'make clean' might do this
+                pass
+            else:
+                raise
         unlink(lockname)
+        if fd != None: os.close(fd)
     os._exit(1)
 
 
@@ -194,18 +204,22 @@ def main():
         elif pd.rv:
             err('%s: exit code was %r\n' % (t, pd.rv))
             retcode = 1
-    while locked:
-        for t in locked.keys():
-            lockname = sname('lock', t)
-            stampname = sname('stamp', t)
-            if not os.path.exists(lockname):
-                relp = relpath(t, vars.STARTDIR)
-                log('%s (...unlocked!)\n' % relp)
-                if not os.path.exists(stampname):
-                    err('%s: failed in another thread\n' % relp)
-                    retcode = 2
-                del locked[t]
-        time.sleep(0.2)
+    for t in locked.keys():
+        lockname = sname('lock', t)
+        stampname = sname('stamp', t)
+        try:
+            # open() will finish only when an existing writer does close()
+            os.close(os.open(lockname, os.O_RDONLY))
+        except OSError, e:
+            if e.errno == errno.ENOENT:
+                pass  # already got unlocked
+            else:
+                raise
+        relp = relpath(t, vars.STARTDIR)
+        log('%s (...unlocked!)\n' % relp)
+        if not os.path.exists(stampname):
+            err('%s: failed in another thread\n' % relp)
+            retcode = 2
     return retcode
 
 
