@@ -73,6 +73,9 @@ def _build(t):
             ]
     if vars.VERBOSE:
         argv[1] += 'v'
+    if vars.XTRACE:
+        argv[1] += 'x'
+    if vars.VERBOSE or vars.XTRACE:
         log_('\n')
     log('%s\n' % _nice(t))
     rv = subprocess.call(argv, preexec_fn=lambda: _preexec(t),
@@ -92,7 +95,7 @@ def _build(t):
     f.close()
     if rv != 0:
         raise BuildError('%s: exit code %d' % (t,rv))
-    if vars.VERBOSE:
+    if vars.VERBOSE or vars.XTRACE:
         log('%s (done)\n\n' % _nice(t))
 
 

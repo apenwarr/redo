@@ -7,7 +7,8 @@ redo [targets...]
 --
 j,jobs=    maximum number of jobs to build at once
 d,debug    print dependency checks as they happen
-v,verbose  print commands as they are run
+v,verbose  print commands as they are read from .do files (variables intact)
+x,xtrace   print commands as they are executed (variables expanded)
 shuffle    randomize the build order to find dependency bugs
 debug-locks  print messages about file locking (useful for debugging)
 """
@@ -20,6 +21,8 @@ if opt.debug:
     os.environ['REDO_DEBUG'] = str(opt.debug or 0)
 if opt.verbose:
     os.environ['REDO_VERBOSE'] = '1'
+if opt.xtrace:
+    os.environ['REDO_XTRACE'] = '1'
 if opt.shuffle:
     os.environ['REDO_SHUFFLE'] = '1'
 if opt.debug_locks:
