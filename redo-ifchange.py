@@ -5,9 +5,14 @@ from helpers import debug, err, mkdirp, unlink
 
 
 def _dirty_deps(t, depth, fromdir):
-    if state.ismarked(t, fromdir):
-        return False  # has already been checked during this session
     debug('%s?%s\n' % (depth, t))
+    if state.isbuilt(t, fromdir):
+        debug('%s-- DIRTY (built)\n' % depth)
+        return True  # has already been built during this session
+    if state.ismarked(t, fromdir):
+        debug('%s-- CLEAN (marked)\n' % depth)
+        return False  # has already been checked during this session
+    
     stamptime = state.stamped(t, fromdir)
     if stamptime == None:
         debug('%s-- DIRTY (no stamp)\n' % depth)
@@ -29,7 +34,7 @@ def _dirty_deps(t, depth, fromdir):
                 return True
         elif mode == 'm':
             if dirty_deps(name, depth + '  ', fromdir=vars.BASE):
-                #debug('%s-- DIRTY (sub)\n' % depth)
+                debug('%s-- DIRTY (sub)\n' % depth)
                 return True
     state.mark(t, fromdir)
     return False
@@ -42,8 +47,12 @@ def dirty_deps(t, depth, fromdir=None):
     return False
 
 
+def should_build(t):
+    return not state.isbuilt(t) and dirty_deps(t, depth = '')
+
+
 def maybe_build(t):
-    if dirty_deps(t, depth = ''):
+    if should_build(t):
         builder.build(t)
 
 
@@ -56,7 +65,7 @@ try:
     want_build = []
     for t in sys.argv[1:]:
         state.add_dep(vars.TARGET, 'm', t)
-        if dirty_deps(t, depth = ''):
+        if should_build(t):
             want_build.append(t)
 
     rv = builder.main(want_build, maybe_build)

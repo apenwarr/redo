@@ -13,6 +13,8 @@ def init():
         os.unlink(f)
     for f in glob.glob('%s/.redo/mark^*' % vars.BASE):
         os.unlink(f)
+    for f in glob.glob('%s/.redo/built^*' % vars.BASE):
+        os.unlink(f)
 
 
 def _sname(typ, t, fromdir=None):
@@ -46,6 +48,7 @@ def _stampname(t, fromdir=None):
     
 
 def stamp(t):
+    built(t)
     mark(t)
     stampfile = _stampname(t)
     newstampfile = _sname('stamp' + str(os.getpid()), t)
@@ -76,6 +79,25 @@ def stamped(t, fromdir=None):
         else:
             raise
     return stamptime
+
+
+def built(t, fromdir=None):
+    try:
+        open(_sname('built', t, fromdir), 'w').close()
+    except IOError, e:
+        if e.errno == errno.ENOENT:
+            pass  # may happen if someone deletes our .redo dir
+        else:
+            raise
+
+
+_builts = {}
+def isbuilt(t, fromdir=None):
+    if _builts.get((t,fromdir)):
+        return True
+    if os.path.exists(_sname('built', t, fromdir)):
+        _builts[(t,fromdir)] = True
+        return True
 
 
 def mark(t, fromdir=None):
