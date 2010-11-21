@@ -1,6 +1,7 @@
 import os
 import atoi
 
+PWD = os.environ.get('REDO_PWD', '')
 TARGET = os.environ.get('REDO_TARGET', '')
 DEPTH = os.environ.get('REDO_DEPTH', '')
 DEBUG = atoi.atoi(os.environ.get('REDO_DEBUG', ''))

@@ -1,6 +1,6 @@
 import sys, os, subprocess, random
 import vars, jwack, state
-from helpers import log, log_, relpath, debug2, err, unlink
+from helpers import log, log_, debug2, err, unlink
 
 
 class BuildError(Exception):
@@ -32,11 +32,17 @@ def _find_do_file(t):
 
 
 def _preexec(t):
+    td = os.environ.get('REDO_PWD', '')
+    dn = os.path.dirname(t)
+    os.environ['REDO_PWD'] = os.path.join(td, dn)
     os.environ['REDO_TARGET'] = os.path.basename(t)
     os.environ['REDO_DEPTH'] = vars.DEPTH + '  '
-    dn = os.path.dirname(t)
     if dn:
         os.chdir(dn)
+
+
+def _nice(t):
+    return os.path.normpath(os.path.join(vars.PWD, t))
 
 
 def _build(t):
@@ -68,7 +74,7 @@ def _build(t):
     if vars.VERBOSE:
         argv[1] += 'v'
         log_('\n')
-    log('%s\n' % relpath(t, vars.STARTDIR))
+    log('%s\n' % _nice(t))
     rv = subprocess.call(argv, preexec_fn=lambda: _preexec(t),
                          stdout=f.fileno())
     if rv==0:
@@ -87,7 +93,7 @@ def _build(t):
     if rv != 0:
         raise BuildError('%s: exit code %d' % (t,rv))
     if vars.VERBOSE:
-        log('%s (done)\n\n' % relpath(t, vars.STARTDIR))
+        log('%s (done)\n\n' % _nice(t))
 
 
 def build(t):
@@ -121,7 +127,7 @@ def main(targets, buildfunc):
         lock = state.Lock(t)
         lock.trylock()
         if not lock.owned:
-            log('%s (locked...)\n' % relpath(t, vars.STARTDIR))
+            log('%s (locked...)\n' % _nice(t))
             locked.append(t)
         else:
             jwack.start_job(t, lock,
@@ -136,10 +142,9 @@ def main(targets, buildfunc):
                 lock.wait()
                 lock.trylock()
             assert(lock.owned)
-            relp = relpath(t, vars.STARTDIR)
-            log('%s (...unlocked!)\n' % relp)
+            log('%s (...unlocked!)\n' % _nice(t))
             if state.stamped(t) == None:
-                err('%s: failed in another thread\n' % relp)
+                err('%s: failed in another thread\n' % _nice(t))
                 retcode[0] = 2
                 lock.unlock()
             else:
