@@ -9,6 +9,7 @@ j,jobs=    maximum number of jobs to build at once
 d,debug    print dependency checks as they happen
 v,verbose  print commands as they are read from .do files (variables intact)
 x,xtrace   print commands as they are executed (variables expanded)
+k,keep-going  keep going as long as possible even if some targets fail
 shuffle    randomize the build order to find dependency bugs
 debug-locks  print messages about file locking (useful for debugging)
 """
@@ -23,6 +24,8 @@ if opt.verbose:
     os.environ['REDO_VERBOSE'] = '1'
 if opt.xtrace:
     os.environ['REDO_XTRACE'] = '1'
+if opt.keep_going:
+    os.environ['REDO_KEEP_GOING'] = '1'
 if opt.shuffle:
     os.environ['REDO_SHUFFLE'] = '1'
 if opt.debug_locks:
@@ -67,8 +70,8 @@ try:
         retcode = builder.main(targets, builder.build)
     finally:
         jwack.force_return_tokens()
-    if retcode:
-        err('exiting: %d\n' % retcode)
+    #if retcode:
+    #    err('exiting: %d\n' % retcode)
     sys.exit(retcode)
 except KeyboardInterrupt:
     sys.exit(200)

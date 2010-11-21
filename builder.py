@@ -116,7 +116,7 @@ def main(targets, buildfunc):
 
     def done(t, rv):
         if rv:
-            err('%s: exit code was %r\n' % (t, rv))
+            #err('%s: exit code was %r\n' % (t, rv))
             retcode[0] = 1
 
     for i in range(len(targets)):
@@ -127,6 +127,8 @@ def main(targets, buildfunc):
     
     for t in targets:
         jwack.get_token(t)
+        if retcode[0] and not vars.KEEP_GOING:
+            break
         lock = state.Lock(t)
         lock.trylock()
         if not lock.owned:
@@ -139,6 +141,8 @@ def main(targets, buildfunc):
     
     while locked or jwack.running():
         jwack.wait_all()
+        if retcode[0] and not vars.KEEP_GOING:
+            break
         if locked:
             t = locked.pop(0)
             lock = state.Lock(t)
