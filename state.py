@@ -1,6 +1,6 @@
 import sys, os, errno, glob
 import vars
-from helpers import unlink, relpath, debug2, mkdirp
+from helpers import unlink, debug2, mkdirp
 
 
 def init():
@@ -17,10 +17,23 @@ def init():
         os.unlink(f)
 
 
-def _sname(typ, t, fromdir=None):
+def relpath(t, base):
+    t = os.path.normpath(os.path.join(os.getcwd(), t))
+    tparts = t.split('/')
+    bparts = base.split('/')
+    for tp,bp in zip(tparts,bparts):
+        if tp != bp:
+            break
+        tparts.pop(0)
+        bparts.pop(0)
+    while bparts:
+        tparts.insert(0, '..')
+        bparts.pop(0)
+    return '/'.join(tparts)
+
+
+def _sname(typ, t):
     # FIXME: t.replace(...) is non-reversible and non-unique here!
-    if fromdir:
-        t = os.path.join(fromdir, t)
     tnew = relpath(t, vars.BASE)
     v = vars.BASE + ('/.redo/%s^%s' % (typ, tnew.replace('/', '^')))
     debug2('sname: (%r) %r -> %r\n' % (os.getcwd(), t, tnew))
@@ -33,8 +46,8 @@ def add_dep(t, mode, dep):
                                       % (mode, relpath(dep, vars.BASE)))
 
 
-def deps(t, fromdir=None):
-    for line in open(_sname('dep', t, fromdir)).readlines():
+def deps(t):
+    for line in open(_sname('dep', t)).readlines():
         assert(line[0] in ('c','m'))
         assert(line[1] == ' ')
         assert(line[-1] == '\n')
@@ -43,8 +56,8 @@ def deps(t, fromdir=None):
         yield mode,name
 
 
-def _stampname(t, fromdir=None):
-    return _sname('stamp', t, fromdir)
+def _stampname(t):
+    return _sname('stamp', t)
     
 
 def stamp(t):
@@ -66,13 +79,13 @@ def stamp(t):
     open(depfile, 'a').close()
 
 
-def unstamp(t, fromdir=None):
-    unlink(_stampname(t, fromdir))
+def unstamp(t):
+    unlink(_stampname(t))
 
 
-def stamped(t, fromdir=None):
+def stamped(t):
     try:
-        stamptime = os.stat(_stampname(t, fromdir)).st_mtime
+        stamptime = os.stat(_stampname(t)).st_mtime
     except OSError, e:
         if e.errno == errno.ENOENT:
             return None
@@ -81,9 +94,9 @@ def stamped(t, fromdir=None):
     return stamptime
 
 
-def built(t, fromdir=None):
+def built(t):
     try:
-        open(_sname('built', t, fromdir), 'w').close()
+        open(_sname('built', t), 'w').close()
     except IOError, e:
         if e.errno == errno.ENOENT:
             pass  # may happen if someone deletes our .redo dir
@@ -92,17 +105,17 @@ def built(t, fromdir=None):
 
 
 _builts = {}
-def isbuilt(t, fromdir=None):
-    if _builts.get((t,fromdir)):
+def isbuilt(t):
+    if _builts.get(t):
         return True
-    if os.path.exists(_sname('built', t, fromdir)):
-        _builts[(t,fromdir)] = True
+    if os.path.exists(_sname('built', t)):
+        _builts[t] = True
         return True
 
 
-def mark(t, fromdir=None):
+def mark(t):
     try:
-        open(_sname('mark', t, fromdir), 'w').close()
+        open(_sname('mark', t), 'w').close()
     except IOError, e:
         if e.errno == errno.ENOENT:
             pass  # may happen if someone deletes our .redo dir
@@ -111,11 +124,11 @@ def mark(t, fromdir=None):
 
 
 _marks = {}
-def ismarked(t, fromdir=None):
-    if _marks.get((t,fromdir)):
+def ismarked(t):
+    if _marks.get(t):
         return True
-    if os.path.exists(_sname('mark', t, fromdir)):
-        _marks[(t,fromdir)] = True
+    if os.path.exists(_sname('mark', t)):
+        _marks[t] = True
         return True
 
 

@@ -4,22 +4,22 @@ import vars, state, builder
 from helpers import debug, err, mkdirp, unlink
 
 
-def _dirty_deps(t, depth, fromdir):
+def _dirty_deps(t, depth):
     debug('%s?%s\n' % (depth, t))
-    if state.isbuilt(t, fromdir):
+    if state.isbuilt(t):
         debug('%s-- DIRTY (built)\n' % depth)
         return True  # has already been built during this session
-    if state.ismarked(t, fromdir):
+    if state.ismarked(t):
         debug('%s-- CLEAN (marked)\n' % depth)
         return False  # has already been checked during this session
     
-    stamptime = state.stamped(t, fromdir)
+    stamptime = state.stamped(t)
     if stamptime == None:
         debug('%s-- DIRTY (no stamp)\n' % depth)
         return True
 
     try:
-        realtime = os.stat(os.path.join(fromdir or '', t)).st_mtime
+        realtime = os.stat(t).st_mtime
     except OSError:
         realtime = 0
 
@@ -27,22 +27,22 @@ def _dirty_deps(t, depth, fromdir):
         debug('%s-- DIRTY (mtime)\n' % depth)
         return True
     
-    for mode,name in state.deps(t, fromdir):
+    for mode,name in state.deps(t):
         if mode == 'c':
             if os.path.exists(name):
                 debug('%s-- DIRTY (created)\n' % depth)
                 return True
         elif mode == 'm':
-            if dirty_deps(name, depth + '  ', fromdir=vars.BASE):
+            if dirty_deps(os.path.join(vars.BASE, name), depth + '  '):
                 debug('%s-- DIRTY (sub)\n' % depth)
                 return True
-    state.mark(t, fromdir)
+    state.mark(t)
     return False
 
 
-def dirty_deps(t, depth, fromdir=None):
-    if _dirty_deps(t, depth, fromdir):
-        state.unstamp(t, fromdir)
+def dirty_deps(t, depth):
+    if _dirty_deps(t, depth):
+        state.unstamp(t)
         return True
     return False
 
