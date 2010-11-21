@@ -4,7 +4,7 @@ import vars, state, builder
 from helpers import debug, err, mkdirp, unlink
 
 
-def _dirty_deps(t, depth):
+def dirty_deps(t, depth):
     debug('%s?%s\n' % (depth, t))
     if state.isbuilt(t):
         debug('%s-- DIRTY (built)\n' % depth)
@@ -35,15 +35,9 @@ def _dirty_deps(t, depth):
         elif mode == 'm':
             if dirty_deps(os.path.join(vars.BASE, name), depth + '  '):
                 debug('%s-- DIRTY (sub)\n' % depth)
+                state.unstamp(t)  # optimization for future callers
                 return True
     state.mark(t)
-    return False
-
-
-def dirty_deps(t, depth):
-    if _dirty_deps(t, depth):
-        state.unstamp(t)
-        return True
     return False
 
 
