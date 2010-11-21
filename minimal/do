@@ -16,6 +16,21 @@ if [ -z "$DO_BUILT" ]; then
 fi
 
 
+_dirsplit()
+{
+	OLDIFS="$IFS"
+	IFS=/
+	set -- $1
+	IFS="$OLDIFS"
+	dir=""
+	while [ $# -gt 1 ]; do
+		dir="$dir$1/"
+		shift
+	done
+	base="$1"
+}
+
+
 _do()
 {
 	DIR="$1"
@@ -61,10 +76,8 @@ redo()
 		if [ -e "$i/." ]; then
 			i="$i/all"
 		fi
-		D="$(dirname "$i")/"
-		[ "$D" = "./" ] && D=""
-		B="$(basename "$i")"
-		( cd "$D" && _do "$D" "$B" ) || exit $?
+		_dirsplit "$i"
+		( cd "$dir" && _do "$dir" "$base" ) || exit $?
 	done
 }
 
