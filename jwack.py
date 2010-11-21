@@ -95,11 +95,13 @@ def wait(want_token):
             del _waitfds[fd]
             rv = os.waitpid(pd.pid, 0)
             assert(rv[0] == pd.pid)
+            _debug("done1: rv=%r\n" % (rv,))
             rv = rv[1]
             if os.WIFEXITED(rv):
                 pd.rv = os.WEXITSTATUS(rv)
             else:
                 pd.rv = -os.WTERMSIG(rv)
+            _debug("done2: rv=%d\n" % pd.rv)
             pd.donefunc(pd.name, pd.rv)
 
 
@@ -187,11 +189,13 @@ def start_job(reason, lock, jobfunc, donefunc):
         try:
             try:
                 rv = jobfunc() or 0
+                _debug('jobfunc completed (%r, %r)\n' % (jobfunc,rv))
             except Exception:
                 import traceback
                 traceback.print_exc()
             lock.unlock()
         finally:
+            _debug('exit: %d\n' % rv)
             os._exit(rv)
     # else we're the parent process
     lock.owned = False # child owns it now

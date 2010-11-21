@@ -47,7 +47,7 @@ def should_build(t):
 
 def maybe_build(t):
     if should_build(t):
-        builder.build(t)
+        return builder.build(t)
 
 
 if not vars.TARGET:
