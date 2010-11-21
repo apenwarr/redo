@@ -22,9 +22,16 @@ if opt.verbose:
 if opt.shuffle:
     os.environ['REDO_SHUFFLE'] = '1'
 
-is_root = False
-if not os.environ.get('REDO_BASE', ''):
-    is_root = True
+is_root = not os.environ.get('REDO_BASE', '')
+
+if is_root:
+    # toplevel call to redo
+    exenames = [os.path.abspath(sys.argv[0]), os.path.realpath(sys.argv[0])]
+    if exenames[0] == exenames[1]:
+        exenames = [exenames[0]]
+    dirnames = [os.path.dirname(p) for p in exenames]
+    os.environ['PATH'] = ':'.join(dirnames) + ':' + os.environ['PATH']
+
     base = os.path.commonprefix([os.path.abspath(os.path.dirname(t))
                                  for t in targets] + [os.getcwd()])
     bsplit = base.split('/')
@@ -44,15 +51,6 @@ from helpers import err
 
 if is_root:
     state.init()
-
-
-if not vars.DEPTH:
-    # toplevel call to redo
-    exenames = [os.path.abspath(sys.argv[0]), os.path.realpath(sys.argv[0])]
-    if exenames[0] == exenames[1]:
-        exenames = [exenames[0]]
-    dirnames = [os.path.dirname(p) for p in exenames]
-    os.environ['PATH'] = ':'.join(dirnames) + ':' + os.environ['PATH']
 
 try:
     j = atoi.atoi(opt.jobs or 1)
