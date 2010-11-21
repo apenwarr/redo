@@ -34,6 +34,7 @@ def _stampname(t, fromdir=None):
     
 
 def stamp(t):
+    mark(t)
     stampfile = _stampname(t)
     newstampfile = _sname('stamp' + str(os.getpid()), t)
     depfile = _sname('dep', t)
@@ -63,6 +64,25 @@ def stamped(t, fromdir=None):
         else:
             raise
     return stamptime
+
+
+def mark(t, fromdir=None):
+    try:
+        open(_sname('mark', t, fromdir), 'w').close()
+    except IOError, e:
+        if e.errno == errno.ENOENT:
+            pass  # may happen if someone deletes our .redo dir
+        else:
+            raise
+
+
+_marks = {}
+def ismarked(t, fromdir=None):
+    if _marks.get((t,fromdir)):
+        return True
+    if os.path.exists(_sname('mark', t, fromdir)):
+        _marks[(t,fromdir)] = True
+        return True
 
 
 def is_generated(t):

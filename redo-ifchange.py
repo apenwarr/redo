@@ -5,6 +5,8 @@ from helpers import debug, err, mkdirp, unlink
 
 
 def _dirty_deps(t, depth, fromdir):
+    if state.ismarked(t, fromdir):
+        return False  # has already been checked during this session
     debug('%s?%s\n' % (depth, t))
     stamptime = state.stamped(t, fromdir)
     if stamptime == None:
@@ -29,6 +31,7 @@ def _dirty_deps(t, depth, fromdir):
             if dirty_deps(name, depth + '  ', fromdir=vars.BASE):
                 #debug('%s-- DIRTY (sub)\n' % depth)
                 return True
+    state.mark(t, fromdir)
     return False
 
 

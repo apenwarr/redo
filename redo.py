@@ -50,6 +50,8 @@ if is_root:
     mkdirp('%s/.redo' % base)
     for f in glob.glob('%s/.redo/lock*' % base):
         os.unlink(f)
+    for f in glob.glob('%s/.redo/mark^*' % base):
+        os.unlink(f)
 
 
 if not vars.DEPTH:
