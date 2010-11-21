@@ -172,6 +172,72 @@ scripts](http://cr.yp.to/redo/honest-script.html) article for more
 information.
 
 
+# What are the three parameters ($1, $2, $3) to a .do file?
+
+$1 is the name of the target, with the extension removed,
+if any.
+
+$2 is the extension of the target, including the leading
+dot.
+
+$3 is the name of a temporary file that will be renamed to
+the target filename atomically if your .do file returns a
+zero (success) exit code.
+
+In a file called `chicken.a.b.c.do` that builds a file called
+`chicken.a.b.c`, $1 is `chicken.a.b.c`, $2 is blank, and $2 is a
+temporary name like `chicken.a.b.c.tmp`.  You might have expected
+$1 to be just `chicken`, but that's not possible, because
+redo doesn't know which portion of the filename is the
+"extension."  Is it `.c`, `.b.c`, or `.a.b.c`?
+
+.do files starting with `default.` are special; they can
+build any target ending with the given extension.  So let's
+say we have a file named `default.c.do` building a file
+called `chicken.a.b.c`. $1 is `chicken.a.b`, $2 is `.c`,
+and $3 is a temporary name like `chicken.a.b.c.tmp`.
+
+You should use $1 and $2 only in constructing input
+filenames and dependencies; never modify the file named by
+$1 in your script.  Only ever write to the file named by
+$3.  That way redo can guarantee proper dependency
+management and atomicity.
+
+For example, you could compile a .c file into a .o file
+like this, from a script named `default.o.do`:
+
+	gcc -o $3 -c $1.c
+
+Note that $2, the .o extension, is rarely useful.
+
+FIXME: djb's design documentation doesn't clearly describe
+$1 and $2, although it's clear that $3 is the output
+filename.  We may have guessed $1 and $2, particularly $2,
+incorrectly, so we might have to change their meanings
+later.
+
+
+# What happens to the stdin/stdout/stderr in a redo file?
+
+As with make, stdin is not redirected.  You're probably
+better off not using it, though, because especially with
+parallel builds, it might not do anything useful.
+
+As with make, stderr is also not redirected.  You can use
+it to print status messages as your build proceeds.
+
+Redo treats stdout specially: it redirects it to point at
+$3 (see previous question).  That is, if your .do file
+writes to stdout, then the data it writes ends up in the
+output file.  Thus, a really simple `chicken.do` file that
+contains only this:
+
+    echo hello world
+
+will correctly, and atomically, generate an output file
+named `chicken` only if the echo command succeeds.
+
+
 # Can a *.do file itself be generated as part of the build process?
 
 Not currently.  There's nothing fundamentally preventing us from allowing
