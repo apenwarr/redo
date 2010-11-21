@@ -1,5 +1,5 @@
 #!/usr/bin/python
-import sys, os, glob
+import sys, os
 import options, jwack, atoi
 
 optspec = """
@@ -38,20 +38,12 @@ if not os.environ.get('REDO_BASE', ''):
     os.environ['REDO'] = os.path.abspath(sys.argv[0])
 
 
-import vars, builder
-from helpers import *
+import vars, state, builder
+from helpers import err
 
 
 if is_root:
-    # FIXME: just wiping out all the locks is kind of cheating.  But we
-    # only do this from the toplevel redo process, so unless the user
-    # deliberately starts more than one redo on the same repository, it's
-    # sort of ok.
-    mkdirp('%s/.redo' % base)
-    for f in glob.glob('%s/.redo/lock*' % base):
-        os.unlink(f)
-    for f in glob.glob('%s/.redo/mark^*' % base):
-        os.unlink(f)
+    state.init()
 
 
 if not vars.DEPTH:

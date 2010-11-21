@@ -1,6 +1,18 @@
-import sys, os, errno
+import sys, os, errno, glob
 import vars
-from helpers import unlink, relpath, debug2
+from helpers import unlink, relpath, debug2, mkdirp
+
+
+def init():
+    # FIXME: just wiping out all the locks is kind of cheating.  But we
+    # only do this from the toplevel redo process, so unless the user
+    # deliberately starts more than one redo on the same repository, it's
+    # sort of ok.
+    mkdirp('%s/.redo' % vars.BASE)
+    for f in glob.glob('%s/.redo/lock*' % vars.BASE):
+        os.unlink(f)
+    for f in glob.glob('%s/.redo/mark^*' % vars.BASE):
+        os.unlink(f)
 
 
 def _sname(typ, t, fromdir=None):
