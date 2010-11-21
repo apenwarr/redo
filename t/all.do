@@ -1,3 +1,2 @@
-redo-ifchange hello yellow bellow c d example/all curse/all deps/all
-
-
+redo-ifchange hello yellow bellow c d
+redo example/all curse/all deps/all
