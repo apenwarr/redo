@@ -109,9 +109,9 @@ def start(t):
 
 class Lock:
     def __init__(self, t):
+        self.owned = False
         self.lockname = _sname('lock', t)
         self.tmpname = _sname('lock%d' % os.getpid(), t)
-        self.owned = False
 
     def __del__(self):
         if self.owned:
