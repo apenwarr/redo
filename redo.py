@@ -22,7 +22,7 @@ if opt.verbose:
 if opt.shuffle:
     os.environ['REDO_SHUFFLE'] = '1'
 
-is_root = not os.environ.get('REDO_BASE', '')
+is_root = not os.environ.get('REDO', '')
 
 if is_root:
     # toplevel call to redo
