@@ -1,0 +1,1 @@
+echo $$ >>t2.count

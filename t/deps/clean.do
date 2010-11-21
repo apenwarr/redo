@@ -1,1 +1,1 @@
-rm -f *~ .*~ t1a
+rm -f *~ .*~ *.count t1a
