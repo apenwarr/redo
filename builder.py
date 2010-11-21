@@ -127,7 +127,8 @@ def main(targets, buildfunc):
         lock = state.Lock(t)
         lock.trylock()
         if not lock.owned:
-            log('%s (locked...)\n' % _nice(t))
+            if vars.DEBUG_LOCKS:
+                log('%s (locked...)\n' % _nice(t))
             locked.append(t)
         else:
             jwack.start_job(t, lock,
@@ -142,7 +143,8 @@ def main(targets, buildfunc):
                 lock.wait()
                 lock.trylock()
             assert(lock.owned)
-            log('%s (...unlocked!)\n' % _nice(t))
+            if vars.DEBUG_LOCKS:
+                log('%s (...unlocked!)\n' % _nice(t))
             if state.stamped(t) == None:
                 err('%s: failed in another thread\n' % _nice(t))
                 retcode[0] = 2

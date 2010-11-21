@@ -9,6 +9,7 @@ j,jobs=    maximum number of jobs to build at once
 d,debug    print dependency checks as they happen
 v,verbose  print commands as they are run
 shuffle    randomize the build order to find dependency bugs
+debug-locks  print messages about file locking (useful for debugging)
 """
 o = options.Options('redo', optspec)
 (opt, flags, extra) = o.parse(sys.argv[1:])
@@ -21,6 +22,8 @@ if opt.verbose:
     os.environ['REDO_VERBOSE'] = '1'
 if opt.shuffle:
     os.environ['REDO_SHUFFLE'] = '1'
+if opt.debug_locks:
+    os.environ['REDO_DEBUG_LOCKS'] = '1'
 
 is_root = not os.environ.get('REDO', '')
 
