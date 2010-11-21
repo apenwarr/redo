@@ -94,7 +94,7 @@ def _build(t):
         state.unstamp(t)
     f.close()
     if rv != 0:
-        raise BuildError('%s: exit code %d' % (t,rv))
+        raise BuildError('%s: exit code %d' % (_nice(t),rv))
     if vars.VERBOSE or vars.XTRACE:
         log('%s (done)\n\n' % _nice(t))
 
