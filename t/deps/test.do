@@ -1,2 +1,3 @@
-redo test1 test2
+redo test1 test2 ifchange-fail
+
 
