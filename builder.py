@@ -1,6 +1,6 @@
-import sys, os, random, fcntl
+import sys, os, random
 import vars, jwack, state
-from helpers import log, log_, debug2, err, unlink
+from helpers import log, log_, debug2, err, unlink, close_on_exec
 
 
 def _possible_do_files(t):
@@ -29,14 +29,6 @@ def _find_do_file(t):
 
 def _nice(t):
     return os.path.normpath(os.path.join(vars.PWD, t))
-
-
-def _close_on_exec(fd, yes):
-    fl = fcntl.fcntl(fd, fcntl.F_GETFD)
-    fl &= ~fcntl.FD_CLOEXEC
-    if yes:
-        fl |= fcntl.FD_CLOEXEC
-    fcntl.fcntl(fd, fcntl.F_SETFD, fl)
 
 
 class BuildJob:
@@ -71,7 +63,7 @@ class BuildJob:
         state.stamp(dofile)
         unlink(tmpname)
         ffd = os.open(tmpname, os.O_CREAT|os.O_RDWR|os.O_EXCL)
-        _close_on_exec(ffd, True)
+        close_on_exec(ffd, True)
         self.f = os.fdopen(ffd, 'w+')
         # this will run in the dofile's directory, so use only basenames here
         argv = ['sh', '-e',
@@ -97,12 +89,18 @@ class BuildJob:
             os.chdir(dn)
         os.dup2(self.f.fileno(), 1)
         os.close(self.f.fileno())
-        _close_on_exec(1, False)
+        close_on_exec(1, False)
         os.execvp(self.argv[0], self.argv)
         assert(0)
         # returns only if there's an exception
 
     def _after(self, t, rv):
+        try:
+            self._after1(t, rv)
+        finally:
+            self._after2(rv)
+
+    def _after1(self, t, rv):
         f = self.f
         tmpname = self.tmpname
         if rv==0:
@@ -123,12 +121,13 @@ class BuildJob:
         else:
             if vars.VERBOSE or vars.XTRACE:
                 log('%s (done)\n\n' % _nice(t))
-        return self._after2(rv)
 
     def _after2(self, rv):
-        self.donefunc(self.t, rv)
-        assert(self.lock.owned)
-        self.lock.unlock()
+        try:
+            self.donefunc(self.t, rv)
+            assert(self.lock.owned)
+        finally:
+            self.lock.unlock()
 
 
 def main(targets, shouldbuildfunc):

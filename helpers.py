@@ -1,4 +1,4 @@
-import sys, os, errno
+import sys, os, errno, fcntl
 import vars
 
 
@@ -67,5 +67,13 @@ def debug(s):
 def debug2(s):
     if vars.DEBUG >= 2:
         log_('redo: %s%s' % (vars.DEPTH, s))
+
+
+def close_on_exec(fd, yes):
+    fl = fcntl.fcntl(fd, fcntl.F_GETFD)
+    fl &= ~fcntl.FD_CLOEXEC
+    if yes:
+        fl |= fcntl.FD_CLOEXEC
+    fcntl.fcntl(fd, fcntl.F_SETFD, fl)
 
 

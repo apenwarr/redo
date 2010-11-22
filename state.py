@@ -1,6 +1,6 @@
 import sys, os, errno, glob
 import vars
-from helpers import unlink, debug2, mkdirp
+from helpers import unlink, debug2, mkdirp, close_on_exec
 
 
 def init():
@@ -145,8 +145,8 @@ def start(t):
 class Lock:
     def __init__(self, t):
         self.owned = False
+        self.rfd = self.wfd = None
         self.lockname = _sname('lock', t)
-        self.tmpname = _sname('lock%d' % os.getpid(), t)
 
     def __del__(self):
         if self.owned:
@@ -156,6 +156,10 @@ class Lock:
         try:
             os.mkfifo(self.lockname, 0600)
             self.owned = True
+            self.rfd = os.open(self.lockname, os.O_RDONLY|os.O_NONBLOCK)
+            self.wfd = os.open(self.lockname, os.O_WRONLY)
+            close_on_exec(self.rfd, True)
+            close_on_exec(self.wfd, True)
         except OSError, e:
             if e.errno == errno.EEXIST:
                 pass
@@ -172,22 +176,11 @@ class Lock:
         if not self.owned:
             raise Exception("can't unlock %r - we don't own it" 
                             % self.lockname)
-        # make sure no readers can connect
-        try:
-            os.rename(self.lockname, self.tmpname)
-        except OSError, e:
-            if e.errno == errno.ENOENT: # 'make clean' might do this
-                self.owned = False
-                return
-        try:
-            # ping any connected readers
-            os.close(os.open(self.tmpname, os.O_WRONLY|os.O_NONBLOCK))
-        except OSError, e:
-            if e.errno == errno.ENXIO: # no readers open; that's ok
-                pass
-            else:
-                raise
-        os.unlink(self.tmpname)
+        unlink(self.lockname)
+        # ping any connected readers
+        os.close(self.rfd)
+        os.close(self.wfd)
+        self.rfd = self.wfd = None
         self.owned = False
 
     def wait(self):
@@ -195,7 +188,11 @@ class Lock:
             raise Exception("can't wait on %r - we own it" % self.lockname)
         try:
             # open() will finish only when a writer exists and does close()
-            os.close(os.open(self.lockname, os.O_RDONLY))
+            fd = os.open(self.lockname, os.O_RDONLY)
+            try:
+                os.read(fd, 1)
+            finally:
+                os.close(fd)
         except OSError, e:
             if e.errno == errno.ENOENT:
                 pass  # it's not even unlocked or was unlocked earlier
