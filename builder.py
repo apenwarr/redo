@@ -1,4 +1,4 @@
-import sys, os, random
+import sys, os, random, fcntl
 import vars, jwack, state
 from helpers import log, log_, debug2, err, unlink
 
@@ -29,6 +29,14 @@ def _find_do_file(t):
 
 def _nice(t):
     return os.path.normpath(os.path.join(vars.PWD, t))
+
+
+def _close_on_exec(fd, yes):
+    fl = fcntl.fcntl(fd, fcntl.F_GETFD)
+    fl &= ~fcntl.FD_CLOEXEC
+    if yes:
+        fl |= fcntl.FD_CLOEXEC
+    fcntl.fcntl(fd, fcntl.F_SETFD, fl)
 
 
 class BuildJob:
@@ -62,7 +70,9 @@ class BuildJob:
             return self._after2(1)
         state.stamp(dofile)
         unlink(tmpname)
-        self.f = open(tmpname, 'w+')
+        ffd = os.open(tmpname, os.O_CREAT|os.O_RDWR|os.O_EXCL)
+        _close_on_exec(ffd, True)
+        self.f = os.fdopen(ffd, 'w+')
         # this will run in the dofile's directory, so use only basenames here
         argv = ['sh', '-e',
                 os.path.basename(dofile),
@@ -87,7 +97,9 @@ class BuildJob:
             os.chdir(dn)
         os.dup2(self.f.fileno(), 1)
         os.close(self.f.fileno())
+        _close_on_exec(1, False)
         os.execvp(self.argv[0], self.argv)
+        assert(0)
         # returns only if there's an exception
 
     def _after(self, t, rv):
