@@ -3,10 +3,6 @@ import vars, jwack, state
 from helpers import log, log_, debug2, err, unlink
 
 
-class BuildError(Exception):
-    pass
-
-
 def _possible_do_files(t):
     yield "%s.do" % t, t, ''
     dirname,filename = os.path.split(t)
@@ -45,7 +41,7 @@ def _nice(t):
     return os.path.normpath(os.path.join(vars.PWD, t))
 
 
-def _build(t):
+def build(t):
     if (os.path.exists(t) and not state.is_generated(t)
           and not os.path.exists('%s.do' % t)):
         # an existing source file that is not marked as a generated file.
@@ -58,7 +54,8 @@ def _build(t):
     state.start(t)
     (dofile, basename, ext) = _find_do_file(t)
     if not dofile:
-        raise BuildError('no rule to make %r' % t)
+        err('no rule to make %r\n' % t)
+        return 1
     state.stamp(dofile)
     tmpname = '%s.redo.tmp' % t
     unlink(tmpname)
@@ -94,17 +91,10 @@ def _build(t):
         state.unstamp(t)
     f.close()
     if rv != 0:
-        raise BuildError('%s: exit code %d' % (_nice(t),rv))
+        err('%s: exit code %d\n' % (_nice(t),rv))
+        return 1
     if vars.VERBOSE or vars.XTRACE:
         log('%s (done)\n\n' % _nice(t))
-
-
-def build(t):
-    try:
-        return _build(t)
-    except BuildError, e:
-        err('%s\n' % e)
-    return 1
 
 
 def main(targets, buildfunc):
