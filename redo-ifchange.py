@@ -1,6 +1,6 @@
 #!/usr/bin/python
 import sys, os, errno
-import vars, state, builder
+import vars, state, builder, jwack
 from helpers import debug, err, mkdirp, unlink
 
 
@@ -56,13 +56,16 @@ if not vars.TARGET:
 
 rv = 202
 try:
-    want_build = []
-    for t in sys.argv[1:]:
-        state.add_dep(vars.TARGET, 'm', t)
-        if should_build(t):
-            want_build.append(t)
+    try:
+        want_build = []
+        for t in sys.argv[1:]:
+            state.add_dep(vars.TARGET, 'm', t)
+            if should_build(t):
+                want_build.append(t)
 
-    rv = builder.main(want_build, maybe_build)
+        rv = builder.main(want_build, maybe_build)
+    finally:
+        jwack.force_return_tokens()
 except KeyboardInterrupt:
     sys.exit(200)
 sys.exit(rv)
