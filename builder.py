@@ -153,6 +153,9 @@ def main(targets, shouldbuildfunc):
         jwack.get_token(t)
         if retcode[0] and not vars.KEEP_GOING:
             break
+        if not state.is_sane():
+            retcode[0] = 205
+            break
         lock = state.Lock(t)
         lock.trylock()
         if not lock.owned:
@@ -173,6 +176,9 @@ def main(targets, shouldbuildfunc):
         if retcode[0] and not vars.KEEP_GOING:
             break
         if locked:
+            if not state.is_sane():
+                retcode[0] = 205
+                break
             t = locked.pop(0)
             lock = state.Lock(t)
             lock.waitlock()

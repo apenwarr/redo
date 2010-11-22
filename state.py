@@ -1,6 +1,6 @@
 import sys, os, errno, glob
 import vars
-from helpers import unlink, debug2, mkdirp, close_on_exec
+from helpers import unlink, err, debug2, mkdirp, close_on_exec
 
 
 def init():
@@ -15,6 +15,16 @@ def init():
         os.unlink(f)
     for f in glob.glob('%s/.redo/built^*' % vars.BASE):
         os.unlink(f)
+
+
+_insane = None
+def is_sane():
+    global _insane
+    if not _insane:
+        _insane = not os.path.exists('%s/.redo' % vars.BASE)
+        if _insane:
+            err('.redo directory disappeared; cannot continue.\n')
+    return not _insane
 
 
 def relpath(t, base):
