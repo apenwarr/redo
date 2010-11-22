@@ -1,6 +1,12 @@
 import os
 import atoi
 
+if not os.environ.get('REDO'):
+    import sys
+    sys.stderr.write('%s: error: must be run from inside a .do\n'
+                     % sys.argv[0])
+    sys.exit(100)
+
 PWD = os.environ.get('REDO_PWD', '')
 TARGET = os.environ.get('REDO_TARGET', '')
 DEPTH = os.environ.get('REDO_DEPTH', '')

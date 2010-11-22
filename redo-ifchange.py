@@ -45,10 +45,6 @@ def should_build(t):
     return not state.isbuilt(t) and dirty_deps(t, depth = '')
 
 
-if not vars.TARGET:
-    err('redo-ifchange: error: must be run from inside a .do\n')
-    sys.exit(100)
-
 rv = 202
 try:
     try:
