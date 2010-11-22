@@ -1,4 +1,4 @@
-import sys, os, random
+import sys, os, random, errno
 import vars, jwack, state
 from helpers import log, log_, debug2, err, unlink, close_on_exec
 
@@ -31,6 +31,16 @@ def _nice(t):
     return os.path.normpath(os.path.join(vars.PWD, t))
 
 
+def _try_stat(filename):
+    try:
+        return os.stat(filename)
+    except OSError, e:
+        if e.errno == errno.ENOENT:
+            return None
+        else:
+            raise
+
+
 class BuildJob:
     def __init__(self, t, lock, shouldbuildfunc, donefunc):
         self.t = t
@@ -38,6 +48,7 @@ class BuildJob:
         self.lock = lock
         self.shouldbuildfunc = shouldbuildfunc
         self.donefunc = donefunc
+        self.before_t = _try_stat(self.t)
 
     def start(self):
         assert(self.lock.owned)
@@ -96,13 +107,30 @@ class BuildJob:
 
     def _after(self, t, rv):
         try:
-            self._after1(t, rv)
+            rv = self._after1(t, rv)
         finally:
             self._after2(rv)
 
     def _after1(self, t, rv):
         f = self.f
         tmpname = self.tmpname
+        before_t = self.before_t
+        after_t = _try_stat(t)
+        before_tmp = os.fstat(f.fileno())
+        after_tmp = _try_stat(tmpname)
+        after_where = os.lseek(f.fileno(), 0, os.SEEK_CUR)
+        if after_t != before_t:
+            err('%r modified %r directly!\n' % (self.argv[2], t))
+            err('...you should update $3 (a temp file) instead of $1.\n')
+            rv = 206
+        elif after_tmp and before_tmp != after_tmp and before_tmp.st_size > 0:
+            err('%r wrote to stdout *and* replaced $3.\n' % self.argv[2])
+            err('...you should write status messages to stderr, not stdout.\n')
+            rv = 207
+        elif after_where > 0 and after_tmp and after_tmp.st_size != after_where:
+            err('%r wrote differing data to stdout and $3.\n' % self.argv[2])
+            err('...you should write status messages to stderr, not stdout.\n')
+            rv = 208
         if rv==0:
             if os.path.exists(tmpname) and os.stat(tmpname).st_size:
                 # there's a race condition here, but if the tmpfile disappears
@@ -121,6 +149,7 @@ class BuildJob:
         else:
             if vars.VERBOSE or vars.XTRACE:
                 log('%s (done)\n\n' % _nice(t))
+        return rv
 
     def _after2(self, rv):
         try:
