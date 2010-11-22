@@ -1,4 +1,4 @@
-import sys, os, subprocess, random
+import sys, os, random
 import vars, jwack, state
 from helpers import log, log_, debug2, err, unlink
 
@@ -25,16 +25,6 @@ def _find_do_file(t):
         else:
             state.add_dep(t, 'c', dofile)
     return None,None,None
-
-
-def _preexec(t):
-    td = os.environ.get('REDO_PWD', '')
-    dn = os.path.dirname(t)
-    os.environ['REDO_PWD'] = os.path.join(td, dn)
-    os.environ['REDO_TARGET'] = os.path.basename(t)
-    os.environ['REDO_DEPTH'] = vars.DEPTH + '  '
-    if dn:
-        os.chdir(dn)
 
 
 def _nice(t):
@@ -88,11 +78,17 @@ class BuildJob:
         jwack.start_job(t, self._do_subproc, self._after)
 
     def _do_subproc(self):
-        t = self.t
-        argv = self.argv
-        f = self.f
-        return subprocess.call(argv, preexec_fn=lambda: _preexec(t),
-                               stdout=f.fileno())
+        td = os.environ.get('REDO_PWD', '')
+        dn = os.path.dirname(self.t)
+        os.environ['REDO_PWD'] = os.path.join(td, dn)
+        os.environ['REDO_TARGET'] = os.path.basename(self.t)
+        os.environ['REDO_DEPTH'] = vars.DEPTH + '  '
+        if dn:
+            os.chdir(dn)
+        os.dup2(self.f.fileno(), 1)
+        os.close(self.f.fileno())
+        os.execvp(self.argv[0], self.argv)
+        # returns only if there's an exception
 
     def _after(self, t, rv):
         f = self.f
