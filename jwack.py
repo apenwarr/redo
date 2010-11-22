@@ -182,9 +182,8 @@ class Job:
         return 'Job(%s,%d)' % (self.name, self.pid)
 
             
-def start_job(reason, lock, jobfunc, donefunc):
+def start_job(reason, jobfunc, donefunc):
     global _mytokens
-    assert(lock.owned)
     assert(_mytokens <= 1)
     get_token(reason)
     assert(_mytokens >= 1)
@@ -203,12 +202,9 @@ def start_job(reason, lock, jobfunc, donefunc):
             except Exception:
                 import traceback
                 traceback.print_exc()
-            lock.unlock()
         finally:
             _debug('exit: %d\n' % rv)
             os._exit(rv)
-    # else we're the parent process
-    lock.owned = False # child owns it now
     os.close(w)
     pd = Job(reason, pid, donefunc)
     _waitfds[r] = pd

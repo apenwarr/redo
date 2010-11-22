@@ -41,78 +41,86 @@ def _nice(t):
     return os.path.normpath(os.path.join(vars.PWD, t))
 
 
-def _build(t):
-    if (os.path.exists(t) and not state.is_generated(t)
-          and not os.path.exists('%s.do' % t)):
-        # an existing source file that is not marked as a generated file.
-        # This step is mentioned by djb in his notes.  It turns out to be
-        # important to prevent infinite recursion.  For example, a rule
-        # called default.c.do could be used to try to produce hello.c,
-        # which is undesirable since hello.c existed already.
-        state.stamp(t)
-        return  # success
-    state.start(t)
-    (dofile, basename, ext) = _find_do_file(t)
-    if not dofile:
-        err('no rule to make %r\n' % t)
-        return 1
-    state.stamp(dofile)
-    tmpname = '%s.redo.tmp' % t
-    unlink(tmpname)
-    f = open(tmpname, 'w+')
-
-    # this will run in the dofile's directory, so use only basenames here
-    argv = ['sh', '-e',
-            os.path.basename(dofile),
-            os.path.basename(basename),  # target name (extension removed)
-            ext,  # extension (if any), including leading dot
-            os.path.basename(tmpname)  # randomized output file name
-            ]
-    if vars.VERBOSE: argv[1] += 'v'
-    if vars.XTRACE: argv[1] += 'x'
-    if vars.VERBOSE or vars.XTRACE: log_('\n')
-    log('%s\n' % _nice(t))
-    rv = subprocess.call(argv, preexec_fn=lambda: _preexec(t),
-                         stdout=f.fileno())
-    if rv==0:
-        if os.path.exists(tmpname) and os.stat(tmpname).st_size:
-            # there's a race condition here, but if the tmpfile disappears
-            # at *this* point you deserve to get an error, because you're
-            # doing something totally scary.
-            os.rename(tmpname, t)
-        else:
-            unlink(tmpname)
-        state.stamp(t)
-    else:
-        unlink(tmpname)
-        state.unstamp(t)
-    f.close()
-    if rv != 0:
-        err('%s: exit code %d\n' % (_nice(t),rv))
-        return 1
-    if vars.VERBOSE or vars.XTRACE:
-        log('%s (done)\n\n' % _nice(t))
-
-
 class BuildJob:
     def __init__(self, t, lock, shouldbuildfunc, donefunc):
         self.t = t
+        self.tmpname = '%s.redo.tmp' % t
         self.lock = lock
         self.shouldbuildfunc = shouldbuildfunc
         self.donefunc = donefunc
 
     def start(self):
-        if not self.shouldbuildfunc(self.t):
+        assert(self.lock.owned)
+        t = self.t
+        tmpname = self.tmpname
+        if not self.shouldbuildfunc(t):
             # target doesn't need to be built; skip the whole task
-            self.done(self.t, 0)
-            return
-        jwack.start_job(self.t, self.lock, self.build, self.done)
+            return self._after2(0)
+        if (os.path.exists(t) and not state.is_generated(t)
+             and not os.path.exists('%s.do' % t)):
+            # an existing source file that is not marked as a generated file.
+            # This step is mentioned by djb in his notes.  It turns out to be
+            # important to prevent infinite recursion.  For example, a rule
+            # called default.c.do could be used to try to produce hello.c,
+            # which is undesirable since hello.c existed already.
+            state.stamp(t)
+            return self._after2(0)
+        state.start(t)
+        (dofile, basename, ext) = _find_do_file(t)
+        if not dofile:
+            err('no rule to make %r\n' % t)
+            return self._after2(1)
+        state.stamp(dofile)
+        unlink(tmpname)
+        self.f = open(tmpname, 'w+')
+        # this will run in the dofile's directory, so use only basenames here
+        argv = ['sh', '-e',
+                os.path.basename(dofile),
+                os.path.basename(basename),  # target name (extension removed)
+                ext,  # extension (if any), including leading dot
+                os.path.basename(tmpname)  # randomized output file name
+                ]
+        if vars.VERBOSE: argv[1] += 'v'
+        if vars.XTRACE: argv[1] += 'x'
+        if vars.VERBOSE or vars.XTRACE: log_('\n')
+        log('%s\n' % _nice(t))
+        self.argv = argv
+        jwack.start_job(t, self._do_subproc, self._after)
 
-    def build(self):
-        return _build(self.t)
+    def _do_subproc(self):
+        t = self.t
+        argv = self.argv
+        f = self.f
+        return subprocess.call(argv, preexec_fn=lambda: _preexec(t),
+                               stdout=f.fileno())
 
-    def done(self, name, rv):
-        return self.donefunc(self.t, rv)
+    def _after(self, t, rv):
+        f = self.f
+        tmpname = self.tmpname
+        if rv==0:
+            if os.path.exists(tmpname) and os.stat(tmpname).st_size:
+                # there's a race condition here, but if the tmpfile disappears
+                # at *this* point you deserve to get an error, because you're
+                # doing something totally scary.
+                os.rename(tmpname, t)
+            else:
+                unlink(tmpname)
+            state.stamp(t)
+        else:
+            unlink(tmpname)
+            state.unstamp(t)
+        f.close()
+        if rv != 0:
+            err('%s: exit code %d\n' % (_nice(t),rv))
+        else:
+            if vars.VERBOSE or vars.XTRACE:
+                log('%s (done)\n\n' % _nice(t))
+        return self._after2(rv)
+
+    def _after2(self, rv):
+        self.donefunc(self.t, rv)
+        assert(self.lock.owned)
+        self.lock.unlock()
 
 
 def main(targets, shouldbuildfunc):
@@ -145,8 +153,7 @@ def main(targets, shouldbuildfunc):
                 log('%s (locked...)\n' % _nice(t))
             locked.append(t)
         else:
-            j = BuildJob(t, lock, shouldbuildfunc, done)
-            j.start()
+            BuildJob(t, lock, shouldbuildfunc, done).start()
 
     # Now we've built all the "easy" ones.  Go back and just wait on the
     # remaining ones one by one.  This is technically non-optimal; we could
@@ -170,6 +177,5 @@ def main(targets, shouldbuildfunc):
                 retcode[0] = 2
                 lock.unlock()
             else:
-                j = BuildJob(t, lock, shouldbuildfunc, done)
-                j.start()
+                BuildJob(t, lock, shouldbuildfunc, done).start()
     return retcode[0]
