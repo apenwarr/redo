@@ -41,7 +41,7 @@ def _nice(t):
     return os.path.normpath(os.path.join(vars.PWD, t))
 
 
-def build(t):
+def _build(t):
     if (os.path.exists(t) and not state.is_generated(t)
           and not os.path.exists('%s.do' % t)):
         # an existing source file that is not marked as a generated file.
@@ -68,12 +68,9 @@ def build(t):
             ext,  # extension (if any), including leading dot
             os.path.basename(tmpname)  # randomized output file name
             ]
-    if vars.VERBOSE:
-        argv[1] += 'v'
-    if vars.XTRACE:
-        argv[1] += 'x'
-    if vars.VERBOSE or vars.XTRACE:
-        log_('\n')
+    if vars.VERBOSE: argv[1] += 'v'
+    if vars.XTRACE: argv[1] += 'x'
+    if vars.VERBOSE or vars.XTRACE: log_('\n')
     log('%s\n' % _nice(t))
     rv = subprocess.call(argv, preexec_fn=lambda: _preexec(t),
                          stdout=f.fileno())
@@ -97,7 +94,28 @@ def build(t):
         log('%s (done)\n\n' % _nice(t))
 
 
-def main(targets, buildfunc):
+class BuildJob:
+    def __init__(self, t, lock, shouldbuildfunc, donefunc):
+        self.t = t
+        self.lock = lock
+        self.shouldbuildfunc = shouldbuildfunc
+        self.donefunc = donefunc
+
+    def start(self):
+        if not self.shouldbuildfunc(self.t):
+            # target doesn't need to be built; skip the whole task
+            self.done(self.t, 0)
+            return
+        jwack.start_job(self.t, self.lock, self.build, self.done)
+
+    def build(self):
+        return _build(self.t)
+
+    def done(self, name, rv):
+        return self.donefunc(self.t, rv)
+
+
+def main(targets, shouldbuildfunc):
     retcode = [0]  # a list so that it can be reassigned from done()
     if vars.SHUFFLE:
         random.shuffle(targets)
@@ -106,7 +124,6 @@ def main(targets, buildfunc):
 
     def done(t, rv):
         if rv:
-            #err('%s: exit code was %r\n' % (t, rv))
             retcode[0] = 1
 
     for i in range(len(targets)):
@@ -128,8 +145,8 @@ def main(targets, buildfunc):
                 log('%s (locked...)\n' % _nice(t))
             locked.append(t)
         else:
-            jwack.start_job(t, lock,
-                            lambda: buildfunc(t), lambda t,rv: done(t,rv))
+            j = BuildJob(t, lock, shouldbuildfunc, done)
+            j.start()
 
     # Now we've built all the "easy" ones.  Go back and just wait on the
     # remaining ones one by one.  This is technically non-optimal; we could
@@ -137,6 +154,8 @@ def main(targets, buildfunc):
     # be rare enough that it doesn't matter, and the logic is easier this way.
     while locked or jwack.running():
         jwack.wait_all()
+        # at this point, we don't have any children holding any tokens, so
+        # it's okay to block below.
         if retcode[0] and not vars.KEEP_GOING:
             break
         if locked:
@@ -151,6 +170,6 @@ def main(targets, buildfunc):
                 retcode[0] = 2
                 lock.unlock()
             else:
-                jwack.start_job(t, lock, 
-                                lambda: buildfunc(t), lambda t,rv: done(t,rv))
+                j = BuildJob(t, lock, shouldbuildfunc, done)
+                j.start()
     return retcode[0]

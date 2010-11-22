@@ -67,11 +67,9 @@ try:
         err('invalid --jobs value: %r\n' % opt.jobs)
     jwack.setup(j)
     try:
-        retcode = builder.main(targets, builder.build)
+        retcode = builder.main(targets, lambda t: True)
     finally:
         jwack.force_return_tokens()
-    #if retcode:
-    #    err('exiting: %d\n' % retcode)
     sys.exit(retcode)
 except KeyboardInterrupt:
     sys.exit(200)

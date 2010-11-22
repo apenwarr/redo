@@ -45,11 +45,6 @@ def should_build(t):
     return not state.isbuilt(t) and dirty_deps(t, depth = '')
 
 
-def maybe_build(t):
-    if should_build(t):
-        return builder.build(t)
-
-
 if not vars.TARGET:
     err('redo-ifchange: error: must be run from inside a .do\n')
     sys.exit(100)
@@ -57,13 +52,10 @@ if not vars.TARGET:
 rv = 202
 try:
     try:
-        want_build = []
-        for t in sys.argv[1:]:
+        targets = sys.argv[1:]
+        for t in targets:
             state.add_dep(vars.TARGET, 'm', t)
-            if should_build(t):
-                want_build.append(t)
-
-        rv = builder.main(want_build, maybe_build)
+        rv = builder.main(targets, should_build)
     finally:
         jwack.force_return_tokens()
 except KeyboardInterrupt:
