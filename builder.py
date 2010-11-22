@@ -124,7 +124,9 @@ def main(targets, buildfunc):
         if os.path.exists('%s/all.do' % t):
             # t is a directory, but it has a default target
             targets[i] = '%s/all' % t
-    
+
+    # In the first cycle, we just build as much as we can without worrying
+    # about any lock contention.  If someone else has it locked, we move on.
     for t in targets:
         jwack.get_token(t)
         if retcode[0] and not vars.KEEP_GOING:
@@ -138,7 +140,11 @@ def main(targets, buildfunc):
         else:
             jwack.start_job(t, lock,
                             lambda: buildfunc(t), lambda t,rv: done(t,rv))
-    
+
+    # Now we've built all the "easy" ones.  Go back and just wait on the
+    # remaining ones one by one.  This is technically non-optimal; we could
+    # use select.select() to wait on more than one at a time.  But it should
+    # be rare enough that it doesn't matter, and the logic is easier this way.
     while locked or jwack.running():
         jwack.wait_all()
         if retcode[0] and not vars.KEEP_GOING:
@@ -146,9 +152,7 @@ def main(targets, buildfunc):
         if locked:
             t = locked.pop(0)
             lock = state.Lock(t)
-            while not lock.owned:
-                lock.wait()
-                lock.trylock()
+            lock.waitlock()
             assert(lock.owned)
             if vars.DEBUG_LOCKS:
                 log('%s (...unlocked!)\n' % _nice(t))

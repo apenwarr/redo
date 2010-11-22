@@ -162,6 +162,12 @@ class Lock:
             else:
                 raise
 
+    def waitlock(self):
+        while not self.owned:
+            self.wait()
+            self.trylock()
+        assert(self.owned)
+            
     def unlock(self):
         if not self.owned:
             raise Exception("can't unlock %r - we don't own it" 

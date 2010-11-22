@@ -107,21 +107,29 @@ def wait(want_token):
 
 def get_token(reason):
     global _mytokens
+    assert(_mytokens <= 1)
     setup(1)
     while 1:
         if _mytokens >= 1:
+            _debug("_mytokens is %d\n" % _mytokens)
+            assert(_mytokens == 1)
             _debug('(%r) used my own token...\n' % reason)
-            return
+            break
+        assert(_mytokens < 1)
         _debug('(%r) waiting for tokens...\n' % reason)
         wait(want_token=1)
+        if _mytokens >= 1:
+            break
+        assert(_mytokens < 1)
         if _fds:
             b = _try_read(_fds[0], 1)
             if b == None:
                 raise Exception('unexpected EOF on token read')
             if b:
+                _mytokens += 1
+                _debug('(%r) got a token (%r).\n' % (reason, b))
                 break
-    _mytokens += 1
-    _debug('(%r) got a token (%r).\n' % (reason, b))
+    assert(_mytokens <= 1)
 
 
 def running():
@@ -177,8 +185,10 @@ class Job:
 def start_job(reason, lock, jobfunc, donefunc):
     global _mytokens
     assert(lock.owned)
+    assert(_mytokens <= 1)
     get_token(reason)
     assert(_mytokens >= 1)
+    assert(_mytokens == 1)
     _mytokens -= 1
     r,w = os.pipe()
     pid = os.fork()
