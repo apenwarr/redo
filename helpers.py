@@ -35,8 +35,10 @@ def mkdirp(d, mode=None):
 
 def log_(s):
     sys.stdout.flush()
-    sys.stderr.write(s)
-    #sys.stderr.write('%d %s' % (os.getpid(), s))
+    if vars.DEBUG_PIDS:
+        sys.stderr.write('%d %s' % (os.getpid(), s))
+    else:
+        sys.stderr.write(s)
     sys.stderr.flush()
 
 

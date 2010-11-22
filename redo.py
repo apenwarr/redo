@@ -12,6 +12,7 @@ x,xtrace   print commands as they are executed (variables expanded)
 k,keep-going  keep going as long as possible even if some targets fail
 shuffle    randomize the build order to find dependency bugs
 debug-locks  print messages about file locking (useful for debugging)
+debug-pids   print process ids as part of log messages (useful for debugging)
 """
 o = options.Options('redo', optspec)
 (opt, flags, extra) = o.parse(sys.argv[1:])
@@ -30,6 +31,8 @@ if opt.shuffle:
     os.environ['REDO_SHUFFLE'] = '1'
 if opt.debug_locks:
     os.environ['REDO_DEBUG_LOCKS'] = '1'
+if opt.debug_pids:
+    os.environ['REDO_DEBUG_PIDS'] = '1'
 
 is_root = not os.environ.get('REDO', '')
 
