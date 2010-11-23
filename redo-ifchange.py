@@ -5,6 +5,8 @@ from helpers import debug, err, mkdirp, unlink
 
 
 def dirty_deps(t, depth):
+    if os.path.exists('%s/.' % t):
+        t = '%s/all' % t
     debug('%s?%s\n' % (depth, t))
     if state.isbuilt(t):
         debug('%s-- DIRTY (built)\n' % depth)
