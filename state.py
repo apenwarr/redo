@@ -71,7 +71,6 @@ def _stampname(t):
     
 
 def stamp(t):
-    built(t)
     mark(t)
     stampfile = _stampname(t)
     newstampfile = _sname('stamp' + str(os.getpid()), t)

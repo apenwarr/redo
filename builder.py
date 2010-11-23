@@ -139,6 +139,7 @@ class BuildJob:
                 os.rename(tmpname, t)
             else:
                 unlink(tmpname)
+            state.built(t)
             state.stamp(t)
         else:
             unlink(tmpname)
