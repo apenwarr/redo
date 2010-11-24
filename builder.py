@@ -69,8 +69,11 @@ class BuildJob:
         state.start(t)
         (dofile, basename, ext) = _find_do_file(t)
         if not dofile:
-            err('no rule to make %r\n' % t)
-            return self._after2(1)
+            if os.path.exists(t):
+                return self._after2(0)
+            else:
+                err('no rule to make %r\n' % t)
+                return self._after2(1)
         state.stamp(dofile)
         unlink(tmpname)
         ffd = os.open(tmpname, os.O_CREAT|os.O_RDWR|os.O_EXCL)
