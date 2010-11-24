@@ -1,2 +1,1 @@
-redo test1 test2 ifchange-fail overwrite basic/test dirtest/test
-
+redo test1 test2 ifchange-fail overwrite gentest basic/test dirtest/test

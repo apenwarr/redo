@@ -70,6 +70,7 @@ class BuildJob:
         (dofile, basename, ext) = _find_do_file(t)
         if not dofile:
             if os.path.exists(t):
+                state.stamp(t)
                 return self._after2(0)
             else:
                 err('no rule to make %r\n' % t)

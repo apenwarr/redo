@@ -2,3 +2,5 @@ t1a
 t2.count
 overwrite
 overwrite[123]
+genfile2
+genfile.log
