@@ -7,6 +7,7 @@ d
 test.args
 test2.args
 /passfail
-mode1
-makedir
-makedir.log
+/mode1
+/makedir
+/makedir.log
+/chdir1

@@ -52,7 +52,9 @@ try:
     try:
         targets = sys.argv[1:]
         for t in targets:
-            state.add_dep(vars.TARGET, 'm', t)
+            state.add_dep(os.path.join(vars.STARTDIR, 
+                                       os.path.join(vars.PWD, vars.TARGET)),
+                          'm', t)
         rv = builder.main(targets, should_build)
     finally:
         jwack.force_return_tokens()
