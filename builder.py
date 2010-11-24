@@ -1,4 +1,4 @@
-import sys, os, random, errno
+import sys, os, random, errno, stat
 import vars, jwack, state
 from helpers import log, log_, debug2, err, unlink, close_on_exec
 
@@ -122,7 +122,7 @@ class BuildJob:
         before_tmp = os.fstat(f.fileno())
         after_tmp = _try_stat(tmpname)
         after_where = os.lseek(f.fileno(), 0, os.SEEK_CUR)
-        if after_t != before_t:
+        if after_t != before_t and not stat.S_ISDIR(after_t.st_mode):
             err('%r modified %r directly!\n' % (self.argv[2], t))
             err('...you should update $3 (a temp file) instead of $1.\n')
             rv = 206
