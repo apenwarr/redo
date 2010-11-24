@@ -76,7 +76,7 @@ class BuildJob:
                 return self._after2(1)
         state.stamp(dofile)
         unlink(tmpname)
-        ffd = os.open(tmpname, os.O_CREAT|os.O_RDWR|os.O_EXCL)
+        ffd = os.open(tmpname, os.O_CREAT|os.O_RDWR|os.O_EXCL, 0666)
         close_on_exec(ffd, True)
         self.f = os.fdopen(ffd, 'w+')
         # this will run in the dofile's directory, so use only basenames here
