@@ -64,18 +64,18 @@ class BuildJob:
             # important to prevent infinite recursion.  For example, a rule
             # called default.c.do could be used to try to produce hello.c,
             # which is undesirable since hello.c existed already.
-            state.stamp(t)
+            state.stamp_and_maybe_built(t)
             return self._after2(0)
         state.start(t)
         (dofile, basename, ext) = _find_do_file(t)
         if not dofile:
             if os.path.exists(t):
-                state.stamp(t)
+                state.stamp_and_maybe_built(t)
                 return self._after2(0)
             else:
                 err('no rule to make %r\n' % t)
                 return self._after2(1)
-        state.stamp(dofile)
+        state.stamp_and_maybe_built(dofile)
         unlink(tmpname)
         ffd = os.open(tmpname, os.O_CREAT|os.O_RDWR|os.O_EXCL, 0666)
         close_on_exec(ffd, True)

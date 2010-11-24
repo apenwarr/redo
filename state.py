@@ -127,6 +127,14 @@ def isbuilt(t):
         return True
 
 
+# stamps the given input file, but only considers it to have been "built" if its
+# mtime has changed.  This is useful for static (non-generated) files.
+def stamp_and_maybe_built(t):
+    if stamped(t) != os.stat(t).st_mtime:
+        built(t)
+    stamp(t)
+
+        
 def mark(t):
     try:
         open(_sname('mark', t), 'w').close()
