@@ -27,8 +27,12 @@ def is_sane():
     return not _insane
 
 
+_cwd = None
 def relpath(t, base):
-    t = os.path.normpath(os.path.join(os.getcwd(), t))
+    global _cwd
+    if not _cwd:
+        _cwd = os.getcwd()
+    t = os.path.normpath(os.path.join(_cwd, t))
     tparts = t.split('/')
     bparts = base.split('/')
     for tp,bp in zip(tparts,bparts):
@@ -46,7 +50,8 @@ def _sname(typ, t):
     # FIXME: t.replace(...) is non-reversible and non-unique here!
     tnew = relpath(t, vars.BASE)
     v = vars.BASE + ('/.redo/%s^%s' % (typ, tnew.replace('/', '^')))
-    debug2('sname: (%r) %r -> %r\n' % (os.getcwd(), t, tnew))
+    if vars.DEBUG >= 2:
+        debug2('sname: (%r) %r -> %r\n' % (os.getcwd(), t, tnew))
     return v
 
 
