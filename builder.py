@@ -176,9 +176,6 @@ def main(targets, shouldbuildfunc):
 
     for i in range(len(targets)):
         t = targets[i]
-        if os.path.exists('%s/all.do' % t):
-            # t is a directory, but it has a default target
-            targets[i] = '%s/all' % t
 
     # In the first cycle, we just build as much as we can without worrying
     # about any lock contention.  If someone else has it locked, we move on.

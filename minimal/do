@@ -73,9 +73,6 @@ _do()
 redo()
 {
 	for i in "$@"; do
-		if [ -e "$i/." ]; then
-			i="$i/all"
-		fi
 		_dirsplit "$i"
 		( cd "$dir" && _do "$dir" "$base" ) || exit $?
 	done

@@ -5,8 +5,13 @@ from helpers import debug, err, mkdirp, unlink
 
 
 def dirty_deps(t, depth):
-    if os.path.exists('%s/.' % t):
-        t = '%s/all' % t
+    try:
+        st = os.stat(t)
+        realtime = st.st_mtime
+    except OSError:
+        st = None
+        realtime = 0
+    
     debug('%s?%s\n' % (depth, t))
     if state.isbuilt(t):
         debug('%s-- DIRTY (built)\n' % depth)
@@ -19,11 +24,6 @@ def dirty_deps(t, depth):
     if stamptime == None:
         debug('%s-- DIRTY (no stamp)\n' % depth)
         return True
-
-    try:
-        realtime = os.stat(t).st_mtime
-    except OSError:
-        realtime = 0
 
     if stamptime != realtime:
         debug('%s-- DIRTY (mtime)\n' % depth)
