@@ -1,7 +1,7 @@
 #!/usr/bin/python
 import sys, os, errno
 import vars, state, builder, jwack
-from helpers import debug, err, mkdirp, unlink
+from helpers import debug, debug2, err, mkdirp, unlink
 
 
 def dirty_deps(t, depth):
@@ -49,12 +49,13 @@ def should_build(t):
 
 rv = 202
 try:
+    me = os.path.join(vars.STARTDIR, 
+                      os.path.join(vars.PWD, vars.TARGET))
+    debug2('TARGET: %r %r %r\n' % (vars.STARTDIR, vars.PWD, vars.TARGET))
     try:
         targets = sys.argv[1:]
         for t in targets:
-            state.add_dep(os.path.join(vars.STARTDIR, 
-                                       os.path.join(vars.PWD, vars.TARGET)),
-                          'm', t)
+            state.add_dep(me, 'm', t)
         rv = builder.main(targets, should_build)
     finally:
         jwack.force_return_tokens()

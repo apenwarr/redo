@@ -95,9 +95,13 @@ class BuildJob:
         jwack.start_job(t, self._do_subproc, self._after)
 
     def _do_subproc(self):
-        td = os.environ.get('REDO_PWD', '')
+        # careful: REDO_PWD was the PWD relative to the STARTPATH at the time
+        # we *started* building the current target; but that target ran
+        # redo-ifchange, and it might have done it from a different directory
+        # than we started it in.  So os.getcwd() might be != REDO_PWD right now.
         dn = os.path.dirname(self.t)
-        os.environ['REDO_PWD'] = os.path.join(td, dn)
+        newp = os.path.realpath(dn)
+        os.environ['REDO_PWD'] = state.relpath(newp, vars.STARTDIR)
         os.environ['REDO_TARGET'] = os.path.basename(self.t)
         os.environ['REDO_DEPTH'] = vars.DEPTH + '  '
         if dn:

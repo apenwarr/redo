@@ -67,6 +67,9 @@ def debug(s):
 def debug2(s):
     if vars.DEBUG >= 2:
         log_('redo: %s%s' % (vars.DEPTH, s))
+def debug3(s):
+    if vars.DEBUG >= 3:
+        log_('redo: %s%s' % (vars.DEPTH, s))
 
 
 def close_on_exec(fd, yes):

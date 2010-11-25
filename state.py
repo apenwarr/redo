@@ -1,6 +1,6 @@
 import sys, os, errno, glob
 import vars
-from helpers import unlink, err, debug2, mkdirp, close_on_exec
+from helpers import unlink, err, debug2, debug3, mkdirp, close_on_exec
 
 
 def init():
@@ -50,15 +50,17 @@ def _sname(typ, t):
     # FIXME: t.replace(...) is non-reversible and non-unique here!
     tnew = relpath(t, vars.BASE)
     v = vars.BASE + ('/.redo/%s^%s' % (typ, tnew.replace('/', '^')))
-    if vars.DEBUG >= 2:
-        debug2('sname: (%r) %r -> %r\n' % (os.getcwd(), t, tnew))
+    if vars.DEBUG >= 3:
+        debug3('sname: (%r) %r -> %r\n' % (os.getcwd(), t, tnew))
     return v
 
 
 def add_dep(t, mode, dep):
-    debug2('add-dep(%r)\n' % t)
-    open(_sname('dep', t), 'a').write('%s %s\n'
-                                      % (mode, relpath(dep, vars.BASE)))
+    sn = _sname('dep', t)
+    reldep = relpath(dep, vars.BASE)
+    debug2('add-dep: %r < %s %r\n' % (sn, mode, reldep))
+    
+    open(sn, 'a').write('%s %s\n' % (mode, reldep))
 
 
 def deps(t):
