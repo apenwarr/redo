@@ -8,7 +8,7 @@ else
 fi
 redo-ifchange t1a  # it definitely had to rebuild because t1dep changed
 AFTER="$(cat t1a)"
-if [ "$BEFORE" == "$AFTER" ]; then
+if [ "$BEFORE" = "$AFTER" ]; then
 	echo "t1a was not rebuilt!" >&2
 	exit 43
 fi
