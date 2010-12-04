@@ -57,7 +57,8 @@ class BuildJob:
         if not self.shouldbuildfunc(t):
             # target doesn't need to be built; skip the whole task
             return self._after2(0)
-        if (os.path.exists(t) and not state.is_generated(t)
+        if (os.path.exists(t) and not os.path.exists(t + '/.')
+             and not state.is_generated(t)
              and not os.path.exists('%s.do' % t)):
             # an existing source file that is not marked as a generated file.
             # This step is mentioned by djb in his notes.  It turns out to be
