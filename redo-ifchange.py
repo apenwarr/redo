@@ -1,5 +1,5 @@
 #!/usr/bin/python
-import sys, os, errno
+import sys, os, errno, stat
 import vars, state, builder, jwack
 from helpers import debug, debug2, err, mkdirp, unlink
 
@@ -25,7 +25,7 @@ def dirty_deps(t, depth):
         debug('%s-- DIRTY (no stamp)\n' % depth)
         return True
 
-    if stamptime != realtime:
+    if stamptime != realtime and not (st and stat.S_ISDIR(st.st_mode)):
         debug('%s-- DIRTY (mtime)\n' % depth)
         return True
     
