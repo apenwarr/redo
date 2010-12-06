@@ -110,6 +110,7 @@ class BuildJob:
         os.dup2(self.f.fileno(), 1)
         os.close(self.f.fileno())
         close_on_exec(1, False)
+        if vars.VERBOSE or vars.XTRACE: log_('* %s\n' % ' '.join(self.argv))
         os.execvp(self.argv[0], self.argv)
         assert(0)
         # returns only if there's an exception
