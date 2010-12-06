@@ -97,6 +97,12 @@ def stamp(t):
 
 def unstamp(t):
     unlink(_stampname(t))
+    unlink(_sname('dep', t))
+
+
+def unmark_as_generated(t):
+    unstamp(t)
+    unlink(_sname('gen', t))
 
 
 def stamped(t):
