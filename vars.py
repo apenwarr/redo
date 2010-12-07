@@ -18,6 +18,7 @@ XTRACE = os.environ.get('REDO_XTRACE', '') and 1 or 0
 KEEP_GOING = os.environ.get('REDO_KEEP_GOING', '') and 1 or 0
 SHUFFLE = os.environ.get('REDO_SHUFFLE', '') and 1 or 0
 STARTDIR = os.environ['REDO_STARTDIR']
+RUNID = atoi.atoi(os.environ.get('REDO_RUNID')) or None
 BASE = os.environ['REDO_BASE']
 while BASE and BASE.endswith('/'):
     BASE = BASE[:-1]
