@@ -112,8 +112,15 @@ class File(object):
     __slots__ = ['id', 'name', 'is_generated',
                  'checked_runid', 'changed_runid',
                  'stamp', 'csum']
+
+    def _init_from_cols(self, cols):
+        (self.id, self.name, self.is_generated,
+         self.checked_runid, self.changed_runid,
+         self.stamp, self.csum) = cols
     
-    def __init__(self, id=None, name=None):
+    def __init__(self, id=None, name=None, cols=None):
+        if cols:
+            return self._init_from_cols(cols)
         q = ('select rowid, name, is_generated, checked_runid, changed_runid, '
              '    stamp, csum '
              '  from Files ')
@@ -136,9 +143,7 @@ class File(object):
             d.commit()
             row = d.execute(q, l).fetchone()
             assert(row)
-        (self.id, self.name, self.is_generated,
-         self.checked_runid, self.changed_runid,
-         self.stamp, self.csum) = row
+        self._init_from_cols(row)
 
     def save(self):
         if not os.path.exists('%s/.redo' % vars.BASE):
@@ -180,11 +185,17 @@ class File(object):
                          and self.changed_runid >= self.checked_runid))
 
     def deps(self):
-        q = "select mode, source from Deps where target=?"
-        for mode,source_id in db().execute(q, [self.id]).fetchall():
+        q = ('select Deps.mode, Deps.source, '
+             '    name, is_generated, checked_runid, changed_runid, '
+             '    stamp, csum '
+             '  from Files '
+             '    join Deps on Files.rowid = Deps.source '
+             '  where target=?')
+        for row in db().execute(q, [self.id]).fetchall():
+            mode = row[0]
+            cols = row[1:]
             assert(mode in ('c', 'm'))
-            name = File(id=source_id).name
-            yield mode,name
+            yield mode,File(cols=cols)
 
     def zap_deps(self):
         debug2('zap-deps: %r\n' % self.name)

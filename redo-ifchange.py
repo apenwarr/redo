@@ -25,13 +25,12 @@ def dirty_deps(f, depth, max_changed):
         debug('%s-- DIRTY (mtime)\n' % depth)
         return True
     
-    for mode,name in f.deps():
+    for mode,f2 in f.deps():
         if mode == 'c':
-            if os.path.exists(name):
+            if os.path.exists(os.path.join(vars.BASE, f2.name)):
                 debug('%s-- DIRTY (created)\n' % depth)
                 return True
         elif mode == 'm':
-            f2 = state.File(name=os.path.join(vars.BASE, name))
             if dirty_deps(f2, depth = depth + '  ',
                           max_changed = f.changed_runid):
                 debug('%s-- DIRTY (sub)\n' % depth)
