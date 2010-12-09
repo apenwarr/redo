@@ -3,6 +3,7 @@ import vars
 from helpers import unlink, err, debug2, debug3, mkdirp, close_on_exec
 
 SCHEMA_VER=7
+TIMEOUT=60
 
 _db = None
 def db():
@@ -14,7 +15,7 @@ def db():
     mkdirp(dbdir)
     must_create = not os.path.exists(dbfile)
     if not must_create:
-        _db = sqlite3.connect(dbfile)
+        _db = sqlite3.connect(dbfile, timeout=TIMEOUT)
         try:
             row = _db.cursor().execute("select version from Schema").fetchone()
         except sqlite3.OperationalError:
@@ -27,7 +28,7 @@ def db():
             _db = None
     if must_create:
         unlink(dbfile)
-        _db = sqlite3.connect(dbfile)
+        _db = sqlite3.connect(dbfile, timeout=TIMEOUT)
         _db.execute("create table Schema (version int)")
         _db.execute("create table Runid "
                     "    (id integer primary key autoincrement)")
