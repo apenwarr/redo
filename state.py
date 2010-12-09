@@ -6,6 +6,13 @@ import helpers
 SCHEMA_VER=1
 TIMEOUT=60
 
+def _connect(dbfile):
+    _db = sqlite3.connect(dbfile, timeout=TIMEOUT)
+    _db.execute("pragma synchronous = off")
+    _db.execute("pragma journal_mode = PERSIST")
+    return _db
+
+
 _db = None
 def db():
     global _db
@@ -22,7 +29,7 @@ def db():
             raise
     must_create = not os.path.exists(dbfile)
     if not must_create:
-        _db = sqlite3.connect(dbfile, timeout=TIMEOUT)
+        _db = _connect(dbfile)
         try:
             row = _db.cursor().execute("select version from Schema").fetchone()
         except sqlite3.OperationalError:
@@ -35,7 +42,7 @@ def db():
             _db = None
     if must_create:
         unlink(dbfile)
-        _db = sqlite3.connect(dbfile, timeout=TIMEOUT)
+        _db = _connect(dbfile)
         _db.execute("create table Schema "
                     "    (version int)")
         _db.execute("create table Runid "
@@ -60,8 +67,6 @@ def db():
         vars.RUNID = _db.execute("select last_insert_rowid()").fetchone()[0]
         os.environ['REDO_RUNID'] = str(vars.RUNID)
     
-    _db.execute("pragma journal_mode = PERSIST")
-    _db.execute("pragma synchronous = off")
     _db.commit()
     return _db
     
