@@ -1,6 +1,6 @@
 import sys, os, errno, glob, stat, sqlite3
 import vars
-from helpers import unlink, err, debug2, debug3, mkdirp, close_on_exec
+from helpers import unlink, err, debug2, debug3, close_on_exec
 import helpers
 
 SCHEMA_VER=1
@@ -13,7 +13,13 @@ def db():
         return _db
     dbdir = '%s/.redo' % vars.BASE
     dbfile = '%s/db.sqlite3' % dbdir
-    mkdirp(dbdir)
+    try:
+        os.mkdir(dbdir)
+    except OSError, e:
+        if e.errno == errno.EEXIST:
+            pass  # if it exists, that's okay
+        else:
+            raise
     must_create = not os.path.exists(dbfile)
     if not must_create:
         _db = sqlite3.connect(dbfile, timeout=TIMEOUT)
@@ -72,6 +78,8 @@ def init():
 
 _wrote = 0
 def _write(q, l):
+    if _insane:
+        return
     global _wrote
     _wrote += 1
     #helpers.log_('W: %r %r\n' % (q,l))
@@ -79,6 +87,8 @@ def _write(q, l):
 
 
 def commit():
+    if _insane:
+        return
     global _wrote
     if _wrote:
         #helpers.log_("COMMIT (%d)\n" % _wrote)
@@ -87,12 +97,10 @@ def commit():
 
 
 _insane = None
-def is_sane():
-    global _insane
+def check_sane():
+    global _insane, _writable
     if not _insane:
         _insane = not os.path.exists('%s/.redo' % vars.BASE)
-        if _insane:
-            err('.redo directory disappeared; cannot continue.\n')
     return not _insane
 
 
@@ -161,9 +169,6 @@ class File(object):
         self._init_from_cols(row)
 
     def save(self):
-        if not os.path.exists('%s/.redo' % vars.BASE):
-            # this might happen if 'make clean' removes the .redo dir
-            return
         _write('update Files set '
                '    is_generated=?, checked_runid=?, changed_runid=?, '
                '    stamp=?, csum=? '

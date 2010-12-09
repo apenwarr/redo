@@ -130,6 +130,7 @@ class BuildJob:
 
     def _after(self, t, rv):
         try:
+            state.check_sane()
             rv = self._after1(t, rv)
         finally:
             self._after2(rv)
@@ -211,7 +212,8 @@ def main(targets, shouldbuildfunc):
         jwack.get_token(t)
         if retcode[0] and not vars.KEEP_GOING:
             break
-        if not state.is_sane():
+        if not state.check_sane():
+            err('.redo directory disappeared; cannot continue.\n')
             retcode[0] = 205
             break
         lock = state.Lock(t)
@@ -234,7 +236,8 @@ def main(targets, shouldbuildfunc):
         if retcode[0] and not vars.KEEP_GOING:
             break
         if locked:
-            if not state.is_sane():
+            if not state.check_sane():
+                err('.redo directory disappeared; cannot continue.\n')
                 retcode[0] = 205
                 break
             t = locked.pop(0)

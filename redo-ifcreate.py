@@ -1,7 +1,7 @@
 #!/usr/bin/python
 import sys, os
 import vars, state
-from helpers import err, mkdirp
+from helpers import err
 
 
 try:

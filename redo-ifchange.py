@@ -1,7 +1,7 @@
 #!/usr/bin/python
 import sys, os, errno, stat
 import vars, state, builder, jwack
-from helpers import debug, debug2, err, mkdirp, unlink
+from helpers import debug, debug2, err, unlink
 
 
 def dirty_deps(f, depth, max_changed):
