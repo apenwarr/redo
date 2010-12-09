@@ -105,6 +105,11 @@ def wait(want_token):
             pd.donefunc(pd.name, pd.rv)
 
 
+def has_token():
+    if _mytokens >= 1:
+        return True
+
+
 def get_token(reason):
     global _mytokens
     assert(_mytokens <= 1)

@@ -4,6 +4,7 @@ from helpers import log, log_, debug2, err, unlink, close_on_exec
 
 
 def _possible_do_files(t):
+    t = os.path.join(vars.BASE, t)
     yield "%s.do" % t, t, ''
     dirname,filename = os.path.split(t)
     l = filename.split('.')
@@ -16,14 +17,14 @@ def _possible_do_files(t):
                os.path.join(dirname, basename), ext)
 
 
-def _find_do_file(t):
-    for dofile,basename,ext in _possible_do_files(t):
-        debug2('%s: %s ?\n' % (t, dofile))
+def _find_do_file(f):
+    for dofile,basename,ext in _possible_do_files(f.name):
+        debug2('%s: %s ?\n' % (f.name, dofile))
         if os.path.exists(dofile):
-            state.File(name=t).add_dep('m', dofile)
+            f.add_dep('m', dofile)
             return dofile,basename,ext
         else:
-            state.File(name=t).add_dep('c', dofile)
+            f.add_dep('c', dofile)
     return None,None,None
 
 
@@ -73,7 +74,7 @@ class BuildJob:
             f.save()
             return self._after2(0)
         f.zap_deps()
-        (dofile, basename, ext) = _find_do_file(t)
+        (dofile, basename, ext) = _find_do_file(f)
         if not dofile:
             if os.path.exists(t):
                 f.is_generated = False
@@ -132,6 +133,7 @@ class BuildJob:
         try:
             state.check_sane()
             rv = self._after1(t, rv)
+            state.commit()
         finally:
             self._after2(rv)
 
@@ -186,7 +188,6 @@ class BuildJob:
         try:
             self.donefunc(self.t, rv)
             assert(self.lock.owned)
-            state.commit()
         finally:
             self.lock.unlock()
 
@@ -209,7 +210,8 @@ def main(targets, shouldbuildfunc):
     # In the first cycle, we just build as much as we can without worrying
     # about any lock contention.  If someone else has it locked, we move on.
     for t in targets:
-        state.commit()
+        if not jwack.has_token():
+            state.commit()
         jwack.get_token(t)
         if retcode[0] and not vars.KEEP_GOING:
             break
@@ -231,6 +233,7 @@ def main(targets, shouldbuildfunc):
     # use select.select() to wait on more than one at a time.  But it should
     # be rare enough that it doesn't matter, and the logic is easier this way.
     while locked or jwack.running():
+        state.commit()
         jwack.wait_all()
         # at this point, we don't have any children holding any tokens, so
         # it's okay to block below.
