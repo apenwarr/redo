@@ -2,7 +2,7 @@
 #echo "Flushing redo cache..." >&2
 (
 	echo ".timeout 5000"
-	echo "update Files set checked_runid=null;"
-	echo "update Files set changed_runid=changed_runid-1;"
-	#echo "update Files set stamp='dirty' where id in (select distinct target from Deps);"
+	echo "pragma synchronous = off;"
+	echo "update Files set checked_runid=null, " \
+	     "       changed_runid=changed_runid-1;"
 ) | sqlite3  "$REDO_BASE/.redo/db.sqlite3"
