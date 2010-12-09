@@ -2,7 +2,7 @@ import sys, os, errno, glob, stat, sqlite3
 import vars
 from helpers import unlink, err, debug2, debug3, mkdirp, close_on_exec
 
-SCHEMA_VER=7
+SCHEMA_VER=1
 TIMEOUT=60
 
 _db = None
@@ -29,23 +29,24 @@ def db():
     if must_create:
         unlink(dbfile)
         _db = sqlite3.connect(dbfile, timeout=TIMEOUT)
-        _db.execute("create table Schema (version int)")
+        _db.execute("create table Schema "
+                    "    (version int)")
         _db.execute("create table Runid "
                     "    (id integer primary key autoincrement)")
-        _db.execute("create table Files ("
-                    "    name not null primary key, "
-                    "    is_generated int, "
-                    "    checked_runid int, "
-                    "    changed_runid int, "
-                    "    stamp, csum)")
+        _db.execute("create table Files "
+                    "    (name not null primary key, "
+                    "     is_generated int, "
+                    "     checked_runid int, "
+                    "     changed_runid int, "
+                    "     stamp, "
+                    "     csum)")
         _db.execute("create table Deps "
-                    "    (target int, source int, mode not null, primary key (target,source))")
-        #_db.execute("create unique index Files_name on Files (name)")
-        #_db.execute("create unique index Deps_ix on Deps (target, source)")
-        _db.execute("create index Deps_src on Deps (source)")
+                    "    (target int, "
+                    "     source int, "
+                    "     mode not null, "
+                    "     primary key (target,source))")
         _db.execute("insert into Schema (version) values (?)", [SCHEMA_VER])
-        _db.execute("insert into Runid default values")
-        _db.execute("insert into Runid default values")
+        _db.execute("insert into Runid default values")  # eat the '0' runid
         _db.commit()
 
     if not vars.RUNID:
