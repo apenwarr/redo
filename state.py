@@ -180,7 +180,7 @@ class File(object):
 
     def deps(self):
         q = "select mode, source from Deps where target=?"
-        for mode,source_id in db().execute(q, [self.id]):
+        for mode,source_id in db().execute(q, [self.id]).fetchall():
             assert(mode in ('c', 'm'))
             name = File(id=source_id).name
             yield mode,name
