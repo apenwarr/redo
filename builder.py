@@ -1,4 +1,4 @@
-import sys, os, random, errno, stat
+import sys, os, errno, stat
 import vars, jwack, state
 from helpers import log, log_, debug2, err, unlink, close_on_exec
 
@@ -194,6 +194,7 @@ class BuildJob:
 def main(targets, shouldbuildfunc):
     retcode = [0]  # a list so that it can be reassigned from done()
     if vars.SHUFFLE:
+        import random
         random.shuffle(targets)
 
     locked = []
