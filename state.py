@@ -1,6 +1,7 @@
 import sys, os, errno, glob, stat, sqlite3
 import vars
 from helpers import unlink, err, debug2, debug3, mkdirp, close_on_exec
+import helpers
 
 SCHEMA_VER=1
 TIMEOUT=60
@@ -47,16 +48,15 @@ def db():
                     "     primary key (target,source))")
         _db.execute("insert into Schema (version) values (?)", [SCHEMA_VER])
         _db.execute("insert into Runid default values")  # eat the '0' runid
-        _db.commit()
 
     if not vars.RUNID:
         _db.execute("insert into Runid default values")
-        _db.commit()
         vars.RUNID = _db.execute("select last_insert_rowid()").fetchone()[0]
         os.environ['REDO_RUNID'] = str(vars.RUNID)
     
     _db.execute("pragma journal_mode = PERSIST")
     _db.execute("pragma synchronous = off")
+    _db.commit()
     return _db
     
 
@@ -68,6 +68,22 @@ def init():
     db()
     for f in glob.glob('%s/.redo/lock*' % vars.BASE):
         os.unlink(f)
+
+
+_wrote = 0
+def _write(q, l):
+    global _wrote
+    _wrote += 1
+    #helpers.log_('W: %r %r\n' % (q,l))
+    db().execute(q, l)
+
+
+def commit():
+    global _wrote
+    if _wrote:
+        #helpers.log_("COMMIT (%d)\n" % _wrote)
+        db().commit()
+        _wrote = 0
 
 
 _insane = None
@@ -139,8 +155,7 @@ class File(object):
             if not name:
                 raise Exception('File with id=%r not found and '
                                 'name not given' % id)
-            d.execute('insert into Files (name) values (?)', [name])
-            d.commit()
+            _write('insert into Files (name) values (?)', [name])
             row = d.execute(q, l).fetchone()
             assert(row)
         self._init_from_cols(row)
@@ -149,15 +164,14 @@ class File(object):
         if not os.path.exists('%s/.redo' % vars.BASE):
             # this might happen if 'make clean' removes the .redo dir
             return
-        d = db()
-        d.execute('update Files set '
-                  '    is_generated=?, checked_runid=?, changed_runid=?, '
-                  '    stamp=?, csum=? '
-                  '    where rowid=?',
-                  [self.is_generated, self.checked_runid, self.changed_runid,
-                   self.stamp, self.csum,
-                   self.id])
-        d.commit()
+        _write('update Files set '
+               '    is_generated=?, checked_runid=?, changed_runid=?, '
+               '    stamp=?, csum=? '
+               '    where rowid=?',
+               [self.is_generated,
+                self.checked_runid, self.changed_runid,
+                self.stamp, self.csum,
+                self.id])
 
     def set_checked(self):
         self.checked_runid = vars.RUNID
@@ -199,21 +213,16 @@ class File(object):
 
     def zap_deps(self):
         debug2('zap-deps: %r\n' % self.name)
-        db().execute('delete from Deps where target=?', [self.id])
-        db().commit()
+        _write('delete from Deps where target=?', [self.id])
 
     def add_dep(self, mode, dep):
         src = File(name=dep)
         reldep = relpath(dep, vars.BASE)
         debug2('add-dep: %r < %s %r\n' % (self.name, mode, reldep))
         assert(src.name == reldep)
-        d = db()
-        d.execute("delete from Deps where target=? and source=?",
-                  [self.id, src.id])
-        d.execute("insert into Deps "
-                  "    (target, mode, source) values (?,?,?)",
-                  [self.id, mode, src.id])
-        d.commit()
+        _write("insert or replace into Deps "
+               "    (target, mode, source) values (?,?,?)",
+               [self.id, mode, src.id])
 
     def read_stamp(self):
         try:

@@ -104,6 +104,7 @@ class BuildJob:
         dof = state.File(name=dofile)
         dof.set_static()
         dof.save()
+        state.commit()
         jwack.start_job(t, self._do_subproc, self._after)
 
     def _do_subproc(self):
@@ -184,6 +185,7 @@ class BuildJob:
         try:
             self.donefunc(self.t, rv)
             assert(self.lock.owned)
+            state.commit()
         finally:
             self.lock.unlock()
 
@@ -205,6 +207,7 @@ def main(targets, shouldbuildfunc):
     # In the first cycle, we just build as much as we can without worrying
     # about any lock contention.  If someone else has it locked, we move on.
     for t in targets:
+        state.commit()
         jwack.get_token(t)
         if retcode[0] and not vars.KEEP_GOING:
             break
@@ -246,4 +249,5 @@ def main(targets, shouldbuildfunc):
                 lock.unlock()
             else:
                 BuildJob(t, lock, shouldbuildfunc, done).start()
+    state.commit()
     return retcode[0]
