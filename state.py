@@ -204,9 +204,7 @@ class File(object):
         return self.changed_runid and self.changed_runid >= vars.RUNID
 
     def is_checked(self):
-        return (self.checked_runid and self.checked_runid >= vars.RUNID
-                and not (self.changed_runid 
-                         and self.changed_runid >= self.checked_runid))
+        return self.checked_runid and self.checked_runid >= vars.RUNID
 
     def deps(self):
         q = ('select Deps.mode, Deps.source, '
