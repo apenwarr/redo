@@ -163,7 +163,12 @@ class File(object):
             if not name:
                 raise Exception('File with id=%r not found and '
                                 'name not given' % id)
-            _write('insert into Files (name) values (?)', [name])
+            try:
+                _write('insert into Files (name) values (?)', [name])
+            except sqlite3.IntegrityError:
+                # some parallel redo probably added it at the same time; no
+                # big deal.
+                pass
             row = d.execute(q, l).fetchone()
             assert(row)
         self._init_from_cols(row)
