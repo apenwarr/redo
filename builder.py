@@ -28,7 +28,7 @@ def _find_do_file(t):
 
 
 def _nice(t):
-    return os.path.normpath(os.path.join(vars.PWD, t))
+    return state.relpath(t, vars.STARTDIR)
 
 
 def _try_stat(filename):
