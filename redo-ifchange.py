@@ -5,7 +5,7 @@ from helpers import debug, debug2, err, unlink
 
 
 def dirty_deps(f, depth, max_changed):
-    debug('%s?%s\n' % (depth, f.name))
+    if vars.DEBUG >= 1: debug('%s?%s\n' % (depth, f.name))
 
     if f.changed_runid == None:
         debug('%s-- DIRTY (never built)\n' % depth)
@@ -14,7 +14,7 @@ def dirty_deps(f, depth, max_changed):
         debug('%s-- DIRTY (built)\n' % depth)
         return True  # has been built more recently than parent
     if f.is_checked():
-        debug('%s-- CLEAN (checked)\n' % depth)
+        if vars.DEBUG >= 1: debug('%s-- CLEAN (checked)\n' % depth)
         return False  # has already been checked during this session
 
     if not f.stamp:
