@@ -70,7 +70,11 @@ def setup(maxjobs):
     if maxjobs and not _fds:
         # need to start a new server
         _toplevel = maxjobs
-        _fds = os.pipe()
+        _fds1 = os.pipe()
+        _fds = (fcntl.fcntl(_fds1[0], fcntl.F_DUPFD, 100),
+                fcntl.fcntl(_fds1[1], fcntl.F_DUPFD, 101))
+        os.close(_fds1[0])
+        os.close(_fds1[1])
         _release(maxjobs-1)
         os.putenv('MAKEFLAGS',
                   '%s --jobserver-fds=%d,%d -j' % (os.getenv('MAKEFLAGS'),
