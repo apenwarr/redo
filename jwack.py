@@ -1,7 +1,7 @@
 #
 # beware the jobberwack
 #
-import sys, os, errno, select, fcntl
+import sys, os, errno, select, fcntl, signal
 import atoi
 
 _toplevel = 0
@@ -24,22 +24,35 @@ def _release(n):
         _mytokens = 1
 
 
+def _timeout(sig, frame):
+    pass
+
+
 def _try_read(fd, n):
-    # FIXME: this isn't actually safe, because GNU make can't handle it if
-    # the socket is nonblocking.  Ugh.  That means we'll have to do their
-    # horrible SIGCHLD hack after all.
-    fcntl.fcntl(_fds[0], fcntl.F_SETFL, os.O_NONBLOCK)
+    # using djb's suggested way of doing non-blocking reads from a blocking
+    # socket: http://cr.yp.to/unix/nonblock.html
+    # We can't just make the socket non-blocking, because we want to be
+    # compatible with GNU Make, and they can't handle it.
+    r,w,x = select.select([fd], [], [], 0)
+    if not r:
+        return ''  # try again
+    # ok, the socket is readable - but some other process might get there
+    # first.  We have to set an alarm() in case our read() gets stuck.
+    oldh = signal.signal(signal.SIGALRM, _timeout)
     try:
+        signal.alarm(1)  # emergency fallback
         try:
             b = os.read(_fds[0], 1)
         except OSError, e:
-            if e.errno == errno.EAGAIN:
-                return ''
+            if e.errno in (errno.EAGAIN, errno.EINTR):
+                # interrupted or it was nonblocking
+                return ''  # try again
             else:
                 raise
     finally:
-        fcntl.fcntl(_fds[0], fcntl.F_SETFL, 0)
-    return b and b or None
+        signal.alarm(0)
+        signal.signal(signal.SIGALRM, oldh)
+    return b and b or None  # None means EOF
 
 
 def setup(maxjobs):
@@ -70,7 +83,11 @@ def setup(maxjobs):
     if maxjobs and not _fds:
         # need to start a new server
         _toplevel = maxjobs
-        _fds = os.pipe()
+        _fds1 = os.pipe()
+        _fds = (fcntl.fcntl(_fds1[0], fcntl.F_DUPFD, 100),
+                fcntl.fcntl(_fds1[1], fcntl.F_DUPFD, 101))
+        os.close(_fds1[0])
+        os.close(_fds1[1])
         _release(maxjobs-1)
         os.putenv('MAKEFLAGS',
                   '%s --jobserver-fds=%d,%d -j' % (os.getenv('MAKEFLAGS'),
@@ -103,6 +120,11 @@ def wait(want_token):
                 pd.rv = -os.WTERMSIG(rv)
             _debug("done2: rv=%d\n" % pd.rv)
             pd.donefunc(pd.name, pd.rv)
+
+
+def has_token():
+    if _mytokens >= 1:
+        return True
 
 
 def get_token(reason):
@@ -149,8 +171,8 @@ def wait_all():
             bb += b
             if not b: break
         if len(bb) != _toplevel-1:
-            raise Exception('on exit: expected %d tokens; found only %d' 
-                            % (_toplevel-1, len(b)))
+            raise Exception('on exit: expected %d tokens; found only %r' 
+                            % (_toplevel-1, len(bb)))
         os.write(_fds[1], bb)
 
 
