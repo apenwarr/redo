@@ -34,13 +34,20 @@ def _cerr(s):
 def _bwerr(s):
     log_('redo: %s%s' % (vars.DEPTH, s))
 
+def _cwarn(s):
+    log_('\x1b[33mredo: %s\x1b[1m%s\x1b[m' % (vars.DEPTH, s))
+def _bwwarn(s):
+    log_('redo: %s%s' % (vars.DEPTH, s))
+
 
 if os.isatty(2):
     log = _clog
     err = _cerr
+    warn = _cwarn
 else:
     log = _bwlog
     err = _bwerr
+    warn = _bwwarn
 
 
 def debug(s):

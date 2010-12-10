@@ -1,6 +1,6 @@
 import sys, os, errno, stat
 import vars, jwack, state
-from helpers import log, log_, debug2, err, unlink, close_on_exec
+from helpers import log, log_, debug2, err, warn, unlink, close_on_exec
 
 
 def _possible_do_files(t):
@@ -231,9 +231,12 @@ def main(targets, shouldbuildfunc):
             BuildJob(t, f, lock, shouldbuildfunc, done).start()
 
     # Now we've built all the "easy" ones.  Go back and just wait on the
-    # remaining ones one by one.  This is non-optimal; we could go faster if
-    # we could wait on multiple locks at once.  But it should
-    # be rare enough that it doesn't matter, and the logic is easier this way.
+    # remaining ones one by one.  There's no reason to do it any more
+    # efficiently, because if these targets were previously locked, that
+    # means someone else was building them; thus, we probably won't need to
+    # do anything.  The only exception is if we're invoked as redo instead
+    # of redo-ifchange; then we have to redo it even if someone else already
+    # did.  But that should be rare.
     while locked or jwack.running():
         state.commit()
         jwack.wait_all()
@@ -248,7 +251,11 @@ def main(targets, shouldbuildfunc):
                 break
             fid,t = locked.pop(0)
             lock = state.Lock(fid)
-            lock.waitlock()
+            lock.trylock()
+            if not lock.owned:
+                if vars.DEBUG_LOCKS and len(locked) >= 1:
+                    warn('%s (WAITING)\n' % _nice(t))
+                lock.waitlock()
             assert(lock.owned)
             if vars.DEBUG_LOCKS:
                 log('%s (...unlocked!)\n' % _nice(t))
