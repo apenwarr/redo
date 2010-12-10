@@ -171,8 +171,8 @@ def wait_all():
             bb += b
             if not b: break
         if len(bb) != _toplevel-1:
-            raise Exception('on exit: expected %d tokens; found only %d' 
-                            % (_toplevel-1, len(b)))
+            raise Exception('on exit: expected %d tokens; found only %r' 
+                            % (_toplevel-1, len(bb)))
         os.write(_fds[1], bb)
 
 
