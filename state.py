@@ -1,4 +1,4 @@
-import sys, os, errno, glob, stat, sqlite3
+import sys, os, errno, glob, stat, fcntl, sqlite3
 import vars
 from helpers import unlink, err, debug2, debug3, close_on_exec
 import helpers
@@ -14,10 +14,12 @@ def _connect(dbfile):
 
 
 _db = None
+_lockfile = None
 def db():
-    global _db
+    global _db, _lockfile
     if _db:
         return _db
+        
     dbdir = '%s/.redo' % vars.BASE
     dbfile = '%s/db.sqlite3' % dbdir
     try:
@@ -27,6 +29,11 @@ def db():
             pass  # if it exists, that's okay
         else:
             raise
+
+    _lockfile = os.open(os.path.join(vars.BASE, '.redo/locks'),
+                        os.O_RDWR | os.O_CREAT, 0666)
+    close_on_exec(_lockfile, True)
+    
     must_create = not os.path.exists(dbfile)
     if not must_create:
         _db = _connect(dbfile)
@@ -60,7 +67,9 @@ def db():
                     "     mode not null, "
                     "     primary key (target,source))")
         _db.execute("insert into Schema (version) values (?)", [SCHEMA_VER])
-        _db.execute("insert into Runid default values")  # eat the '0' runid
+        # eat the '0' runid and File id
+        _db.execute("insert into Runid default values")
+        _db.execute("insert into Files (name) values (?)", [''])
 
     if not vars.RUNID:
         _db.execute("insert into Runid default values")
@@ -72,13 +81,7 @@ def db():
     
 
 def init():
-    # FIXME: just wiping out all the locks is kind of cheating.  But we
-    # only do this from the toplevel redo process, so unless the user
-    # deliberately starts more than one redo on the same repository, it's
-    # sort of ok.
     db()
-    for f in glob.glob('%s/.redo/lock*' % vars.BASE):
-        os.unlink(f)
 
 
 _wrote = 0
@@ -128,16 +131,8 @@ def relpath(t, base):
     return '/'.join(tparts)
 
 
-def xx_sname(typ, t):
-    # FIXME: t.replace(...) is non-reversible and non-unique here!
-    tnew = relpath(t, vars.BASE)
-    v = vars.BASE + ('/.redo/%s^%s' % (typ, tnew.replace('/', '^')))
-    if vars.DEBUG >= 3:
-        debug3('sname: (%r) %r -> %r\n' % (os.getcwd(), t, tnew))
-    return v
-
-
 class File(object):
+    # use this mostly to avoid accidentally assigning to typos
     __slots__ = ['id', 'name', 'is_generated',
                  'checked_runid', 'changed_runid',
                  'stamp', 'csum']
@@ -247,62 +242,43 @@ class File(object):
         else:
             # a "unique identifier" stamp for a regular file
             return str((st.st_ctime, st.st_mtime, st.st_size, st.st_ino))
-        
 
 
+# FIXME: I really want to use fcntl F_SETLK, F_SETLKW, etc here.  But python
+# doesn't do the lockdata structure in a portable way, so we have to use
+# fcntl.lockf() instead.  Usually this is just a wrapper for fcntl, so it's
+# ok, but it doesn't have F_GETLK, so we can't report which pid owns the lock.
+# The makes debugging a bit harder.  When we someday port to C, we can do that.
 class Lock:
-    def __init__(self, t):
+    def __init__(self, fid):
+        assert(_lockfile >= 0)
         self.owned = False
-        self.rfd = self.wfd = None
-        self.lockname = xx_sname('lock', t)
+        self.fid = fid
 
     def __del__(self):
         if self.owned:
             self.unlock()
 
     def trylock(self):
+        assert(not self.owned)
         try:
-            os.mkfifo(self.lockname, 0600)
-            self.owned = True
-            self.rfd = os.open(self.lockname, os.O_RDONLY|os.O_NONBLOCK)
-            self.wfd = os.open(self.lockname, os.O_WRONLY)
-            close_on_exec(self.rfd, True)
-            close_on_exec(self.wfd, True)
-        except OSError, e:
-            if e.errno == errno.EEXIST:
-                pass
+            fcntl.lockf(_lockfile, fcntl.LOCK_EX|fcntl.LOCK_NB, 1, self.fid)
+        except IOError, e:
+            if e.errno in (errno.EAGAIN, errno.EACCES):
+                pass  # someone else has it locked
             else:
                 raise
+        else:
+            self.owned = True
 
     def waitlock(self):
-        while not self.owned:
-            self.wait()
-            self.trylock()
-        assert(self.owned)
+        assert(not self.owned)
+        fcntl.lockf(_lockfile, fcntl.LOCK_EX, 1, self.fid)
+        self.owned = True
             
     def unlock(self):
         if not self.owned:
             raise Exception("can't unlock %r - we don't own it" 
                             % self.lockname)
-        unlink(self.lockname)
-        # ping any connected readers
-        os.close(self.rfd)
-        os.close(self.wfd)
-        self.rfd = self.wfd = None
+        fcntl.lockf(_lockfile, fcntl.LOCK_UN, 1, self.fid)
         self.owned = False
-
-    def wait(self):
-        if self.owned:
-            raise Exception("can't wait on %r - we own it" % self.lockname)
-        try:
-            # open() will finish only when a writer exists and does close()
-            fd = os.open(self.lockname, os.O_RDONLY)
-            try:
-                os.read(fd, 1)
-            finally:
-                os.close(fd)
-        except OSError, e:
-            if e.errno == errno.ENOENT:
-                pass  # it's not even unlocked or was unlocked earlier
-            else:
-                raise
