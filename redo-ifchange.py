@@ -28,9 +28,16 @@ def dirty_deps(f, depth, max_changed):
     if not f.stamp:
         debug('%s-- DIRTY (no stamp)\n' % depth)
         return DIRTY
-    if f.stamp != f.read_stamp():
-        debug('%s-- DIRTY (mtime)\n' % depth)
-        return DIRTY
+    newstamp = f.read_stamp()
+    if f.stamp != newstamp:
+        if newstamp == state.STAMP_MISSING:
+            debug('%s-- DIRTY (missing)\n' % depth)
+        else:
+            debug('%s-- DIRTY (mtime)\n' % depth)
+        if f.csum:
+            return [f]
+        else:
+            return DIRTY
 
     must_build = []
     for mode,f2 in f.deps():
