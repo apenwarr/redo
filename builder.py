@@ -73,7 +73,7 @@ class BuildJob:
         except ImmediateReturn, e:
             return self._after2(e.rv)
 
-        if dirty == True:
+        if vars.NO_OOB or dirty == True:
             self._start_do()
         else:
             self._start_oob(dirty)

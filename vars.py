@@ -25,3 +25,6 @@ while BASE and BASE.endswith('/'):
 
 UNLOCKED = os.environ.get('REDO_UNLOCKED', '') and 1 or 0
 os.environ['REDO_UNLOCKED'] = ''  # not inheritable by subprocesses
+
+NO_OOB = os.environ.get('REDO_NO_OOB', '') and 1 or 0
+os.environ['REDO_NO_OOB'] = ''    # not inheritable by subprocesses

@@ -12,11 +12,14 @@ deps = sys.argv[2:]
 
 me = state.File(name=target)
 
-argv = ['redo'] + deps
+os.environ['REDO_NO_OOB'] = '1'
+argv = ['redo-ifchange'] + deps
 rv = os.spawnvp(os.P_WAIT, argv[0], argv)
 if rv:
     sys.exit(rv)
 
+# we know our caller already owns the lock on target, so we don't have to
+# acquire another one.
 os.environ['REDO_UNLOCKED'] = '1'
 argv = ['redo-ifchange', target]
 rv = os.spawnvp(os.P_WAIT, argv[0], argv)
