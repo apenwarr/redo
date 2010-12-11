@@ -10,6 +10,9 @@ if len(sys.argv[1:]) < 2:
 target = sys.argv[1]
 deps = sys.argv[2:]
 
+for d in deps:
+    assert(d != target)
+
 me = state.File(name=target)
 
 os.environ['REDO_NO_OOB'] = '1'

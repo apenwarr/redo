@@ -262,6 +262,7 @@ class File(object):
         reldep = relpath(dep, vars.BASE)
         debug2('add-dep: %r < %s %r\n' % (self.name, mode, reldep))
         assert(src.name == reldep)
+        assert(self.id != src.id)
         _write("insert or replace into Deps "
                "    (target, mode, source) values (?,?,?)",
                [self.id, mode, src.id])

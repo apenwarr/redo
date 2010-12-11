@@ -56,3 +56,9 @@ redo-ifchange usestamp usestamp2
 [ "$(wc -l <stampy.log)" -eq 5 ] || exit 71
 [ "$(wc -l <usestamp.log)" -eq 2 ] || exit 72
 [ "$(wc -l <usestamp2.log)" -eq 1 ] || exit 73
+
+# this simple test used to cause a deadlock.
+../flush-cache.sh
+rm -f stampy
+redo-ifchange stampy
+[ "$(wc -l <stampy.log)" -eq 6 ] || exit 74
