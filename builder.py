@@ -1,6 +1,6 @@
 import sys, os, errno, stat
 import vars, jwack, state
-from helpers import log, log_, debug2, err, warn, unlink, close_on_exec
+from helpers import log, log_, debug, debug2, err, warn, unlink, close_on_exec
 
 
 def _possible_do_files(t):
@@ -187,9 +187,17 @@ class BuildJob:
                 unlink(self.tmpname1)
                 unlink(t)
             sf = self.sf
+            sf.refresh()
             sf.is_generated = True
-            sf.update_stamp()
-            sf.set_changed()
+            sf.is_override = False
+            if sf.is_checked() or sf.is_changed():
+                # it got checked during the run; someone ran redo-stamp.
+                # update_stamp would call set_changed(); we don't want that
+                sf.stamp = sf.read_stamp()
+            else:
+                sf.csum = None
+                sf.update_stamp()
+                sf.set_changed()
             sf.save()
         else:
             unlink(self.tmpname1)

@@ -6,6 +6,7 @@ import helpers
 SCHEMA_VER=1
 TIMEOUT=60
 
+ALWAYS='//ALWAYS'   # an invalid filename that is always marked as dirty
 STAMP_DIR='dir'     # the stamp of a directory; mtime is unhelpful
 STAMP_MISSING='0'   # the stamp of a nonexistent file
 
@@ -75,7 +76,7 @@ def db():
         _db.execute("insert into Schema (version) values (?)", [SCHEMA_VER])
         # eat the '0' runid and File id
         _db.execute("insert into Runid default values")
-        _db.execute("insert into Files (name) values (?)", [''])
+        _db.execute("insert into Files (name) values (?)", [ALWAYS])
 
     if not vars.RUNID:
         _db.execute("insert into Runid default values")
@@ -143,14 +144,7 @@ class File(object):
                  'checked_runid', 'changed_runid', 'failed_runid',
                  'stamp', 'csum']
 
-    def _init_from_cols(self, cols):
-        (self.id, self.name, self.is_generated, self.is_override,
-         self.checked_runid, self.changed_runid, self.failed_runid,
-         self.stamp, self.csum) = cols
-    
-    def __init__(self, id=None, name=None, cols=None):
-        if cols:
-            return self._init_from_cols(cols)
+    def _init_from_idname(self, id, name):
         q = ('select rowid, name, is_generated, is_override, '
              '    checked_runid, changed_runid, failed_runid, '
              '    stamp, csum '
@@ -178,7 +172,21 @@ class File(object):
                 pass
             row = d.execute(q, l).fetchone()
             assert(row)
-        self._init_from_cols(row)
+        return self._init_from_cols(row)
+
+    def _init_from_cols(self, cols):
+        (self.id, self.name, self.is_generated, self.is_override,
+         self.checked_runid, self.changed_runid, self.failed_runid,
+         self.stamp, self.csum) = cols
+    
+    def __init__(self, id=None, name=None, cols=None):
+        if cols:
+            return self._init_from_cols(cols)
+        else:
+            return self._init_from_idname(id, name)
+
+    def refresh(self):
+        self._init_from_idname(self.id, None)
 
     def save(self):
         _write('update Files set '
