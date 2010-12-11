@@ -273,10 +273,18 @@ def main(targets, shouldbuildfunc):
             fid,t = locked.pop(0)
             lock = state.Lock(fid)
             lock.trylock()
-            if not lock.owned:
+            while not lock.owned:
                 if vars.DEBUG_LOCKS:
                     warn('%s (WAITING)\n' % _nice(t))
+                # this sequence looks a little silly, but the idea is to
+                # give up our personal token while we wait for the lock to
+                # be released; but we should never run get_token() while
+                # holding a lock, or we could cause deadlocks.
+                jwack.release_mine()
                 lock.waitlock()
+                lock.unlock()
+                jwack.get_token(t)
+                lock.trylock()
             assert(lock.owned)
             if vars.DEBUG_LOCKS:
                 log('%s (...unlocked!)\n' % _nice(t))

@@ -24,6 +24,13 @@ def _release(n):
         _mytokens = 1
 
 
+def release_mine():
+    global _mytokens
+    assert(_mytokens >= 1)
+    os.write(_fds[1], 't')
+    _mytokens -= 1
+
+
 def _timeout(sig, frame):
     pass
 
@@ -161,9 +168,12 @@ def running():
 def wait_all():
     _debug("wait_all\n")
     while running():
+        while _mytokens >= 1:
+            release_mine()
         _debug("wait_all: wait()\n")
         wait(want_token=0)
     _debug("wait_all: empty list\n")
+    get_token('self')  # get my token back
     if _toplevel:
         bb = ''
         while 1:
