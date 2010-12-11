@@ -22,3 +22,6 @@ RUNID = atoi.atoi(os.environ.get('REDO_RUNID')) or None
 BASE = os.environ['REDO_BASE']
 while BASE and BASE.endswith('/'):
     BASE = BASE[:-1]
+
+UNLOCKED = os.environ.get('REDO_UNLOCKED', '') and 1 or 0
+os.environ['REDO_UNLOCKED'] = ''  # not inheritable by subprocesses

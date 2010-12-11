@@ -65,14 +65,23 @@ class BuildJob:
 
     def start(self):
         assert(self.lock.owned)
-        t = self.t
-        sf = self.sf
         try:
-            if not self.shouldbuildfunc(t):
+            dirty = self.shouldbuildfunc(self.t)
+            if not dirty:
                 # target doesn't need to be built; skip the whole task
                 return self._after2(0)
         except ImmediateReturn, e:
             return self._after2(e.rv)
+
+        if dirty == True:
+            self._start_do()
+        else:
+            self._start_oob(dirty)
+
+    def _start_do(self):
+        assert(self.lock.owned)
+        t = self.t
+        sf = self.sf
         newstamp = sf.read_stamp()
         if (sf.is_generated and
             not sf.failed_runid and
@@ -131,6 +140,27 @@ class BuildJob:
         dof.save()
         state.commit()
         jwack.start_job(t, self._do_subproc, self._after)
+
+    def _start_oob(self, dirty):
+        # out-of-band redo of some sub-objects.  This happens when we're not
+        # quite sure if t needs to be built or not (because some children look
+        # dirty, but might turn out to be clean thanks to checksums).  We have
+        # to call redo-oob to figure it all out.
+        #
+        # Note: redo-oob will handle all the updating of sf, so we don't have
+        # to do it here, nor call _after1.
+        argv = ['redo-oob', self.sf.name] + [d.name for d in dirty]
+        log('(%s)\n' % _nice(self.t))
+        state.commit()
+        def run():
+            os.chdir(vars.BASE)
+            os.environ['REDO_DEPTH'] = vars.DEPTH + '  '
+            os.execvp(argv[0], argv)
+            assert(0)
+            # returns only if there's an exception
+        def after(t, rv):
+            return self._after2(rv)
+        jwack.start_job(self.t, run, after)
 
     def _do_subproc(self):
         # careful: REDO_PWD was the PWD relative to the STARTPATH at the time
@@ -250,7 +280,10 @@ def main(targets, shouldbuildfunc):
             break
         f = state.File(name=t)
         lock = state.Lock(f.id)
-        lock.trylock()
+        if vars.UNLOCKED:
+            lock.owned = True
+        else:
+            lock.trylock()
         if not lock.owned:
             if vars.DEBUG_LOCKS:
                 log('%s (locked...)\n' % _nice(t))
