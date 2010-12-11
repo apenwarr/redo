@@ -38,7 +38,7 @@ def dirty_deps(f, depth, max_changed):
                 return True
         elif mode == 'm':
             if dirty_deps(f2, depth = depth + '  ',
-                          max_changed = f.changed_runid):
+                          max_changed = max(f.changed_runid, f.checked_runid)):
                 debug('%s-- DIRTY (sub)\n' % depth)
                 return True
     if f.is_override:

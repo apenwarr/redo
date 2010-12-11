@@ -1,1 +1,1 @@
-rm -f *.log usestamp stampy inp *~ .*~
+rm -f *.log usestamp stampy inp bob *~ .*~
