@@ -59,6 +59,7 @@ def db():
                     "     is_generated int, "
                     "     checked_runid int, "
                     "     changed_runid int, "
+                    "     failed_runid int, "
                     "     stamp, "
                     "     csum)")
         _db.execute("create table Deps "
@@ -134,18 +135,19 @@ def relpath(t, base):
 class File(object):
     # use this mostly to avoid accidentally assigning to typos
     __slots__ = ['id', 'name', 'is_generated',
-                 'checked_runid', 'changed_runid',
+                 'checked_runid', 'changed_runid', 'failed_runid',
                  'stamp', 'csum']
 
     def _init_from_cols(self, cols):
         (self.id, self.name, self.is_generated,
-         self.checked_runid, self.changed_runid,
+         self.checked_runid, self.changed_runid, self.failed_runid,
          self.stamp, self.csum) = cols
     
     def __init__(self, id=None, name=None, cols=None):
         if cols:
             return self._init_from_cols(cols)
-        q = ('select rowid, name, is_generated, checked_runid, changed_runid, '
+        q = ('select rowid, name, is_generated, '
+             '    checked_runid, changed_runid, failed_runid, '
              '    stamp, csum '
              '  from Files ')
         if id != None:
@@ -175,20 +177,25 @@ class File(object):
 
     def save(self):
         _write('update Files set '
-               '    is_generated=?, checked_runid=?, changed_runid=?, '
+               '    is_generated=?, '
+               '    checked_runid=?, changed_runid=?, failed_runid=?, '
                '    stamp=?, csum=? '
                '    where rowid=?',
                [self.is_generated,
-                self.checked_runid, self.changed_runid,
+                self.checked_runid, self.changed_runid, self.failed_runid,
                 self.stamp, self.csum,
                 self.id])
 
     def set_checked(self):
         self.checked_runid = vars.RUNID
-        
+
     def set_changed(self):
         debug2('BUILT: %r (%r)\n' % (self.name, self.stamp))
         self.changed_runid = vars.RUNID
+
+    def set_failed(self):
+        debug2('FAILED: %r\n' % self.name)
+        self.failed_runid = vars.RUNID
 
     def set_static(self):
         self.update_stamp()
@@ -200,15 +207,19 @@ class File(object):
             self.stamp = newstamp
             self.set_changed()
 
-    def is_changed(self):
-        return self.changed_runid and self.changed_runid >= vars.RUNID
-
     def is_checked(self):
         return self.checked_runid and self.checked_runid >= vars.RUNID
 
+    def is_changed(self):
+        return self.changed_runid and self.changed_runid >= vars.RUNID
+
+    def is_failed(self):
+        return self.failed_runid and self.failed_runid >= vars.RUNID
+
     def deps(self):
         q = ('select Deps.mode, Deps.source, '
-             '    name, is_generated, checked_runid, changed_runid, '
+             '    name, is_generated, '
+             '    checked_runid, changed_runid, failed_runid, '
              '    stamp, csum '
              '  from Files '
              '    join Deps on Files.rowid = Deps.source '

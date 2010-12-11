@@ -42,6 +42,8 @@ def dirty_deps(f, depth, max_changed):
 
 def should_build(t):
     f = state.File(name=t)
+    if f.is_failed():
+        raise builder.ImmediateReturn(32)
     return dirty_deps(f, depth = '', max_changed = vars.RUNID)
 
 
