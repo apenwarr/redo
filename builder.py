@@ -253,7 +253,7 @@ def main(targets, shouldbuildfunc):
             lock = state.Lock(fid)
             lock.trylock()
             if not lock.owned:
-                if vars.DEBUG_LOCKS and len(locked) >= 1:
+                if vars.DEBUG_LOCKS:
                     warn('%s (WAITING)\n' % _nice(t))
                 lock.waitlock()
             assert(lock.owned)
