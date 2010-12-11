@@ -6,6 +6,10 @@ import helpers
 SCHEMA_VER=1
 TIMEOUT=60
 
+STAMP_DIR='dir'     # the stamp of a directory; mtime is unhelpful
+STAMP_MISSING='0'   # the stamp of a nonexistent file
+
+
 def _connect(dbfile):
     _db = sqlite3.connect(dbfile, timeout=TIMEOUT)
     _db.execute("pragma synchronous = off")
@@ -57,6 +61,7 @@ def db():
         _db.execute("create table Files "
                     "    (name not null primary key, "
                     "     is_generated int, "
+                    "     is_override int, "
                     "     checked_runid int, "
                     "     changed_runid int, "
                     "     failed_runid int, "
@@ -134,19 +139,19 @@ def relpath(t, base):
 
 class File(object):
     # use this mostly to avoid accidentally assigning to typos
-    __slots__ = ['id', 'name', 'is_generated',
+    __slots__ = ['id', 'name', 'is_generated', 'is_override',
                  'checked_runid', 'changed_runid', 'failed_runid',
                  'stamp', 'csum']
 
     def _init_from_cols(self, cols):
-        (self.id, self.name, self.is_generated,
+        (self.id, self.name, self.is_generated, self.is_override,
          self.checked_runid, self.changed_runid, self.failed_runid,
          self.stamp, self.csum) = cols
     
     def __init__(self, id=None, name=None, cols=None):
         if cols:
             return self._init_from_cols(cols)
-        q = ('select rowid, name, is_generated, '
+        q = ('select rowid, name, is_generated, is_override, '
              '    checked_runid, changed_runid, failed_runid, '
              '    stamp, csum '
              '  from Files ')
@@ -177,11 +182,11 @@ class File(object):
 
     def save(self):
         _write('update Files set '
-               '    is_generated=?, '
+               '    is_generated=?, is_override=?, '
                '    checked_runid=?, changed_runid=?, failed_runid=?, '
                '    stamp=?, csum=? '
                '    where rowid=?',
-               [self.is_generated,
+               [self.is_generated, self.is_override,
                 self.checked_runid, self.changed_runid, self.failed_runid,
                 self.stamp, self.csum,
                 self.id])
@@ -192,13 +197,23 @@ class File(object):
     def set_changed(self):
         debug2('BUILT: %r (%r)\n' % (self.name, self.stamp))
         self.changed_runid = vars.RUNID
+        self.failed_runid = None
+        self.is_override = False
 
     def set_failed(self):
         debug2('FAILED: %r\n' % self.name)
+        self.update_stamp()
         self.failed_runid = vars.RUNID
+        self.is_generated = True
 
     def set_static(self):
         self.update_stamp()
+        self.is_override = False
+        self.is_generated = False
+
+    def set_override(self):
+        self.update_stamp()
+        self.is_override = True
 
     def update_stamp(self):
         newstamp = self.read_stamp()
@@ -218,7 +233,7 @@ class File(object):
 
     def deps(self):
         q = ('select Deps.mode, Deps.source, '
-             '    name, is_generated, '
+             '    name, is_generated, is_override, '
              '    checked_runid, changed_runid, failed_runid, '
              '    stamp, csum '
              '  from Files '
@@ -247,9 +262,9 @@ class File(object):
         try:
             st = os.stat(os.path.join(vars.BASE, self.name))
         except OSError:
-            return '0'  # does not exist
+            return STAMP_MISSING
         if stat.S_ISDIR(st.st_mode):
-            return 'dir'  # the timestamp of a directory is meaningless
+            return STAMP_DIR
         else:
             # a "unique identifier" stamp for a regular file
             return str((st.st_ctime, st.st_mtime, st.st_size, st.st_ino))

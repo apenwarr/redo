@@ -7,6 +7,9 @@ from helpers import debug, debug2, err, unlink
 def dirty_deps(f, depth, max_changed):
     if vars.DEBUG >= 1: debug('%s?%s\n' % (depth, f.name))
 
+    if f.failed_runid:
+        debug('%s-- DIRTY (failed last time)\n' % depth)
+        return True
     if f.changed_runid == None:
         debug('%s-- DIRTY (never built)\n' % depth)
         return True
@@ -35,6 +38,8 @@ def dirty_deps(f, depth, max_changed):
                           max_changed = f.changed_runid):
                 debug('%s-- DIRTY (sub)\n' % depth)
                 return True
+    if f.is_override:
+        builder.warn_override(f.name)
     f.set_checked()
     f.save()
     return False
