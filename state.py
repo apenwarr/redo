@@ -153,7 +153,7 @@ class File(object):
             q += 'where rowid=?'
             l = [id]
         elif name != None:
-            name = relpath(name, vars.BASE)
+            name = (name==ALWAYS) and ALWAYS or relpath(name, vars.BASE)
             q += 'where name=?'
             l = [name]
         else:
@@ -178,6 +178,8 @@ class File(object):
         (self.id, self.name, self.is_generated, self.is_override,
          self.checked_runid, self.changed_runid, self.failed_runid,
          self.stamp, self.csum) = cols
+        if self.name == ALWAYS and self.changed_runid < vars.RUNID:
+            self.changed_runid = vars.RUNID
     
     def __init__(self, id=None, name=None, cols=None):
         if cols:
@@ -259,9 +261,7 @@ class File(object):
 
     def add_dep(self, mode, dep):
         src = File(name=dep)
-        reldep = relpath(dep, vars.BASE)
-        debug2('add-dep: %r < %s %r\n' % (self.name, mode, reldep))
-        assert(src.name == reldep)
+        debug2('add-dep: %r < %s %r\n' % (self.name, mode, src.name))
         assert(self.id != src.id)
         _write("insert or replace into Deps "
                "    (target, mode, source) values (?,?,?)",

@@ -16,3 +16,5 @@ test2.args
 /touch1
 /touch1.do
 /deltest2
+/always1
+/always1.log

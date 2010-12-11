@@ -28,6 +28,7 @@ def dirty_deps(f, depth, max_changed):
     if not f.stamp:
         debug('%s-- DIRTY (no stamp)\n' % depth)
         return DIRTY
+
     newstamp = f.read_stamp()
     if f.stamp != newstamp:
         if newstamp == state.STAMP_MISSING:

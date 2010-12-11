@@ -7,6 +7,7 @@ redo stampy
 
 # stampy already exists, so we won't generate it a second time, even though
 # usestamp depends on it.
+../flush-cache.sh
 redo-ifchange usestamp
 [ "$(wc -l <stampy.log)" -eq 1 ] || exit 21
 [ "$(wc -l <usestamp.log)" -eq 1 ] || exit 12
@@ -17,6 +18,7 @@ redo stampy
 [ "$(wc -l <usestamp.log)" -eq 1 ] || exit 32
 
 # same as above: stampy is already up-to-date, so it won't be redone.
+../flush-cache.sh
 redo-ifchange usestamp
 [ "$(wc -l <stampy.log)" -eq 2 ] || exit 41
 [ "$(wc -l <usestamp.log)" -eq 1 ] || exit 42
