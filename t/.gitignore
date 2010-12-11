@@ -11,3 +11,8 @@ test2.args
 /makedir
 /makedir.log
 /chdir1
+/silence
+/silence.do
+/touch1
+/touch1.do
+/deltest2

@@ -1,5 +1,6 @@
 redo-ifchange config.sh
 . ./config.sh
+exec >$3
 cat <<-EOF
 	redo-ifchange \$1.c
 	gcc -MD -MF \$3.deps.tmp -o \$3 -c \$1.c

@@ -56,7 +56,8 @@ class BuildJob:
     def __init__(self, t, sf, lock, shouldbuildfunc, donefunc):
         self.t = t  # original target name, not relative to vars.BASE
         self.sf = sf
-        self.tmpname = '%s.redo.tmp' % t
+        self.tmpname1 = '%s.redo1.tmp' % t
+        self.tmpname2 = '%s.redo2.tmp' % t
         self.lock = lock
         self.shouldbuildfunc = shouldbuildfunc
         self.donefunc = donefunc
@@ -66,7 +67,6 @@ class BuildJob:
         assert(self.lock.owned)
         t = self.t
         sf = self.sf
-        tmpname = self.tmpname
         try:
             if not self.shouldbuildfunc(t):
                 # target doesn't need to be built; skip the whole task
@@ -107,8 +107,9 @@ class BuildJob:
             else:
                 err('no rule to make %r\n' % t)
                 return self._after2(1)
-        unlink(tmpname)
-        ffd = os.open(tmpname, os.O_CREAT|os.O_RDWR|os.O_EXCL, 0666)
+        unlink(self.tmpname1)
+        unlink(self.tmpname2)
+        ffd = os.open(self.tmpname1, os.O_CREAT|os.O_RDWR|os.O_EXCL, 0666)
         close_on_exec(ffd, True)
         self.f = os.fdopen(ffd, 'w+')
         # this will run in the dofile's directory, so use only basenames here
@@ -116,7 +117,7 @@ class BuildJob:
                 os.path.basename(dofile),
                 os.path.basename(basename),  # target name (extension removed)
                 ext,  # extension (if any), including leading dot
-                os.path.basename(tmpname)  # randomized output file name
+                os.path.basename(self.tmpname2)  # randomized output file name
                 ]
         if vars.VERBOSE: argv[1] += 'v'
         if vars.XTRACE: argv[1] += 'x'
@@ -162,39 +163,37 @@ class BuildJob:
 
     def _after1(self, t, rv):
         f = self.f
-        tmpname = self.tmpname
         before_t = self.before_t
         after_t = _try_stat(t)
-        before_tmp = os.fstat(f.fileno())
-        after_tmp = _try_stat(tmpname)
-        after_where = os.lseek(f.fileno(), 0, os.SEEK_CUR)
+        st1 = os.fstat(f.fileno())
+        st2 = _try_stat(self.tmpname2)
         if after_t != before_t and not stat.S_ISDIR(after_t.st_mode):
-            err('%r modified %r directly!\n' % (self.argv[2], t))
-            err('...you should update $3 (a temp file) instead of $1.\n')
+            err('%s modified %s directly!\n' % (self.argv[2], t))
+            err('...you should update $3 (a temp file) or stdout, not $1.\n')
             rv = 206
-        elif after_tmp and before_tmp != after_tmp and before_tmp.st_size > 0:
-            err('%r wrote to stdout *and* replaced $3.\n' % self.argv[2])
+        elif st2 and st1.st_size > 0:
+            err('%s wrote to stdout *and* created $3.\n' % self.argv[2])
             err('...you should write status messages to stderr, not stdout.\n')
             rv = 207
-        elif after_where > 0 and after_tmp and after_tmp.st_size != after_where:
-            err('%r wrote differing data to stdout and $3.\n' % self.argv[2])
-            err('...you should write status messages to stderr, not stdout.\n')
-            rv = 208
         if rv==0:
-            if os.path.exists(tmpname) and os.stat(tmpname).st_size:
-                # there's a race condition here, but if the tmpfile disappears
-                # at *this* point you deserve to get an error, because you're
-                # doing something totally scary.
-                os.rename(tmpname, t)
-            else:
-                unlink(tmpname)
+            if st2:
+                os.rename(self.tmpname2, t)
+                os.unlink(self.tmpname1)
+            elif st1.st_size > 0:
+                os.rename(self.tmpname1, t)
+                if st2:
+                    os.unlink(self.tmpname2)
+            else: # no output generated at all; that's ok
+                unlink(self.tmpname1)
+                unlink(t)
             sf = self.sf
             sf.is_generated = True
             sf.update_stamp()
             sf.set_changed()
             sf.save()
         else:
-            unlink(tmpname)
+            unlink(self.tmpname1)
+            unlink(self.tmpname2)
             sf = self.sf
             sf.set_failed()
             sf.save()

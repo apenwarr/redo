@@ -1,3 +1,4 @@
+exec >$3
 cat <<-EOF
 	OUT="\$1"
 	shift
