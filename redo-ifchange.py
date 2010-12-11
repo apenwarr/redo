@@ -3,9 +3,12 @@ import sys, os, errno, stat
 import vars, state, builder, jwack
 from helpers import debug, debug2, err, unlink
 
+def _nice(t):
+    return state.relpath(os.path.join(vars.BASE, t), vars.STARTDIR)
 
 def dirty_deps(f, depth, max_changed):
-    if vars.DEBUG >= 1: debug('%s?%s\n' % (depth, f.name))
+    if vars.DEBUG >= 1:
+        debug('%s?%s\n' % (depth, _nice(f.name)))
 
     if f.failed_runid:
         debug('%s-- DIRTY (failed last time)\n' % depth)
