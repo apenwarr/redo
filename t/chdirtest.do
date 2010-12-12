@@ -1,3 +1,5 @@
+. ./skip-if-minimal-do.sh
+
 rm -f chdir1
 redo chdir2
 redo chdir3

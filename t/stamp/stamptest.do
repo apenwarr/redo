@@ -14,6 +14,7 @@ redo-ifchange usestamp
 
 ../flush-cache.sh
 redo stampy
+. ../skip-if-minimal-do.sh
 [ "$(wc -l <stampy.log)" -eq 2 ] || exit 31
 [ "$(wc -l <usestamp.log)" -eq 1 ] || exit 32
 

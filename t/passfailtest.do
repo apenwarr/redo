@@ -1,3 +1,5 @@
+. ./skip-if-minimal-do.sh
+
 rm -f pleasefail
 redo passfail
 [ -e passfail ] || exit 42

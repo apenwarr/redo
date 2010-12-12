@@ -9,7 +9,7 @@ if [ -z "$DO_BUILT" ]; then
 	export DO_BUILT="$PWD/.do_built"
 	if [ -e "$DO_BUILT" ]; then
 		echo "Removing previously built files..." >&2
-		sort "$DO_BUILT" | uniq | tee "$DO_BUILT.new" |
+		sort -u "$DO_BUILT" | tee "$DO_BUILT.new" |
 		while read f; do rm -f "$f"; done
 		mv "$DO_BUILT.new" "$DO_BUILT"
 	fi
@@ -55,6 +55,7 @@ _do()
 		RV=
 		( 
 			export DO_DEPTH="$DO_DEPTH  "
+			export REDO_TARGET="$PWD/$TARGET"
 			set -e
 			. "$PWD/$DOFILE" >"$TARGET.tmp"
 		) || RV="$?"
@@ -82,6 +83,8 @@ redo()
 
 alias redo-ifchange="redo"
 alias redo-ifcreate=":"
+alias redo-stamp=":"
+alias redo-always=":"
 set -e
 
 if [ -n "$*" ]; then

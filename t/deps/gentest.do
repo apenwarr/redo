@@ -17,4 +17,5 @@ redo-ifchange genfile1
 redo-ifchange genfile1
 
 COUNT=$(wc -l <genfile.log)
+. ../skip-if-minimal-do.sh
 [ "$COUNT" = 2 ] || exit 77

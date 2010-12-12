@@ -10,4 +10,5 @@ redo always1
 
 ./flush-cache.sh
 redo-ifchange always1
+. ./skip-if-minimal-do.sh
 [ "$(wc -l <always1.log)" -eq 2 ] || exit 31
