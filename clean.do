@@ -6,3 +6,4 @@ fi
 redo t/clean
 rm -f *~ .*~ */*~ */.*~ *.pyc
 rm -rf t/.redo
+find -name '*.tmp' -exec rm -fv {} \;
