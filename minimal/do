@@ -3,7 +3,7 @@
 # A minimal alternative to djb redo that doesn't support incremental builds.
 # For the full version, visit http://github.com/apenwarr/redo
 #
-export REDO="$(dirname "$0")/$(basename "$0")"
+export REDO="$(cd "$(dirname "$0")" && echo "$PWD/$(basename "$0")")"
 
 if [ -z "$DO_BUILT" ]; then
 	export DO_BUILT="$PWD/.do_built"
@@ -13,6 +13,16 @@ if [ -z "$DO_BUILT" ]; then
 		while read f; do rm -f "$f"; done
 		mv "$DO_BUILT.new" "$DO_BUILT"
 	fi
+	DO_PATH="$DO_BUILT.dir"
+	export PATH="$DO_PATH:$PATH"
+	rm -rf "$DO_PATH"
+	mkdir "$DO_PATH"
+	for d in redo redo-ifchange; do
+		ln -s "$REDO" "$DO_PATH/$d";
+	done
+	for d in redo-ifcreate redo-stamp redo-always; do 
+		ln -s /bin/true "$DO_PATH/$d";
+	done
 fi
 
 
@@ -81,12 +91,7 @@ redo()
 }
 
 
-alias redo-ifchange="redo"
-alias redo-ifcreate=":"
-alias redo-stamp=":"
-alias redo-always=":"
 set -e
-
 if [ -n "$*" ]; then
 	redo "$@"
 else
