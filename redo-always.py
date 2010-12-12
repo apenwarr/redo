@@ -5,8 +5,10 @@ from log import err
 
 
 try:
-    me = state.File(name=vars.TARGET)
-    me.add_dep('m', state.ALWAYS)
+    me = os.path.join(vars.STARTDIR, 
+                      os.path.join(vars.PWD, vars.TARGET))
+    f = state.File(name=me)
+    f.add_dep('m', state.ALWAYS)
     always = state.File(name=state.ALWAYS)
     always.stamp = state.STAMP_MISSING
     always.set_changed()

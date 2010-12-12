@@ -33,7 +33,9 @@ csum = sh.hexdigest()
 if not vars.TARGET:
     sys.exit(0)
 
-f = state.File(name=vars.TARGET)
+me = os.path.join(vars.STARTDIR, 
+                  os.path.join(vars.PWD, vars.TARGET))
+f = state.File(name=me)
 changed = (csum != f.csum)
 debug2('%s: old = %s\n' % (f.name, f.csum))
 debug2('%s: sum = %s (%s)\n' % (f.name, csum,
