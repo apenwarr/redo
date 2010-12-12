@@ -107,7 +107,7 @@ class BuildJob:
             sf.set_static()
             sf.save()
             return self._after2(0)
-        sf.zap_deps()
+        sf.zap_deps1()
         (dofile, basename, ext) = _find_do_file(sf)
         if not dofile:
             if os.path.exists(t):
@@ -235,18 +235,18 @@ class BuildJob:
                 sf.csum = None
                 sf.update_stamp()
                 sf.set_changed()
-            sf.save()
         else:
             unlink(self.tmpname1)
             unlink(self.tmpname2)
             sf = self.sf
             sf.set_failed()
-            sf.save()
+        sf.zap_deps2()
+        sf.save()
         f.close()
         if rv != 0:
             err('%s: exit code %d\n' % (_nice(t),rv))
         else:
-            if vars.VERBOSE or vars.XTRACE:
+            if vars.VERBOSE or vars.XTRACE or vars.DEBUG:
                 log('%s (done)\n\n' % _nice(t))
         return rv
 

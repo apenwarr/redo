@@ -72,6 +72,7 @@ def db():
                     "    (target int, "
                     "     source int, "
                     "     mode not null, "
+                    "     delete_me int, "
                     "     primary key (target,source))")
         _db.execute("insert into Schema (version) values (?)", [SCHEMA_VER])
         # eat the '0' runid and File id
@@ -253,17 +254,21 @@ class File(object):
             assert(mode in ('c', 'm'))
             yield mode,File(cols=cols)
 
-    def zap_deps(self):
-        debug2('zap-deps: %r\n' % self.name)
-        _write('delete from Deps where target=?', [self.id])
+    def zap_deps1(self):
+        debug2('zap-deps1: %r\n' % self.name)
+        _write('update Deps set delete_me=? where target=?', [True, self.id])
+
+    def zap_deps2(self):
+        debug2('zap-deps2: %r\n' % self.name)
+        _write('delete from Deps where target=? and delete_me=1', [self.id])
 
     def add_dep(self, mode, dep):
         src = File(name=dep)
         debug2('add-dep: %r < %s %r\n' % (self.name, mode, src.name))
         assert(self.id != src.id)
         _write("insert or replace into Deps "
-               "    (target, mode, source) values (?,?,?)",
-               [self.id, mode, src.id])
+               "    (target, mode, source, delete_me) values (?,?,?,?)",
+               [self.id, mode, src.id, False])
 
     def read_stamp(self):
         try:
