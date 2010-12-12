@@ -14,5 +14,6 @@ try:
             sys.exit(1)
         else:
             f.add_dep('c', t)
+    state.commit()
 except KeyboardInterrupt:
     sys.exit(200)
