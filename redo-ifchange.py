@@ -1,7 +1,8 @@
 #!/usr/bin/python
 import sys, os, errno, stat
 import vars, state, builder, jwack
-from helpers import debug, debug2, err, unlink
+from helpers import unlink
+from log import debug, debug2, err
 
 def _nice(t):
     return state.relpath(os.path.join(vars.BASE, t), vars.STARTDIR)

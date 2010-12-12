@@ -1,7 +1,7 @@
 import sys, os, errno, glob, stat, fcntl, sqlite3
 import vars
-from helpers import unlink, err, debug2, debug3, close_on_exec
-import helpers
+from helpers import unlink, close_on_exec
+from log import err, debug2, debug3
 
 SCHEMA_VER=1
 TIMEOUT=60
@@ -97,7 +97,6 @@ def _write(q, l):
         return
     global _wrote
     _wrote += 1
-    #helpers.log_('W: %r %r\n' % (q,l))
     db().execute(q, l)
 
 
@@ -106,7 +105,6 @@ def commit():
         return
     global _wrote
     if _wrote:
-        #helpers.log_("COMMIT (%d)\n" % _wrote)
         db().commit()
         _wrote = 0
 

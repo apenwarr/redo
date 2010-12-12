@@ -2,7 +2,7 @@
 # beware the jobberwack
 #
 import sys, os, errno, select, fcntl, signal
-import atoi
+from helpers import atoi, close_on_exec
 
 _toplevel = 0
 _mytokens = 1
@@ -83,8 +83,8 @@ def setup(maxjobs):
         s = flags[ofs+len(FIND):]
         (arg,junk) = s.split(' ', 1)
         (a,b) = arg.split(',', 1)
-        a = atoi.atoi(a)
-        b = atoi.atoi(b)
+        a = atoi(a)
+        b = atoi(b)
         if a <= 0 or b <= 0:
             raise ValueError('invalid --jobserver-fds: %r' % arg)
         try:
@@ -242,7 +242,6 @@ def start_job(reason, jobfunc, donefunc):
         finally:
             _debug('exit: %d\n' % rv)
             os._exit(rv)
-    from helpers import close_on_exec
     close_on_exec(r, True)
     os.close(w)
     pd = Job(reason, pid, donefunc)

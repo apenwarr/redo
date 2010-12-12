@@ -1,6 +1,7 @@
 #!/usr/bin/python
 import sys, os
-import options, jwack, atoi
+import options
+from helpers import atoi
 
 optspec = """
 redo [targets...]
@@ -57,15 +58,15 @@ if is_root:
     os.environ['REDO'] = os.path.abspath(sys.argv[0])
 
 
-import vars, state, builder
-from helpers import err
+import vars, state, builder, jwack
+from log import err
 
 
 if is_root:
     state.init()
 
 try:
-    j = atoi.atoi(opt.jobs or 1)
+    j = atoi(opt.jobs or 1)
     if j < 1 or j > 1000:
         err('invalid --jobs value: %r\n' % opt.jobs)
     jwack.setup(j)

@@ -1,6 +1,7 @@
 import sys, os, errno, stat
 import vars, jwack, state
-from helpers import log, log_, debug, debug2, err, warn, unlink, close_on_exec
+from helpers import unlink, close_on_exec
+from log import log, log_, debug, debug2, err, warn
 
 
 def _possible_do_files(t):

@@ -1,7 +1,7 @@
 #!/usr/bin/python
 import sys, os
 import vars, state
-from helpers import err
+from log import err
 
 
 try:
