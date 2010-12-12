@@ -15,7 +15,10 @@ echo "Installing to: $DESTDIR$PREFIX"
 $INSTALL -d $MANDIR/man1 $DOCDIR $BINDIR $LIBDIR
 
 # docs
-$INSTALL -m 0644 Documentation/*.1 $MANDIR/man1
+for d in Documentation/*.1; do
+	[ "$d" = "Documentation/*.1" ] && continue
+	$INSTALL -m 0644 $d $MANDIR/man1
+done
 $INSTALL -m 0644 README.md $DOCDIR
 
 # .py files (precompiled to .pyc files for speed)
