@@ -35,35 +35,11 @@ if opt.debug_locks:
 if opt.debug_pids:
     os.environ['REDO_DEBUG_PIDS'] = '1'
 
-is_root = not os.environ.get('REDO', '')
-
-if is_root:
-    # toplevel call to redo
-    exenames = [os.path.abspath(sys.argv[0]), os.path.realpath(sys.argv[0])]
-    if exenames[0] == exenames[1]:
-        exenames = [exenames[0]]
-    dirnames = [os.path.dirname(p) for p in exenames]
-    os.environ['PATH'] = ':'.join(dirnames) + ':' + os.environ['PATH']
-
-    base = os.path.commonprefix([os.path.abspath(os.path.dirname(t))
-                                 for t in targets] + [os.getcwd()])
-    bsplit = base.split('/')
-    for i in range(len(bsplit)-1, 0, -1):
-        newbase = '/'.join(bsplit[:i])
-        if os.path.exists(newbase + '/.redo'):
-            base = newbase
-            break
-    os.environ['REDO_BASE'] = base
-    os.environ['REDO_STARTDIR'] = os.getcwd()
-    os.environ['REDO'] = os.path.abspath(sys.argv[0])
-
+import vars_init
+vars_init.init(targets)
 
 import vars, state, builder, jwack
 from log import err
-
-
-if is_root:
-    state.init()
 
 try:
     j = atoi(opt.jobs or 1)

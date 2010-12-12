@@ -1,5 +1,11 @@
 #!/usr/bin/python
 import sys, os, errno, stat
+if not sys.argv[1:]:
+    sys.exit(0)  # nothing to do, so we can't possibly do it wrong
+
+import vars_init
+vars_init.init(sys.argv[1:])
+
 import vars, state, builder, jwack
 from helpers import unlink
 from log import debug, debug2, err
@@ -103,13 +109,17 @@ def should_build(t):
 
 rv = 202
 try:
-    me = os.path.join(vars.STARTDIR, 
-                      os.path.join(vars.PWD, vars.TARGET))
-    f = state.File(name=me)
-    debug2('TARGET: %r %r %r\n' % (vars.STARTDIR, vars.PWD, vars.TARGET))
+    if vars.TARGET and not vars.UNLOCKED:
+        me = os.path.join(vars.STARTDIR, 
+                          os.path.join(vars.PWD, vars.TARGET))
+        f = state.File(name=me)
+        debug2('TARGET: %r %r %r\n' % (vars.STARTDIR, vars.PWD, vars.TARGET))
+    else:
+        f = me = None
+        debug2('redo-ifchange: not adding depends.\n')
     try:
         targets = sys.argv[1:]
-        if not vars.UNLOCKED:
+        if f:
             for t in targets:
                 f.add_dep('m', t)
             f.save()
@@ -118,4 +128,5 @@ try:
         jwack.force_return_tokens()
 except KeyboardInterrupt:
     sys.exit(200)
+state.commit()
 sys.exit(rv)
