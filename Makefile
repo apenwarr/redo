@@ -1,5 +1,8 @@
 all:
 
+Makefile:
+	@
+
 %: FORCE
 	+./redo $@
 
