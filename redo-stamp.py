@@ -7,6 +7,10 @@ if len(sys.argv) > 1:
     err('%s: no arguments expected.\n' % sys.argv[0])
     sys.exit(1)
 
+if os.isatty(0):
+    err('%s: you must provide the data to stamp on stdin\n' % sys.argv[0])
+    sys.exit(1)
+
 # hashlib is only available in python 2.5 or higher, but the 'sha' module
 # produces a DeprecationWarning in python 2.6 or higher.  We want to support
 # python 2.4 and above without any stupid warnings, so let's try using hashlib
@@ -24,8 +28,12 @@ while 1:
     sh.update(b)
     if not b: break
 
-f = state.File(name=vars.TARGET)
 csum = sh.hexdigest()
+
+if not vars.TARGET:
+    sys.exit(0)
+
+f = state.File(name=vars.TARGET)
 changed = (csum != f.csum)
 debug2('%s: old = %s\n' % (f.name, f.csum))
 debug2('%s: sum = %s (%s)\n' % (f.name, csum,
