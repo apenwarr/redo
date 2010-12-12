@@ -149,6 +149,56 @@ changes.  With redo, you can just read the script from top to bottom.  A
 from top to bottom.)
 
 
+# Does it make cross-platform builds easier?
+
+A lot of build systems that try to replace make do it by
+trying to provide a lot of predefined rules.  For example,
+one build system I know includes default rules that can build C++
+programs on Visual C++ or gcc, cross-compiled or not
+cross-compiled, and so on.  Other build systems are
+specific to ruby programs, or python programs, or Java or .Net
+programs.
+
+redo isn't like those programs; it's more like make.  It
+doesn't know anything about your system or the language
+your program is written in.
+
+The good news is: redo will work with *any* programming
+language with about equal difficulty.  The bad news is:
+you might have to fill in more details than you would if you
+just use ANT to compile a Java program.
+
+So the short version is: cross-platform builds are about
+equally easy in make and redo.  It's not any easier, but
+it's not any harder.
+
+FIXME:
+Tools like automake are really just collections of Makefile
+rules so you don't have to write the same ones over and
+over.  In theory, someone could write an automake-like tool
+for redo, and you could use that.
+
+
+# Hey, does redo even *run* on Windows?
+
+FIXME:
+Probably under cygwin.  But it hasn't been tested, so no.
+
+If I were going to port redo to Windows in a "native" way,
+I might grab the source code to a posix shell (like the
+one in MSYS) and link it directly into redo.
+
+`make` also doesn't *really* run on Windows (unless you use
+MSYS or Cygwin or something like that).  There are versions
+of make that do - like Microsoft's version - but their
+syntax is horrifically different from one vendor to
+another, so you might as well just be writing for a
+vendor-specific tool.
+
+At least redo is simple enough that, theoretically, one
+day, I can imagine it being cross platform.
+
+
 # One script per file?  Can't I just put it all in one big Redofile like make does?
 
 One of my favourite features of redo is that it doesn't add any new syntax;
@@ -177,6 +227,28 @@ It's not obvious that this would be a real improvement however.
 
 See djb's [Target files depend on build scripts](http://cr.yp.to/redo/honest-script.html)
 article for more information.
+
+
+# Can I set my dircolors to highlight .do files?
+
+Yes!  At first, having a bunch of .do files in each
+directory feels like a bit of a nuisance, but once you get
+used to it, it's actually pretty convenient; a simple 'ls'
+will show you which things you might want to redo in any
+given directory.
+
+Here's a chunk of my .dircolors.conf:
+
+	.do 00;35
+	*Makefile 00;35
+	.o 00;30;1
+	.pyc 00;30;1
+	*~ 00;30;1
+	.tmp 00;30;1
+
+To activate it, you can add a line like this to your .bashrc:
+
+	eval `dircolors $HOME/.dircolors.conf`
 
 
 # What are the three parameters ($1, $2, $3) to a .do file?
@@ -346,6 +418,21 @@ however:
 Thus, we made the decision to only use checksums for
 targets that explicitly call `redo-stamp` (see previous
 question).
+
+
+# Why does 'redo target' always redo the target, even if it's unchanged?
+
+When you run `make target`, make first checks the
+dependencies of target; if they've changed, then it
+rebuilds target.  Otherwise it does nothing.
+
+redo is a little different.  It splits the build into two
+steps.  `redo target` is the second step; if you run that
+at the command line, it just runs the .do file, whether it
+needs it or not.
+
+If you really want to only rebuild targets that have
+changed, you can run `redo-ifchange target` instead.
 
 
 # Can my .do files be written in a language other than sh?
@@ -762,6 +849,112 @@ pretty fast when there's nothing to do, so that's not so
 bad.
 
 
+# Parallelism if more than one target depends on the same subdir
+
+Recursive make is especially painful when it comes to
+parallelism.  Take a look at this Makefile fragment:
+
+	all: fred bob
+	subproj:
+		touch $@.new
+		sleep 1
+		mv $@.new $@
+	fred:
+		$(MAKE) subproj
+		touch $@
+	bob:
+		$(MAKE) subproj
+		touch $@
+
+If we run it serially, it all looks good:
+
+	$ rm -f subproj fred bob; make --no-print-directory
+	make subproj
+	touch subproj.new
+	sleep 1
+	mv subproj.new subproj
+	touch fred
+	make subproj
+	make[1]: 'subproj' is up to date.
+	touch bob
+	
+But if we run it in parallel, life sucks:
+
+	$ rm -f subproj fred bob; make -j2 --no-print-directory
+	make subproj
+	make subproj
+	touch subproj.new
+	touch subproj.new
+	sleep 1
+	sleep 1
+	mv subproj.new subproj
+	mv subproj.new subproj
+	mv: cannot stat 'ubproj.new': No such file or directory
+	touch fred
+	make[1]: *** [subproj] Error 1
+	make: *** [bob] Error 2
+	
+What happened?  The sub-make that runs `subproj` ended up
+getting twice at once, because both fred and bob need to
+build it.
+
+If fred and bob had put in a *dependency* on subproj, then
+GNU make would be smart enough to only build one of them at
+a time; it can do ordering inside a single make process. 
+So this example is a bit contrived.  But imagine that fred
+and bob are two separate applications being built from the
+same toplevel Makefile, and they both depend on the library
+in subproj.  You'd run into this problem if you use
+recursive make.
+
+Of course, you might try to solve this by using
+*nonrecursive* make, but that's really hard.  What if
+subproj is a library from some other vendor?  Will you
+modify all their makefiles to fit into your nonrecursive
+makefile scheme?  Probably not.
+
+Another common workaround is to have the toplevel Makefile
+build subproj, then fred and bob.  This works, but if you
+don't run the toplevel Makefile and want to go straight
+to work in the fred project, building fred won't actually
+build subproj first, and you'll get errors.
+
+redo solves all these problems.  It maintains global locks
+across all its instances, so you're guaranteed that no two
+instances will try to build subproj at the same time.  And
+this works even if subproj is a make-based project; you
+just need a simple subproj.do that runs `make subproj`.
+
+
+# Dependency problems that only show up during parallel builds
+
+One annoying thing about parallel builds is... they do more
+things in parallel.  A very common problem in make is to
+have a Makefile rule that looks like this:
+
+	all: a b c
+	
+When you `make all`, it first builds a, then b, then c. 
+What if c depends on b?  Well, it doesn't matter when
+you're building in serial.  But with -j3, you end up
+building a, b, and c at the same time, and the build for c
+crashes.  You *should* have said:
+
+	all: a b c
+	c: b
+	b: a
+	
+and that would have fixed it.  But you forgot, and you
+don't find out until you build with exactly the wrong -j
+option.
+
+This mistake is easy to make in redo too.  But it does have
+a tool that helps you debug it: the --shuffle option. 
+--shuffle takes the dependencies of each target, and builds
+them in a random order.  So you can get parallel-like
+results without actually building in parallel.
+
+
 # What about distributed builds?
 
 FIXME:
@@ -787,22 +980,33 @@ pretty fun to play with it.
 
 The problem:
 
-This idea won't work as easily with redo as it did with make.  With
-make, a separate copy of $SHELL is launched for each step of the build (and
-gets migrated to the remote machine), but make runs only on your local
-machine, so it can control parallelism and avoid building the same target
+This idea won't work as easily with redo as it did with
+make.  With make, a separate copy of $SHELL is launched for
+each step of the build (and gets migrated to the remote
+machine), but make runs only on your local machine, so it
+can control parallelism and avoid building the same target
 from multiple machines, and so on.  The key to the above
 distribution mechanism is it can send files to the remote
 machine at the beginning of the $SHELL, and send them back
 when the $SHELL exits, and know that nobody cares about
-them in the meantime.  With redo, since the entire script runs
-inside a shell (and the shell might not exit until the very
-end of the build), we'd have to do the parallelism some
-other way.
+them in the meantime.  With redo, since the entire script
+runs inside a shell (and the shell might not exit until the
+very end of the build), we'd have to do the parallelism
+some other way.
 
 I'm sure it's doable, however.  One nice thing about redo
 is that the source code is so small compared to make: you
 can just rewrite it.
+
+
+# Can I convince a sub-redo or sub-make to *not* use parallel builds?
+
+Yes.  Put this in your .do script:
+
+	unset MAKEFLAGS
+	
+The child makes will then not have access to the jobserver,
+so will build serially instead.
 
 
 # How fast is redo compared to make?
@@ -864,6 +1068,33 @@ because redo's more fine-grained dependencies mean you can
 have more parallelism.  So if you have a lot of CPU cores, redo
 might build *faster* than make just because it makes better
 use of them.)
+
+
+# The output of 'ps ax' is ugly because of the python interpreter!
+
+FIXME:
+Yes, this is a general problem with python.  All the lines
+in 'ps' end up looking like
+
+	28460 pts/2 Sl 0:00 /usr/bin/python /path/to/redo-ifchange stuff...
+
+...which means that the "stuff..." part is often cut off on
+the right hand side.  There are gross workarounds to fix
+this in python, but the easiest fix will be to just rewrite
+redo in C.  Then it'll look like this:
+
+	28460 pts/2 Sl 0:00 redo-ifchange stuff...
+
+...the way it should.
+	
+
+# Are there examples?
+
+FIXME: There are some limited ones in the `t/example/` subdir of
+the redo project.  The best example is a real, live program
+using redo as a build process.  If you switch your
+program's build process to use redo, please let us know and
+we can link to it here.
 
 
 # What's missing?  How can I help?
