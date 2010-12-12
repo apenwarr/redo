@@ -35,6 +35,15 @@ def _timeout(sig, frame):
     pass
 
 
+def _make_pipe(startfd):
+    (a,b) = os.pipe()
+    fds = (fcntl.fcntl(a, fcntl.F_DUPFD, startfd),
+            fcntl.fcntl(b, fcntl.F_DUPFD, startfd+1))
+    os.close(a)
+    os.close(b)
+    return fds
+
+
 def _try_read(fd, n):
     # using djb's suggested way of doing non-blocking reads from a blocking
     # socket: http://cr.yp.to/unix/nonblock.html
@@ -90,11 +99,7 @@ def setup(maxjobs):
     if maxjobs and not _fds:
         # need to start a new server
         _toplevel = maxjobs
-        _fds1 = os.pipe()
-        _fds = (fcntl.fcntl(_fds1[0], fcntl.F_DUPFD, 100),
-                fcntl.fcntl(_fds1[1], fcntl.F_DUPFD, 101))
-        os.close(_fds1[0])
-        os.close(_fds1[1])
+        _fds = _make_pipe(100)
         _release(maxjobs-1)
         os.putenv('MAKEFLAGS',
                   '%s --jobserver-fds=%d,%d -j' % (os.getenv('MAKEFLAGS'),
@@ -221,7 +226,7 @@ def start_job(reason, jobfunc, donefunc):
     assert(_mytokens >= 1)
     assert(_mytokens == 1)
     _mytokens -= 1
-    r,w = os.pipe()
+    r,w = _make_pipe(50)
     pid = os.fork()
     if pid == 0:
         # child
@@ -237,6 +242,8 @@ def start_job(reason, jobfunc, donefunc):
         finally:
             _debug('exit: %d\n' % rv)
             os._exit(rv)
+    from helpers import close_on_exec
+    close_on_exec(r, True)
     os.close(w)
     pd = Job(reason, pid, donefunc)
     _waitfds[r] = pd
