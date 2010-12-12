@@ -61,8 +61,9 @@ _do()
 		[ -z "$RV" ] && mv "$TARGET.tmp" "$TARGET" 2>/dev/null
 		: >>"$TARGET"
 		if [ -n "$RV" ]; then
-			printf "do: %s%s\n" "$DO_DEPTH" "got exit code $RV" >&2
-			exit $RV
+			printf "do: %s%s\n" "$DO_DEPTH" \
+				"$DIR$TARGET: got exit code $RV" >&2
+			return $RV
 		fi
 	else
 		echo "do  $DO_DEPTH$TARGET exists." >&2
@@ -74,7 +75,7 @@ redo()
 {
 	for i in "$@"; do
 		_dirsplit "$i"
-		( cd "$dir" && _do "$dir" "$base" ) || exit $?
+		( cd "$dir" && _do "$dir" "$base" ) || return 1
 	done
 }
 
