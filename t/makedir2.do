@@ -5,4 +5,4 @@ touch makedir/outfile
 ./flush-cache.sh
 redo-ifchange makedir
 COUNT=$(wc -l <makedir.log)
-[ "$COUNT" = 1 ] || exit 99
+[ "$COUNT" -eq 1 ] || exit 99

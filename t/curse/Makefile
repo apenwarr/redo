@@ -1,13 +1,13 @@
 all:
 	. ./check-1.sh
 	$(MAKE) 1.n0 2.n0 3.n0
-	$(MAKE) $(shell seq 10 | sed 's/$$/.n1/')
+	$(MAKE) $(shell ./seq 10 | sed 's/$$/.n1/')
 	. ./check-2.sh
 
-%.n0: $(shell seq 10 | sed 's/$$/.n1/')
+%.n0: $(shell ./seq 10 | sed 's/$$/.n1/')
 	: >$@
 
-%.n1: $(shell seq 100 | sed 's/$$/.n2/')
+%.n1: $(shell ./seq 100 | sed 's/$$/.n2/')
 	echo n1-$* >$@
 
 .PRECIOUS: %.n2

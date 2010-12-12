@@ -1,3 +1,3 @@
-DEPS=$(seq 100 | sed 's/$/.n2/')
+DEPS=$(./seq 100 | sed 's/$/.n2/')
 redo-ifchange $DEPS
 echo n1-$1
