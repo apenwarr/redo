@@ -10,14 +10,11 @@ import vars, state, builder, jwack
 from helpers import unlink
 from log import debug, debug2, err
 
-def _nice(t):
-    return state.relpath(os.path.join(vars.BASE, t), vars.STARTDIR)
-
 CLEAN = 0
 DIRTY = 1
 def dirty_deps(f, depth, max_changed):
     if vars.DEBUG >= 1:
-        debug('%s?%s\n' % (depth, _nice(f.name)))
+        debug('%s?%s\n' % (depth, f.nicename()))
 
     if f.failed_runid:
         debug('%s-- DIRTY (failed last time)\n' % depth)

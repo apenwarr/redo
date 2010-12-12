@@ -276,6 +276,10 @@ class File(object):
             # a "unique identifier" stamp for a regular file
             return str((st.st_ctime, st.st_mtime, st.st_size, st.st_ino))
 
+    def nicename(self):
+        return relpath(os.path.join(vars.BASE, self.name), vars.STARTDIR)
+
+
 
 # FIXME: I really want to use fcntl F_SETLK, F_SETLKW, etc here.  But python
 # doesn't do the lockdata structure in a portable way, so we have to use
