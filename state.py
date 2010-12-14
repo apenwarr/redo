@@ -19,9 +19,8 @@ def _connect(dbfile):
 
 
 _db = None
-_lockfile = None
 def db():
-    global _db, _lockfile
+    global _db
     if _db:
         return _db
         
@@ -35,10 +34,6 @@ def db():
         else:
             raise
 
-    _lockfile = os.open(os.path.join(vars.BASE, '.redo/locks'),
-                        os.O_RDWR | os.O_CREAT, 0666)
-    close_on_exec(_lockfile, True)
-    
     must_create = not os.path.exists(dbfile)
     if not must_create:
         _db = _connect(dbfile)
@@ -296,19 +291,22 @@ class Lock:
     def __init__(self, fid):
         self.owned = False
         self.fid = fid
-        assert(_lockfile >= 0)
+        self.lockfile = os.open(os.path.join(vars.BASE, '.redo/lock.%d' % fid),
+                                os.O_RDWR | os.O_CREAT, 0666)
+        close_on_exec(self.lockfile, True)
         assert(_locks.get(fid,0) == 0)
         _locks[fid] = 1
 
     def __del__(self):
         _locks[self.fid] = 0
+        os.close(self.lockfile)
         if self.owned:
             self.unlock()
 
     def trylock(self):
         assert(not self.owned)
         try:
-            fcntl.lockf(_lockfile, fcntl.LOCK_EX|fcntl.LOCK_NB, 1, self.fid)
+            fcntl.lockf(self.lockfile, fcntl.LOCK_EX|fcntl.LOCK_NB, 0, 0)
         except IOError, e:
             if e.errno in (errno.EAGAIN, errno.EACCES):
                 pass  # someone else has it locked
@@ -319,12 +317,12 @@ class Lock:
 
     def waitlock(self):
         assert(not self.owned)
-        fcntl.lockf(_lockfile, fcntl.LOCK_EX, 1, self.fid)
+        fcntl.lockf(self.lockfile, fcntl.LOCK_EX, 0, 0)
         self.owned = True
             
     def unlock(self):
         if not self.owned:
             raise Exception("can't unlock %r - we don't own it" 
                             % self.lockname)
-        fcntl.lockf(_lockfile, fcntl.LOCK_UN, 1, self.fid)
+        fcntl.lockf(self.lockfile, fcntl.LOCK_UN, 0, 0)
         self.owned = False
