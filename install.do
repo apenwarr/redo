@@ -33,8 +33,9 @@ for d in redo redo-ifchange redo-ifcreate redo-always redo-stamp redo-oob; do
 	fix=$(echo $d | sed 's,-,_,g')
 	cat >install.wrapper <<-EOF
 		#!/usr/bin/python
-		import sys;
-		sys.path.insert(0, '$LIBDIR')
+		import sys, os;
+		exedir = os.path.dirname(os.path.abspath(sys.argv[0]))
+		sys.path.insert(0, os.path.join(exedir, '../lib/redo'))
 		import $fix
 	EOF
 	$INSTALL -m 0755 install.wrapper $BINDIR/$d
