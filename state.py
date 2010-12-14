@@ -291,13 +291,17 @@ class File(object):
 # fcntl.lockf() instead.  Usually this is just a wrapper for fcntl, so it's
 # ok, but it doesn't have F_GETLK, so we can't report which pid owns the lock.
 # The makes debugging a bit harder.  When we someday port to C, we can do that.
+_locks = {}
 class Lock:
     def __init__(self, fid):
-        assert(_lockfile >= 0)
         self.owned = False
         self.fid = fid
+        assert(_lockfile >= 0)
+        assert(_locks.get(fid,0) == 0)
+        _locks[fid] = 1
 
     def __del__(self):
+        _locks[self.fid] = 0
         if self.owned:
             self.unlock()
 

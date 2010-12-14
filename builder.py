@@ -270,12 +270,13 @@ def main(targets, shouldbuildfunc):
         if rv:
             retcode[0] = 1
 
-    for i in range(len(targets)):
-        t = targets[i]
-
     # In the first cycle, we just build as much as we can without worrying
     # about any lock contention.  If someone else has it locked, we move on.
+    seen = {}
     for t in targets:
+        if t in seen:
+            continue
+        seen[t] = 1
         if not jwack.has_token():
             state.commit()
         jwack.get_token(t)
@@ -297,6 +298,8 @@ def main(targets, shouldbuildfunc):
             locked.append((f.id,t))
         else:
             BuildJob(t, f, lock, shouldbuildfunc, done).start()
+
+    del lock
 
     # Now we've built all the "easy" ones.  Go back and just wait on the
     # remaining ones one by one.  There's no reason to do it any more
