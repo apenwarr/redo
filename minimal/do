@@ -20,8 +20,9 @@ if [ -z "$DO_BUILT" ]; then
 	for d in redo redo-ifchange; do
 		ln -s "$REDO" "$DO_PATH/$d";
 	done
+	[ -e /bin/true ] && TRUE=/bin/true || TRUE=/usr/bin/true
 	for d in redo-ifcreate redo-stamp redo-always; do 
-		ln -s /bin/true "$DO_PATH/$d";
+		ln -s $TRUE "$DO_PATH/$d";
 	done
 fi
 

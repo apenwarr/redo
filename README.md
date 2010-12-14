@@ -33,7 +33,7 @@ If you've ever thought about rewriting GNU make from scratch, the idea of
 doing it in 250 lines of shell script probably didn't occur to you.  redo is
 so simple that it's actually possible.  For testing, I actually wrote an
 even more minimal version,which always rebuilds everything instead of
-checking dependencies, in 99 lines of shell (less than 2 kbytes).
+checking dependencies, in 100 lines of shell (less than 2 kbytes).
 
 The design is simply that good.
 
