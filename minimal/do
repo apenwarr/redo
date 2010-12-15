@@ -3,6 +3,9 @@
 # A minimal alternative to djb redo that doesn't support incremental builds.
 # For the full version, visit http://github.com/apenwarr/redo
 #
+# The author disclaims copyright to this source file and hereby places it in
+# the public domain. (2010 12 14)
+#
 export REDO="$(cd "$(dirname "$0")" && echo "$PWD/$(basename "$0")")"
 
 if [ -z "$DO_BUILT" ]; then
