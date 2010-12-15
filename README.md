@@ -264,7 +264,7 @@ the target filename atomically if your .do file returns a
 zero (success) exit code.
 
 In a file called `chicken.a.b.c.do` that builds a file called
-`chicken.a.b.c`, $1 is `chicken.a.b.c`, $2 is blank, and $2 is a
+`chicken.a.b.c`, $1 is `chicken.a.b.c`, $2 is blank, and $3 is a
 temporary name like `chicken.a.b.c.tmp`.  You might have expected
 $1 to be just `chicken`, but that's not possible, because
 redo doesn't know which portion of the filename is the
@@ -352,7 +352,7 @@ with dependency information.
 
 The format of the `.redo` directory is undocumented because
 it may change at any time.  If you really need to make a
-took that pokes around in there, please ask on the mailing
+tool that pokes around in there, please ask on the mailing
 list if we can standardize something for you.
 
 
