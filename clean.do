@@ -7,4 +7,4 @@ fi
 redo t/clean Documentation/clean
 rm -f *~ .*~ */*~ */.*~ *.pyc install.wrapper
 rm -rf t/.redo
-find -name '*.tmp' -exec rm -fv {} \;
+find . -name '*.tmp' -exec rm -fv {} \;
