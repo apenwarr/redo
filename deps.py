@@ -5,7 +5,9 @@ from log import debug
 CLEAN = 0
 DIRTY = 1
 
-def isdirty(f, depth, max_changed):
+def isdirty(f, depth, max_changed,
+            is_checked=state.File.is_checked,
+            set_checked=state.File.set_checked_save):
     if vars.DEBUG >= 1:
         debug('%s?%s\n' % (depth, f.nicename()))
 
@@ -18,7 +20,7 @@ def isdirty(f, depth, max_changed):
     if f.changed_runid > max_changed:
         debug('%s-- DIRTY (built)\n' % depth)
         return DIRTY  # has been built more recently than parent
-    if f.is_checked():
+    if is_checked(f):
         if vars.DEBUG >= 1:
             debug('%s-- CLEAN (checked)\n' % depth)
         return CLEAN  # has already been checked during this session
@@ -47,7 +49,8 @@ def isdirty(f, depth, max_changed):
         elif mode == 'm':
             sub = isdirty(f2, depth = depth + '  ',
                           max_changed = max(f.changed_runid,
-                                            f.checked_runid))
+                                            f.checked_runid),
+                          is_checked=is_checked, set_checked=set_checked)
             if sub:
                 debug('%s-- DIRTY (sub)\n' % depth)
                 dirty = sub
@@ -84,8 +87,7 @@ def isdirty(f, depth, max_changed):
     # if we get here, it's because the target is clean
     if f.is_override:
         state.warn_override(f.name)
-    f.set_checked()
-    f.save()
+    set_checked(f)
     return CLEAN
 
 

@@ -199,6 +199,10 @@ class File(object):
     def set_checked(self):
         self.checked_runid = vars.RUNID
 
+    def set_checked_save(self):
+        self.set_checked()
+        self.save()
+
     def set_changed(self):
         debug2('BUILT: %r (%r)\n' % (self.name, self.stamp))
         self.changed_runid = vars.RUNID
