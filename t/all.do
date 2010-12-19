@@ -1,2 +1,2 @@
-redo-ifchange hello yellow bellow defaults-flat/all example/all
-
+redo-ifchange hello yellow bellow defaults-flat/all defaults-nested/all \
+	example/all
