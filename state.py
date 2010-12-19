@@ -1,6 +1,6 @@
 import sys, os, errno, glob, stat, fcntl, sqlite3
 import vars
-from helpers import unlink, close_on_exec
+from helpers import unlink, close_on_exec, join
 from log import err, debug2, debug3
 
 SCHEMA_VER=1
@@ -129,20 +129,18 @@ def relpath(t, base):
     while bparts:
         tparts.insert(0, '..')
         bparts.pop(0)
-    return '/'.join(tparts)
+    return join('/', tparts)
 
 
+_file_cols = ['rowid', 'name', 'is_generated', 'is_override',
+              'checked_runid', 'changed_runid', 'failed_runid',
+              'stamp', 'csum']
 class File(object):
     # use this mostly to avoid accidentally assigning to typos
-    __slots__ = ['id', 'name', 'is_generated', 'is_override',
-                 'checked_runid', 'changed_runid', 'failed_runid',
-                 'stamp', 'csum']
+    __slots__ = ['id'] + _file_cols[1:]
 
     def _init_from_idname(self, id, name):
-        q = ('select rowid, name, is_generated, is_override, '
-             '    checked_runid, changed_runid, failed_runid, '
-             '    stamp, csum '
-             '  from Files ')
+        q = ('select %s from Files ' % join(', ', _file_cols))
         if id != None:
             q += 'where rowid=?'
             l = [id]
@@ -185,11 +183,10 @@ class File(object):
         self._init_from_idname(self.id, None)
 
     def save(self):
+        cols = join(', ', ['%s=?'%i for i in _file_cols[2:]])
         _write('update Files set '
-               '    is_generated=?, is_override=?, '
-               '    checked_runid=?, changed_runid=?, failed_runid=?, '
-               '    stamp=?, csum=? '
-               '    where rowid=?',
+               '    %s '
+               '    where rowid=?' % cols,
                [self.is_generated, self.is_override,
                 self.checked_runid, self.changed_runid, self.failed_runid,
                 self.stamp, self.csum,
@@ -236,13 +233,10 @@ class File(object):
         return self.failed_runid and self.failed_runid >= vars.RUNID
 
     def deps(self):
-        q = ('select Deps.mode, Deps.source, '
-             '    name, is_generated, is_override, '
-             '    checked_runid, changed_runid, failed_runid, '
-             '    stamp, csum '
+        q = ('select Deps.mode, Deps.source, %s '
              '  from Files '
              '    join Deps on Files.rowid = Deps.source '
-             '  where target=?')
+             '  where target=?' % join(', ', _file_cols[1:]))
         for row in db().execute(q, [self.id]).fetchall():
             mode = row[0]
             cols = row[1:]
@@ -279,6 +273,11 @@ class File(object):
     def nicename(self):
         return relpath(os.path.join(vars.BASE, self.name), vars.STARTDIR)
 
+
+def files():
+    q = ('select %s from Files order by name' % join(', ', _file_cols))
+    for cols in db().execute(q).fetchall():
+        yield File(cols=cols)
 
 
 # FIXME: I really want to use fcntl F_SETLK, F_SETLKW, etc here.  But python

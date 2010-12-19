@@ -2,6 +2,10 @@ import os, errno, fcntl
 from atoi import atoi
 
 
+def join(between, l):
+    return between.join(l)
+
+
 def unlink(f):
     """Delete a file at path 'f' if it currently exists.
 
