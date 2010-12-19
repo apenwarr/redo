@@ -7,4 +7,4 @@ else
 	echo b-to-b
 	cat "$1$2.b"
 fi
-./sleep 1.1
+../sleep 1.1

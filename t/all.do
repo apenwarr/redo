@@ -1,2 +1,2 @@
-redo-ifchange hello yellow bellow c d example/all
+redo-ifchange hello yellow bellow defaults-flat/all example/all
 
