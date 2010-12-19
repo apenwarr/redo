@@ -29,8 +29,9 @@ done
 python -mcompileall $LIBDIR
 
 # binaries
-for d in redo redo-ifchange redo-ifcreate redo-always redo-stamp redo-oob; do
-	fix=$(echo $d | sed 's,-,_,g')
+for dd in redo*.py; do
+	d=$(basename $dd .py)
+	fix=$(echo $d | sed -e 's,-,_,g')
 	cat >install.wrapper <<-EOF
 		#!/usr/bin/python
 		import sys, os;

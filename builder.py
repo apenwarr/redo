@@ -77,7 +77,7 @@ class BuildJob:
         if vars.NO_OOB or dirty == True:
             self._start_do()
         else:
-            self._start_oob(dirty)
+            self._start_unlocked(dirty)
 
     def _start_do(self):
         assert(self.lock.owned)
@@ -142,15 +142,18 @@ class BuildJob:
         state.commit()
         jwack.start_job(t, self._do_subproc, self._after)
 
-    def _start_oob(self, dirty):
+    def _start_unlocked(self, dirty):
         # out-of-band redo of some sub-objects.  This happens when we're not
-        # quite sure if t needs to be built or not (because some children look
-        # dirty, but might turn out to be clean thanks to checksums).  We have
-        # to call redo-oob to figure it all out.
+        # quite sure if t needs to be built or not (because some children
+        # look dirty, but might turn out to be clean thanks to checksums). 
+        # We have to call redo-unlocked to figure it all out.
         #
-        # Note: redo-oob will handle all the updating of sf, so we don't have
-        # to do it here, nor call _after1.
-        argv = ['redo-oob', self.sf.name] + [d.name for d in dirty]
+        # Note: redo-unlocked will handle all the updating of sf, so we
+        # don't have to do it here, nor call _after1.  However, we have to
+        # hold onto the lock because otherwise we would introduce a race
+        # condition; that's why it's called redo-unlocked, because it doesn't
+        # grab a lock.
+        argv = ['redo-unlocked', self.sf.name] + [d.name for d in dirty]
         log('(%s)\n' % _nice(self.t))
         state.commit()
         def run():
