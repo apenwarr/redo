@@ -1,7 +1,7 @@
 import sys, os, errno, glob, stat, fcntl, sqlite3
 import vars
 from helpers import unlink, close_on_exec, join
-from log import err, debug2, debug3
+from log import warn, err, debug2, debug3
 
 SCHEMA_VER=1
 TIMEOUT=60
@@ -130,6 +130,10 @@ def relpath(t, base):
         tparts.insert(0, '..')
         bparts.pop(0)
     return join('/', tparts)
+
+
+def warn_override(name):
+    warn('%s - you modified it; skipping\n' % name)
 
 
 _file_cols = ['rowid', 'name', 'is_generated', 'is_override',

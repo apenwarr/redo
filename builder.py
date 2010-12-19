@@ -43,10 +43,6 @@ def _try_stat(filename):
             raise
 
 
-def warn_override(name):
-    warn('%s - you modified it; skipping\n' % name)
-
-
 class ImmediateReturn(Exception):
     def __init__(self, rv):
         Exception.__init__(self, "immediate return with exit code %d" % rv)
@@ -88,7 +84,7 @@ class BuildJob:
             not sf.failed_runid and
             newstamp != state.STAMP_MISSING and 
             (sf.stamp != newstamp or sf.is_override)):
-                warn_override(_nice(t))
+                state.warn_override(_nice(t))
                 sf.set_override()
                 sf.set_checked()
                 sf.save()
