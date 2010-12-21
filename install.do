@@ -1,5 +1,5 @@
 exec >&2
-redo-ifchange Documentation/all
+redo-ifchange _all
 
 : ${INSTALL:=install}
 : ${DESTDIR:=}
@@ -27,6 +27,10 @@ for d in *.py; do
 	$INSTALL -m 0644 $d $LIBDIR/$fix
 done
 python -mcompileall $LIBDIR
+
+# It's important for the file to actually be named 'sh'.  Some shells (like
+# bash and zsh) only go into POSIX-compatible mode if they have that name.
+cp -R redo-sh/sh $LIBDIR/sh
 
 # binaries
 for dd in redo*.py; do

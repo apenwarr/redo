@@ -1,0 +1,261 @@
+#
+# Most of these tests were inspired by:
+# http://www.gnu.org/software/hello/manual/autoconf/Shell-Substitutions.html
+#
+exec >&2
+set +e
+FAIL=
+fail()
+{
+	echo "  failed: $1"
+	FAIL=41
+}
+warn()
+{
+	echo "  warning: $1"
+	[ -n "$FAIL" ] || FAIL=42
+}
+
+
+name=foo.o.o
+ext=.o
+[ "${name#foo.o}" = ".o" ] || fail 3
+
+
+spacey="this has * and spaces"
+case $spacey in
+	*)	spaceout=$name$spacey ;;
+esac
+[ "$spaceout" = "$name$spacey" ] || fail 4
+
+
+n() { echo "$#$@"; }
+f="  -  "
+out=$(n - ""$f"" -)
+[ "$out" = "5-  -  -" ] || warn 5
+
+
+n1() { echo $#; }
+n2() { n1 "$@"; }
+t1=$(n1)
+t2=$(n2)
+[ "$t1" = "0" ] || fail 6
+[ "$t2" = "0" ] || fail 7
+
+
+n1() { for i in "$@"; do echo $i; done; }
+n2() { for i in ${1+"$@"}; do echo $i; done; }
+t1=$(n1 "Hello World" "!")
+t2=$(n2 "Hello World" "!")
+WANT="Hello World
+!"
+[ "$t1" = "$WANT" ] || fail 8
+[ "$t2" = "$WANT" ] || fail 9
+
+
+n() { echo ${10}; }
+t1=$(n 1 2 3 4 5 6 7 8 9 xx yy)
+[ "$t1" = "xx" ] || fail 10
+
+
+chicken1=`echo " $spacey" | sed s/a/./g`
+chicken2="`echo " $spacey" | sed s/a/./g`"
+chicken3=$(echo " $spacey" | sed s/a/./g)
+chicken4="$(echo " $spacey" | sed s/a/./g)"
+[ "$chicken1" = " this h.s * .nd sp.ces" ] || fail 11
+[ "$chicken2" = " this h.s * .nd sp.ces" ] || fail 12
+[ "$chicken3" = " this h.s * .nd sp.ces" ] || fail 13
+[ "$chicken4" = " this h.s * .nd sp.ces" ] || fail 14
+
+
+f1=
+f2=goo
+g1=
+g2=goo
+out=$(echo ${f1:-foo} ${f2:-foo} ${g1:=foo} ${g2:=foo})
+: ${f1:-roo} ${f2:-roo} ${g1:=roo} ${g2:=roo}
+[ "$out" = "foo goo foo goo" ] || fail 16
+[ "$f1$f2$g1$g2" = "gooroogoo" ] || fail 17
+
+
+unset a
+t1=$(echo ${a-b  c})
+t2=$(echo ${a-'b  c'})
+t3=$(echo "${a-b  c}")
+t4=$(echo "${a-"b  c"}")
+t5=$(cat <<EOF
+${a-b  c}
+EOF
+)
+[ "$t1" = "b c" ] || fail 21
+[ "$t2" = "b  c" ] || fail 22
+[ "$t3" = "b  c" ] || fail 23
+[ "$t4" = "b  c" ] || fail 24
+[ "$t5" = "b  c" ] || fail 25
+
+
+unset a
+t1=$(echo ${a=b  c})
+t2=$(echo ${a='b  c'})
+t3=$(echo "${a=b  c}")
+t4=$(echo "${a="b  c"}")
+t5=$(cat <<EOF
+${a=b  c}
+EOF
+)
+[ "$t1" = "b c" ] || fail 31
+[ "$t2" = "b c" ] || warn 32
+[ "$t3" = "b  c" ] || fail 33
+[ "$t4" = "b  c" ] || fail 34
+[ "$t5" = "b  c" ] || fail 35
+
+
+unset foo
+foo=${foo='}'}    # unconfuse syntax highlighting: '
+[ "$foo" = "}" ] || fail 41
+foo=${foo='}'}    # unconfuse syntax highlighting: '
+[ "$foo" = "}" ] || fail 42
+
+
+default="yu,yaa"
+unset var
+: ${var="$default"}
+t1=$(cat <<EOF
+$var
+EOF
+)
+[ "$t1" = "yu,yaa" ] || fail 43
+
+
+default="a b c"
+unset list1 list2
+: ${list1="$default"} ${list2=$default}
+t1=$(for c in $list1; do echo $c; done)
+t2=$(for c in $list2; do echo $c; done)
+WANT="a
+b
+c"
+[ "$t1" = "$WANT" ] || fail 44
+[ "$t2" = "$WANT" ] || fail 45
+
+
+var='a a b b'
+t1=${#var}
+t2=${var#a* }
+t3=${var##a* }
+t4=${var%b*}
+t5=${var%%b*}
+[ "$t1" = "7" ] || fail 51
+[ "$t2" = "a b b" ] || fail 52
+[ "$t3" = "b" ] || fail 53
+[ "$t4" = "a a b " ] || fail 54
+[ "$t5" = "a a " ] || fail 55
+
+
+in="a
+b
+"
+t1=$(echo "$in" | tr a A)
+t2="$(echo "$in" | tr a A)"
+[ "$t1" = "A
+b" ] || exit 57
+[ "$t2" = "A
+b" ] || exit 58
+
+
+echo "`printf 'foo\r\n'` bar" >broken
+echo "`printf 'foo\r\n'`"" bar" | diff -q - broken || fail 59
+
+
+#
+# This one is too obnoxious.  dash and ash pass the test, but nothing else does,
+# and this case is just too dumb to care about.  Just don't do that!
+#
+#t=`echo $(case x in x) echo hello;; esac)`
+#[ "$t" = "hello" ] || fail 60
+
+
+x=5
+t1=$(($x + 4))
+t2=$(echo $(( 010 + 0x10 )))
+[ "$t1" = "9" ] || fail 61
+[ "$t2" = "24" ] || fail 62
+
+
+t=$(echo hello ^ cat)
+[ "$t" = "hello ^ cat" ] || fail 65
+
+
+t1=$(for d in this-glob-does-*-not-exist; do echo "$d"; done)
+t2=$(for d in this-glob-does-*-not-exist; do echo "$d"; done)
+
+
+# http://www.gnu.org/software/hello/manual/autoconf/Assignments.html
+false || foo=bar; [ "$?" = 0 ] || fail 71
+foo=`exit 1`; [ "$?" != 0 ] || fail 72
+
+# http://www.gnu.org/software/hello/manual/autoconf/Shell-Functions.html
+f1() { echo 1; }
+f2(){ echo 2;}
+f3()(echo 3)
+f4()if true; then echo 4; fi
+f5() ( exit 5 )
+[ "$(f1)" = 1 ] || fail 81
+[ "$(f2)" = 2 ] || fail 82
+[ "$(f3)" = 3 ] || fail 83
+[ "$(f4)" = 4 ] || fail 84
+f5 && fail 85
+f6() (
+	f6b() { return 1; }
+	set -e
+	f6b
+	fail 86
+)
+f6
+f7() { :; }; f7=; f7 || fail 87
+a=
+f8() { echo $a; };
+t8=$(a=1 f8)
+[ "$t8" = "1" ] || fail 88
+
+
+# http://www.gnu.org/software/hello/manual/autoconf/Limitations-of-Builtins.html
+. /dev/null || fail 90
+(! : | :) && fail 91 || true
+(! { :; }) && fail 92 || true
+t3=none
+case frog.c in
+	(*.c) t3=c ;;
+	(*) t3=all ;;
+esac
+[ "$t3" = "c" ] || fail 93
+t4=$(echo '\n' | wc -l)
+[ "$t4" -eq 1 ] || warn 94
+f5() {
+	for arg; do
+		echo $arg
+	done
+}
+t5=$(f5 a=5 b c)
+[ "$t5" = "a=5
+b
+c" ] || fail 95
+t6=$(printf -- '%d  %d' 5 6)
+[ "$t6" = "5  6" ] || fail 96
+echo 'word\ game stuff' >shellfile
+read t7a t7b <shellfile
+read -r t8a t8b <shellfile
+[ "$t7a" = 'word game' ] || fail 97
+[ "$t7b" = 'stuff' ] || fail 97
+[ "$t8a" = 'word\' ] || fail 98
+[ "$t8b" = 'game stuff' ] || fail 98
+test -e shellfile || fail 99
+[ "-a" = "-a" ] || fail 100
+[ "-a" != "-b" ] || fail 101
+[ "-a" -a "!" ] || fail 102
+(unset foo && unset foo && unset foo) || fail 103
+
+# http://www.gnu.org/software/hello/manual/autoconf/Limitations-of-Usual-Tools.html
+rm -f || fail 110
+
+exit $FAIL

@@ -5,10 +5,17 @@ def init(targets):
         # toplevel call to redo
         exenames = [os.path.abspath(sys.argv[0]),
                     os.path.realpath(sys.argv[0])]
-        if exenames[0] == exenames[1]:
-            exenames = [exenames[0]]
         dirnames = [os.path.dirname(p) for p in exenames]
-        os.environ['PATH'] = ':'.join(dirnames) + ':' + os.environ['PATH']
+        trynames = ([os.path.abspath(p+'/../lib/redo') for p in dirnames] +
+                    [p+'/redo-sh' for p in dirnames] +
+                    dirnames)
+        seen = {}
+        dirs = []
+        for k in trynames:
+            if not seen.get(k) and os.path.exists('%s/.' % k):
+                seen[k] = 1
+                dirs.append(k)
+        os.environ['PATH'] = ':'.join(dirs) + ':' + os.environ['PATH']
         os.environ['REDO'] = os.path.abspath(sys.argv[0])
 
     if not os.environ.get('REDO_BASE'):

@@ -21,3 +21,5 @@ test2.args
 /ifcreate[12].log
 /ifcreate[12].dep
 /ifcreate[12]
+/broken
+/shellfile

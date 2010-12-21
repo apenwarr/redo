@@ -7,3 +7,4 @@ t/LD
 t/[yb]ellow
 t/hello
 t/*.o
+/redo-sh
