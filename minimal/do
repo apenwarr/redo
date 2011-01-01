@@ -83,6 +83,7 @@ _do()
 		if [ $RV != 0 ]; then
 			printf "do: %s%s\n" "$DO_DEPTH" \
 				"$DIR$TARGET: got exit code $RV" >&2
+			rm -f "$TARGET.tmp" "$TARGET.tmp2"
 			return $RV
 		fi
 		mv "$TARGET.tmp" "$TARGET" 2>/dev/null ||
