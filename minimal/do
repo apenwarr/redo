@@ -15,12 +15,14 @@ _dirsplit()
 _dirsplit "$0"
 export REDO=$(cd "${dir:-.}" && echo "$PWD/$base")
 
+DO_TOP=
 if [ -z "$DO_BUILT" ]; then
+	DO_TOP=1
 	export DO_BUILT=$PWD/.do_built
 	if [ -e "$DO_BUILT" ]; then
 		echo "Removing previously built files..." >&2
 		sort -u "$DO_BUILT" | tee "$DO_BUILT.new" |
-		while read f; do rm -f "$f" 2>/dev/null; done
+		while read f; do rm -f "$f" "$f.did" 2>/dev/null; done
 		mv "$DO_BUILT.new" "$DO_BUILT"
 	fi
 	DO_PATH=$DO_BUILT.dir
@@ -55,7 +57,7 @@ _run_dofile()
 	export DO_DEPTH="$DO_DEPTH  "
 	export REDO_TARGET=$PWD/$TARGET
 	set -e
-	. "$PWD/$DOFILE" >"$TARGET.tmp"
+	. "$PWD/$DOFILE" >"$TARGET.tmp2"
 }
 
 
@@ -63,7 +65,7 @@ _do()
 {
 	DIR=$1
 	TARGET=$2
-	if [ ! -e "$TARGET" ]; then
+	if [ ! -e "$TARGET" ] || [ -e "$TARGET/." -a ! -e "$TARGET.did" ]; then
 		printf '\033[32mdo  %s\033[1m%s\033[m\n' \
 			"$DO_DEPTH" "$DIR$TARGET" >&2
 		echo "$PWD/$TARGET" >>"$DO_BUILT"
@@ -75,6 +77,7 @@ _do()
 			echo "do: $TARGET: no .do file" >&2
 			return 1
 		fi
+		: >>"$TARGET.did"
 		( _run_dofile "$BASE" "$EXT" "$TARGET.tmp" )
 		RV=$?
 		if [ $RV != 0 ]; then
@@ -82,8 +85,10 @@ _do()
 				"$DIR$TARGET: got exit code $RV" >&2
 			return $RV
 		fi
-		mv "$TARGET.tmp" "$TARGET" 2>/dev/null
-		: >>"$TARGET"
+		mv "$TARGET.tmp" "$TARGET" 2>/dev/null ||
+		! test -s "$TARGET.tmp2" ||
+		mv "$TARGET.tmp2" "$TARGET" 2>/dev/null
+		rm -f "$TARGET.tmp2"
 	else
 		echo "do  $DO_DEPTH$TARGET exists." >&2
 	fi
@@ -104,4 +109,9 @@ if [ -n "$*" ]; then
 	redo "$@"
 else
 	redo all
+fi
+
+if [ -n "$DO_TOP" ]; then
+	echo "Removing stamp files..." >&2
+	while read f; do rm -f "$f.did" 2>/dev/null; done <"$DO_BUILT"
 fi
