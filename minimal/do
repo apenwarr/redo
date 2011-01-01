@@ -6,18 +6,25 @@
 # The author disclaims copyright to this source file and hereby places it in
 # the public domain. (2010 12 14)
 #
-export REDO="$(cd "$(dirname "$0")" && echo "$PWD/$(basename "$0")")"
+_dirsplit()
+{
+	base=${1##*/}
+	dir=${1%$base}
+}
+
+_dirsplit "$0"
+export REDO=$(cd "${dir:-.}" && echo "$PWD/$base")
 
 if [ -z "$DO_BUILT" ]; then
-	export DO_BUILT="$PWD/.do_built"
+	export DO_BUILT=$PWD/.do_built
 	if [ -e "$DO_BUILT" ]; then
 		echo "Removing previously built files..." >&2
 		sort -u "$DO_BUILT" | tee "$DO_BUILT.new" |
-		while read f; do rm -f "$f"; done
+		while read f; do rm -f "$f" 2>/dev/null; done
 		mv "$DO_BUILT.new" "$DO_BUILT"
 	fi
-	DO_PATH="$DO_BUILT.dir"
-	export PATH="$DO_PATH:$PATH"
+	DO_PATH=$DO_BUILT.dir
+	export PATH=$DO_PATH:$PATH
 	rm -rf "$DO_PATH"
 	mkdir "$DO_PATH"
 	for d in redo redo-ifchange; do
@@ -30,56 +37,53 @@ if [ -z "$DO_BUILT" ]; then
 fi
 
 
-_dirsplit()
+_find_dofile()
 {
-	OLDIFS="$IFS"
-	IFS=/
-	set -- $1
-	IFS="$OLDIFS"
-	dir=""
-	while [ $# -gt 1 ]; do
-		dir="$dir$1/"
-		shift
+	DOFILE=default.$1.do
+	while :; do
+		DOFILE=default.${DOFILE#default.*.}
+		[ -e "$DOFILE" -o "$DOFILE" = default.do ] && break
 	done
-	base="$1"
+	EXT=${DOFILE#default}
+	EXT=${EXT%.do}
+	BASE=${1%$EXT}
+}
+
+
+_run_dofile()
+{
+	export DO_DEPTH="$DO_DEPTH  "
+	export REDO_TARGET=$PWD/$TARGET
+	set -e
+	. "$PWD/$DOFILE" >"$TARGET.tmp"
 }
 
 
 _do()
 {
-	DIR="$1"
-	TARGET="$2"
+	DIR=$1
+	TARGET=$2
 	if [ ! -e "$TARGET" ]; then
 		printf '\033[32mdo  %s\033[1m%s\033[m\n' \
 			"$DO_DEPTH" "$DIR$TARGET" >&2
 		echo "$PWD/$TARGET" >>"$DO_BUILT"
-		dof=".$TARGET"
-		DOFILE="$TARGET.do"
-		BASE="$TARGET"
-		EXT=""
-		while [ ! -e "$DOFILE" ]; do
-			dof2=$(echo "$dof" | sed 's/\.[^\.]*//')
-			[ "$dof" = "$dof2" ] && break
-			dof="$dof2"
-			DOFILE="default$dof.do"
-			BASE="$(basename "$TARGET" "$dof")"
-			EXT="$dof"
-		done
-		set "$BASE" "$EXT" "$TARGET.tmp"
-		RV=
-		( 
-			export DO_DEPTH="$DO_DEPTH  "
-			export REDO_TARGET="$PWD/$TARGET"
-			set -e
-			. "$PWD/$DOFILE" >"$TARGET.tmp"
-		) || RV="$?"
-		[ -z "$RV" ] && mv "$TARGET.tmp" "$TARGET" 2>/dev/null
-		: >>"$TARGET"
-		if [ -n "$RV" ]; then
+		DOFILE=$TARGET.do
+		BASE=$TARGET
+		EXT=
+		[ -e "$TARGET.do" ] || _find_dofile "$TARGET"
+		if [ ! -e "$DOFILE" ]; then
+			echo "do: $TARGET: no .do file" >&2
+			return 1
+		fi
+		( _run_dofile "$BASE" "$EXT" "$TARGET.tmp" )
+		RV=$?
+		if [ $RV != 0 ]; then
 			printf "do: %s%s\n" "$DO_DEPTH" \
 				"$DIR$TARGET: got exit code $RV" >&2
 			return $RV
 		fi
+		mv "$TARGET.tmp" "$TARGET" 2>/dev/null
+		: >>"$TARGET"
 	else
 		echo "do  $DO_DEPTH$TARGET exists." >&2
 	fi
