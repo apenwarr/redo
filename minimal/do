@@ -22,7 +22,8 @@ if [ -z "$DO_BUILT" ]; then
 	if [ -e "$DO_BUILT" ]; then
 		echo "Removing previously built files..." >&2
 		sort -u "$DO_BUILT" | tee "$DO_BUILT.new" |
-		while read f; do rm -f "$f" "$f.did" 2>/dev/null; done
+		while read f; do printf "%s\0%s.did\0" "$f" "$f"; done |
+		xargs -0 rm -f 2>/dev/null
 		mv "$DO_BUILT.new" "$DO_BUILT"
 	fi
 	DO_PATH=$DO_BUILT.dir
@@ -114,5 +115,6 @@ fi
 
 if [ -n "$DO_TOP" ]; then
 	echo "Removing stamp files..." >&2
-	while read f; do rm -f "$f.did" 2>/dev/null; done <"$DO_BUILT"
+	while read f; do printf "%s.did\0" "$f"; done <"$DO_BUILT" |
+	xargs -0 rm -f 2>/dev/null
 fi
