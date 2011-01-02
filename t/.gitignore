@@ -23,3 +23,4 @@ test2.args
 /ifcreate[12]
 /broken
 /shellfile
+/nonshelltest

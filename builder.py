@@ -128,6 +128,9 @@ class BuildJob:
         if vars.VERBOSE: argv[1] += 'v'
         if vars.XTRACE: argv[1] += 'x'
         if vars.VERBOSE or vars.XTRACE: log_('\n')
+        firstline = open(dofile).readline().strip()
+        if firstline.startswith('#!/'):
+            argv[0:2] = firstline[2:].split(' ')
         log('%s\n' % _nice(t))
         self.argv = argv
         sf.is_generated = True

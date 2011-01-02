@@ -57,7 +57,13 @@ _run_dofile()
 	export DO_DEPTH="$DO_DEPTH  "
 	export REDO_TARGET=$PWD/$TARGET
 	set -e
-	. "$PWD/$DOFILE" >"$TARGET.tmp2"
+	read line1 <"$PWD/$DOFILE"
+	cmd=${line1#"#!/"}
+	if [ "$cmd" != "$line1" ]; then
+		/$cmd "$PWD/$DOFILE" "$@" >"$TARGET.tmp2"
+	else
+		. "$PWD/$DOFILE" >"$TARGET.tmp2"
+	fi
 }
 
 
