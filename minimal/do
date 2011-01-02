@@ -19,13 +19,12 @@ DO_TOP=
 if [ -z "$DO_BUILT" ]; then
 	DO_TOP=1
 	export DO_BUILT=$PWD/.do_built
-	if [ -e "$DO_BUILT" ]; then
-		echo "Removing previously built files..." >&2
-		sort -u "$DO_BUILT" | tee "$DO_BUILT.new" |
-		while read f; do printf "%s\0%s.did\0" "$f" "$f"; done |
-		xargs -0 rm -f 2>/dev/null
-		mv "$DO_BUILT.new" "$DO_BUILT"
-	fi
+	: >>"$DO_BUILT"
+	echo "Removing previously built files..." >&2
+	sort -u "$DO_BUILT" | tee "$DO_BUILT.new" |
+	while read f; do printf "%s\0%s.did\0" "$f" "$f"; done |
+	xargs -0 rm -f 2>/dev/null
+	mv "$DO_BUILT.new" "$DO_BUILT"
 	DO_PATH=$DO_BUILT.dir
 	export PATH=$DO_PATH:$PATH
 	rm -rf "$DO_PATH"
