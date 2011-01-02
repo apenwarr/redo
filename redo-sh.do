@@ -9,7 +9,7 @@ WARN=
 
 for sh in dash sh ash ksh pdksh bash zsh busybox; do
 	printf "Testing %s... " "$sh"
-	FOUND=`which $sh` || { echo "missing"; continue; }
+	FOUND=`which $sh 2>/dev/null` || { echo "missing"; continue; }
 	
 	# It's important for the file to actually be named 'sh'.  Some
 	# shells (like bash and zsh) only go into POSIX-compatible mode if
