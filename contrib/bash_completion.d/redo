@@ -21,7 +21,7 @@ __redo_completions()
 		"$__redo_targets" |
 		while read name; do
 			rest=${name#$cur}
-			[ "$rest" = "$name" ] && continue
+			[ "$cur$rest" != "$name" ] && continue
 			name2="$cur${rest%%/*}"
 			[ -e "$name2/." ] || echo "$name2"
 		done
