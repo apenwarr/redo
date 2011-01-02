@@ -37,4 +37,4 @@ __redo_completions()
 	COMPREPLY=($(compgen -W "$targets" "$cur"))
 }
 
-complete -F __redo_completions -o plusdirs -o filenames redo
+complete -F __redo_completions -o plusdirs -o filenames redo do
