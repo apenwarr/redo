@@ -11,9 +11,10 @@ for sh in dash sh ash ksh pdksh bash zsh busybox; do
 	printf "Testing %s... " "$sh"
 	FOUND=`which $sh` || { echo "missing"; continue; }
 	
-	# It's important for the file to actually be named 'sh'.  Some shells (like
-	# bash and zsh) only go into POSIX-compatible mode if they have that name.
-	# If they're not in POSIX-compatible mode, they'll fail the test.
+	# It's important for the file to actually be named 'sh'.  Some
+	# shells (like bash and zsh) only go into POSIX-compatible mode if
+	# they have that name.  If they're not in POSIX-compatible mode,
+	# they'll fail the test.
 	rm -f $1.new/sh
 	ln -s $FOUND $1.new/sh
 	
