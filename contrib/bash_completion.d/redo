@@ -1,12 +1,40 @@
-_redo_completions()
+__find_redo_targets()
+{
+	local IFS=$'\n:'
+	for d in . ../.. $PATH; do
+		if [ -x "$d/redo-targets" ]; then
+			( cd "$d" && echo "$PWD/redo-targets" )
+			break
+		fi
+	done
+}
+__redo_targets=$(__find_redo_targets)
+
+
+__redo_completions()
 {
 	local cur="${COMP_WORDS[COMP_CWORD]}"
+	local IFS=$'\n'
 	local targets=$(
-		for t in $cur*.do; do
-			echo "${t%.do}"
+		# targets already known to redo
+		[ -x "$__redo_targets" ] &&
+		"$__redo_targets" |
+		while read name; do
+			rest=${name#$cur}
+			[ "$rest" = "$name" ] && continue
+			name2="$cur${rest%%/*}"
+			[ -e "$name2/." ] || echo "$name2"
+		done
+		
+		# targets named explicitly by .do files
+		compgen -o default "$cur" |
+		while read name; do
+			local don=${name%.do} def=${name#default.}
+			[ "$don" = "$name" -o "$def" != "$name" ] && continue
+			echo "${name%.do}"
 		done
 	)
-	COMPREPLY=($(compgen -W "$targets" $cur))
+	COMPREPLY=($(compgen -W "$targets" "$cur"))
 }
 
-complete -F _redo_completions redo
+complete -F __redo_completions -o plusdirs -o filenames redo
