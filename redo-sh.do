@@ -7,7 +7,7 @@ mkdir $1.new
 GOOD=
 WARN=
 
-for sh in dash sh ash ksh pdksh bash zsh busybox; do
+for sh in dash sh ash ksh ksh88 ksh93 pdksh bash zsh busybox; do
 	printf "Testing %s... " "$sh"
 	FOUND=`which $sh 2>/dev/null` || { echo "missing"; continue; }
 	
@@ -24,7 +24,7 @@ for sh in dash sh ash ksh pdksh bash zsh busybox; do
 	set -e
 	
 	case $RV in
-		0) echo "good"; GOOD=$FOUND; break ;;
+		0) echo "good"; [ -n "$GOOD" ] || GOOD=$FOUND ;;
 		42) echo "warnings"; [ -n "$WARN" ] || WARN=$FOUND ;;
 		*) echo "failed" ;;
 	esac

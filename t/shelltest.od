@@ -168,8 +168,8 @@ echo "`printf 'foo\r\n'`"" bar" | diff -q - broken || fail 59
 
 
 #
-# This one is too obnoxious.  dash and ash pass the test, but nothing else does,
-# and this case is just too dumb to care about.  Just don't do that!
+# This one is too obnoxious.  dash and ash pass the test, but nothing else
+# does, and this case is just too dumb to care about.  Just don't do that!
 #
 #t=`echo $(case x in x) echo hello;; esac)`
 #[ "$t" = "hello" ] || fail 60
@@ -193,6 +193,7 @@ t2=$(for d in this-glob-does-*-not-exist; do echo "$d"; done)
 # http://www.gnu.org/software/hello/manual/autoconf/Assignments.html
 false || foo=bar; [ "$?" = 0 ] || fail 71
 foo=`exit 1`; [ "$?" != 0 ] || fail 72
+
 
 # http://www.gnu.org/software/hello/manual/autoconf/Shell-Functions.html
 f1() { echo 1; }
