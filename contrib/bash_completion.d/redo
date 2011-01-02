@@ -1,12 +1,12 @@
-_redo()
+_redo_completions()
 {
-   local cur
-   COMPREPLY=()
-   cur="${COMP_WORDS[COMP_CWORD]}"
-
-   local targets=$(for t in `ls *.do | sed 's/\.do$//'`; do echo ${t}; done)
-
-   COMPREPLY=($(compgen -W "${targets}" $cur))
+	local cur="${COMP_WORDS[COMP_CWORD]}"
+	local targets=$(
+		for t in $cur*.do; do
+			echo "${t%.do}"
+		done
+	)
+	COMPREPLY=($(compgen -W "$targets" $cur))
 }
 
-complete -F _redo redo
+complete -F _redo_completions redo
