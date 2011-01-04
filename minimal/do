@@ -12,7 +12,7 @@ GREEN=""
 BOLD=""
 PLAIN=""
 
-if tty <&2 >/dev/null 2>&1; then
+if [ -n "$TERM" -a "$TERM" != "dumb" ] && tty <&2 >/dev/null 2>&1; then
 	GREEN="$(printf '\033[32m')"
 	BOLD="$(printf '\033[1m')"
 	PLAIN="$(printf '\033[m')"
