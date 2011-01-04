@@ -6,6 +6,18 @@
 # The author disclaims copyright to this source file and hereby places it in
 # the public domain. (2010 12 14)
 #
+
+# By default, no output coloring.
+GREEN=""
+BOLD=""
+PLAIN=""
+
+if tty <&2 >/dev/null 2>&1; then
+	GREEN="$(printf '\033[32m')"
+	BOLD="$(printf '\033[1m')"
+	PLAIN="$(printf '\033[m')"
+fi
+
 _dirsplit()
 {
 	base=${1##*/}
@@ -72,8 +84,8 @@ _do()
 	DIR=$1
 	TARGET=$2
 	if [ ! -e "$TARGET" ] || [ -e "$TARGET/." -a ! -e "$TARGET.did" ]; then
-		printf '\033[32mdo  %s\033[1m%s\033[m\n' \
-			"$DO_DEPTH" "$DIR$TARGET" >&2
+		printf '%sdo  %s%s%s%s\n' \
+			"$GREEN" "$DO_DEPTH" "$BOLD" "$DIR$TARGET" "$PLAIN" >&2
 		echo "$PWD/$TARGET" >>"$DO_BUILT"
 		DOFILE=$TARGET.do
 		BASE=$TARGET
