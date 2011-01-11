@@ -69,6 +69,7 @@ it'll be very, very fast.)
 The easiest way to show it is with an example.
 
 Create a file called default.o.do:
+
 	redo-ifchange $1.c
 	gcc -MD -MF $3.deps.tmp -c -o $3 $1.c
 	DEPS=$(sed -e "s/^$3://" -e 's/\\//g' <$3.deps.tmp)
@@ -76,6 +77,7 @@ Create a file called default.o.do:
 	redo-ifchange $DEPS
 
 Create a file called myprog.do:
+
 	DEPS="a.o b.o"
 	redo-ifchange $DEPS
 	gcc -o $3 $DEPS
@@ -84,30 +86,36 @@ Of course, you'll also have to create `a.c` and `b.c`, the C language
 source files that you want to build to create your application.
 
 In a.c:
+
 	#include <stdio.h>
 	#include "b.h"
 	
 	int main() { printf(bstr); }
 	
 In b.h:
+
 	extern char *bstr;
 	
 In b.c:
 	char *bstr = "hello, world!\n";
 
 Now you simply run:
+
 	$ redo myprog
 	
 And it says:
+
 	redo  myprog
 	redo    a.o
 	redo    b.o
 
 Now try this:
+
 	$ touch b.h
 	$ redo myprog
 	
 Sure enough, it says:
+
 	redo  myprog
 	redo    a.o
 
