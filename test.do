@@ -1,2 +1,2 @@
-redo-ifchange Documentation/all
+redo-ifchange _all
 redo t/test

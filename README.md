@@ -69,6 +69,7 @@ it'll be very, very fast.)
 The easiest way to show it is with an example.
 
 Create a file called default.o.do:
+
 	redo-ifchange $1.c
 	gcc -MD -MF $3.deps.tmp -c -o $3 $1.c
 	DEPS=$(sed -e "s/^$3://" -e 's/\\//g' <$3.deps.tmp)
@@ -76,6 +77,7 @@ Create a file called default.o.do:
 	redo-ifchange $DEPS
 
 Create a file called myprog.do:
+
 	DEPS="a.o b.o"
 	redo-ifchange $DEPS
 	gcc -o $3 $DEPS
@@ -84,30 +86,36 @@ Of course, you'll also have to create `a.c` and `b.c`, the C language
 source files that you want to build to create your application.
 
 In a.c:
+
 	#include <stdio.h>
 	#include "b.h"
 	
 	int main() { printf(bstr); }
 	
 In b.h:
+
 	extern char *bstr;
 	
 In b.c:
 	char *bstr = "hello, world!\n";
 
 Now you simply run:
+
 	$ redo myprog
 	
 And it says:
+
 	redo  myprog
 	redo    a.o
 	redo    b.o
 
 Now try this:
+
 	$ touch b.h
 	$ redo myprog
 	
 Sure enough, it says:
+
 	redo  myprog
 	redo    a.o
 
@@ -437,15 +445,28 @@ changed, you can run `redo-ifchange target` instead.
 
 # Can my .do files be written in a language other than sh?
 
-FIXME: Not presently.  In theory, we could support starting your .do files
-with the magic "#!/" sequence (eg. #!/usr/bin/python) and then using that
-shell to run your .do script.  But that opens new problems, like figuring
-out what is the equivalent of the `redo-ifchange` command in python.  Do you
-just run it in a subprocess?  That might be unnecessarily slow.  And so on.
+Yes.  If the first line of your .do file starts with the
+magic "#!/" sequence (eg. `#!/usr/bin/python`), then redo
+will execute your script using that particular interpreter.
 
-Right now, `redo` explicitly runs `sh filename.do`.  The main reasons for
-this are to make the #!/ line optional, and so you don't have to remember to
-`chmod +x` your .do files.
+Note that this is slightly different from normal Unix
+execution semantics: redo never execs your script directly;
+it only looks for the "#!/" line.  The main reason for this
+is so that your .do scripts don't have to be marked
+executable (chmod +x).  Executable .do scripts would
+suggest to users that they should run them directly, and
+they shouldn't; .do scripts should always be executed
+inside an instance of redo, so that dependencies can be
+tracked correctly.
+
+WARNING: If your .do script *is* written in Unix sh, we
+recommend *not* including the `#!/bin/sh` line.  That's
+because there are many variations of /bin/sh, and not all
+of them are POSIX compliant.  redo tries pretty hard to
+find a good default shell that will be "as POSIXy as
+possible," and if you override it using #!/bin/sh, you lose
+this benefit and you'll have to worry more about
+portability.
 
 
 # Can a single .do script generate multiple outputs?

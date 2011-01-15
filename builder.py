@@ -144,6 +144,9 @@ class BuildJob:
         if vars.VERBOSE: argv[1] += 'v'
         if vars.XTRACE: argv[1] += 'x'
         if vars.VERBOSE or vars.XTRACE: log_('\n')
+        firstline = open(os.path.join(dodir, dofile)).readline().strip()
+        if firstline.startswith('#!/'):
+            argv[0:2] = firstline[2:].split(' ')
         log('%s\n' % _nice(t))
         self.dodir = dodir
         self.basename = basename
@@ -216,7 +219,8 @@ class BuildJob:
         after_t = _try_stat(t)
         st1 = os.fstat(f.fileno())
         st2 = _try_stat(self.tmpname2)
-        if after_t != before_t and not stat.S_ISDIR(after_t.st_mode):
+        if (after_t and after_t != before_t and 
+            not stat.S_ISDIR(after_t.st_mode)):
             err('%s modified %s directly!\n' % (self.argv[2], t))
             err('...you should update $3 (a temp file) or stdout, not $1.\n')
             rv = 206

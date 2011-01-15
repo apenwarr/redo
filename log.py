@@ -1,6 +1,22 @@
 import sys, os
 import vars
 
+# By default, no output colouring.
+RED    = ""
+GREEN  = ""
+YELLOW = ""
+BOLD   = ""
+PLAIN  = ""
+
+if sys.stderr.isatty() and (os.environ.get('TERM') or 'dumb') != 'dumb':
+    # ...use ANSI formatting codes.
+    RED    = "\x1b[31m"
+    GREEN  = "\x1b[32m"
+    YELLOW = "\x1b[33m"
+    BOLD   = "\x1b[1m"
+    PLAIN  = "\x1b[m"
+
+
 def log_(s):
     sys.stdout.flush()
     if vars.DEBUG_PIDS:
@@ -10,30 +26,14 @@ def log_(s):
     sys.stderr.flush()
 
 
-def _clog(s):
-    log_('\x1b[32mredo  %s\x1b[1m%s\x1b[m' % (vars.DEPTH, s))
-def _bwlog(s):
-    log_('redo  %s%s' % (vars.DEPTH, s))
+def log(s):
+    log_(''.join([GREEN,  "redo  ", vars.DEPTH, BOLD, s, PLAIN]))
 
-def _cerr(s):
-    log_('\x1b[31mredo: %s\x1b[1m%s\x1b[m' % (vars.DEPTH, s))
-def _bwerr(s):
-    log_('redo: %s%s' % (vars.DEPTH, s))
+def err(s):
+    log_(''.join([RED,    "redo  ", vars.DEPTH, BOLD, s, PLAIN]))
 
-def _cwarn(s):
-    log_('\x1b[33mredo: %s\x1b[1m%s\x1b[m' % (vars.DEPTH, s))
-def _bwwarn(s):
-    log_('redo: %s%s' % (vars.DEPTH, s))
-
-
-if os.isatty(2):
-    log = _clog
-    err = _cerr
-    warn = _cwarn
-else:
-    log = _bwlog
-    err = _bwerr
-    warn = _bwwarn
+def warn(s):
+    log_(''.join([YELLOW, "redo  ", vars.DEPTH, BOLD, s, PLAIN]))
 
 
 def debug(s):
