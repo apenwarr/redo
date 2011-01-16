@@ -1,32 +1,48 @@
 import sys, os, errno, stat
 import vars, jwack, state
-from helpers import unlink, close_on_exec
+from helpers import unlink, close_on_exec, join
 from log import log, log_, debug, debug2, err, warn
 
 
-def _possible_do_files(t):
-    t = os.path.join(vars.BASE, t)
-    yield "%s.do" % t, t, ''
-    dirname,filename = os.path.split(t)
+def _default_do_files(filename):
     l = filename.split('.')
-    l[0] = os.path.join(dirname, l[0])
     for i in range(1,len(l)+1):
-        basename = '.'.join(l[:i])
-        ext = '.'.join(l[i:])
+        basename = join('.', l[:i])
+        ext = join('.', l[i:])
         if ext: ext = '.' + ext
-        yield (os.path.join(dirname, "default%s.do" % ext),
-               os.path.join(dirname, basename), ext)
+        yield ("default%s.do" % ext), basename, ext
+    
 
+def _possible_do_files(t):
+    dirname,filename = os.path.split(t)
+    yield os.path.join(vars.BASE, dirname), "%s.do" % filename, filename, ''
+
+    # It's important to try every possibility in a directory before resorting
+    # to a parent directory.  Think about nested projects: I don't want
+    # ../../default.o.do to take precedence over ../default.do, because
+    # the former one might just be an artifact of someone embedding my project
+    # into theirs as a subdir.  When they do, my rules should still be used
+    # for building my project in *all* cases.
+    t = os.path.normpath(os.path.join(vars.BASE, t))
+    dirname,filename = os.path.split(t)
+    dirbits = dirname.split('/')
+    for i in range(len(dirbits), -1, -1):
+        basedir = join('/', dirbits[:i])
+        subdir = join('/', dirbits[i:])
+        for dofile,basename,ext in _default_do_files(filename):
+            yield basedir, dofile, os.path.join(subdir, basename), ext
+        
 
 def _find_do_file(f):
-    for dofile,basename,ext in _possible_do_files(f.name):
-        debug2('%s: %s ?\n' % (f.name, dofile))
-        if os.path.exists(dofile):
-            f.add_dep('m', dofile)
-            return dofile,basename,ext
+    for dodir,dofile,basename,ext in _possible_do_files(f.name):
+        dopath = os.path.join(dodir, dofile)
+        debug2('%s: %s:%s ?\n' % (f.name, dodir, dofile))
+        if os.path.exists(dopath):
+            f.add_dep('m', dopath)
+            return dodir,dofile,basename,ext
         else:
-            f.add_dep('c', dofile)
-    return None,None,None
+            f.add_dep('c', dopath)
+    return None,None,None,None
 
 
 def _nice(t):
@@ -104,7 +120,7 @@ class BuildJob:
             sf.save()
             return self._after2(0)
         sf.zap_deps1()
-        (dofile, basename, ext) = _find_do_file(sf)
+        (dodir, dofile, basename, ext) = _find_do_file(sf)
         if not dofile:
             if os.path.exists(t):
                 sf.set_static()
@@ -120,18 +136,21 @@ class BuildJob:
         self.f = os.fdopen(ffd, 'w+')
         # this will run in the dofile's directory, so use only basenames here
         argv = ['sh', '-e',
-                os.path.basename(dofile),
-                os.path.basename(basename),  # target name (extension removed)
+                dofile,
+                basename, # target name (no extension)
                 ext,  # extension (if any), including leading dot
                 os.path.basename(self.tmpname2)  # randomized output file name
                 ]
         if vars.VERBOSE: argv[1] += 'v'
         if vars.XTRACE: argv[1] += 'x'
         if vars.VERBOSE or vars.XTRACE: log_('\n')
-        firstline = open(dofile).readline().strip()
+        firstline = open(os.path.join(dodir, dofile)).readline().strip()
         if firstline.startswith('#!/'):
             argv[0:2] = firstline[2:].split(' ')
         log('%s\n' % _nice(t))
+        self.dodir = dodir
+        self.basename = basename
+        self.ext = ext
         self.argv = argv
         sf.is_generated = True
         sf.save()
@@ -171,10 +190,10 @@ class BuildJob:
         # redo-ifchange, and it might have done it from a different directory
         # than we started it in.  So os.getcwd() might be != REDO_PWD right
         # now.
-        dn = os.path.dirname(self.t)
+        dn = self.dodir
         newp = os.path.realpath(dn)
         os.environ['REDO_PWD'] = state.relpath(newp, vars.STARTDIR)
-        os.environ['REDO_TARGET'] = os.path.basename(self.t)
+        os.environ['REDO_TARGET'] = self.basename + self.ext
         os.environ['REDO_DEPTH'] = vars.DEPTH + '  '
         if dn:
             os.chdir(dn)

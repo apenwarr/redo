@@ -261,7 +261,7 @@ class File(object):
 
     def add_dep(self, mode, dep):
         src = File(name=dep)
-        debug2('add-dep: %r < %s %r\n' % (self.name, mode, src.name))
+        debug3('add-dep: "%s" < %s "%s"\n' % (self.name, mode, src.name))
         assert(self.id != src.id)
         _write("insert or replace into Deps "
                "    (target, mode, source, delete_me) values (?,?,?,?)",
