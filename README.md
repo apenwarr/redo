@@ -32,8 +32,8 @@ own (admittedly slow) implementation in about 250 lines of shell script.
 If you've ever thought about rewriting GNU make from scratch, the idea of
 doing it in 250 lines of shell script probably didn't occur to you.  redo is
 so simple that it's actually possible.  For testing, I actually wrote an
-even more minimal version,which always rebuilds everything instead of
-checking dependencies, in 100 lines of shell (less than 2 kbytes).
+even more minimal version, which always rebuilds everything instead of
+checking dependencies, in 150 lines of shell (about 3 kbytes).
 
 The design is simply that good.
 
@@ -51,6 +51,10 @@ directory of this repository.
 My version of redo was written without ever seeing redo code by Bernstein or
 Grosskurth, so I own the entire copyright.  It's distributed under the GNU
 LGPL version 2.  You can find a copy of it in the file called LICENSE.
+
+minimal/do is in the public domain so that it's even easier
+to include inside your own projects for people who don't
+have a copy of redo.
 
 
 # What's so special about redo?
@@ -167,7 +171,7 @@ cross-compiled, and so on.  Other build systems are
 specific to ruby programs, or python programs, or Java or .Net
 programs.
 
-redo isn't like those programs; it's more like make.  It
+redo isn't like those systems; it's more like make.  It
 doesn't know anything about your system or the language
 your program is written in.
 
@@ -206,6 +210,14 @@ vendor-specific tool.
 At least redo is simple enough that, theoretically, one
 day, I can imagine it being cross platform.
 
+One interesting project that has appeared recently is
+busybox-w32 (https://github.com/pclouds/busybox-w32).  It's
+a port of busybox to win32 that includes a mostly POSIX
+shell (ash) and a bunch of standard Unix utilities.  This
+might be enough to get your redo scripts working on a win32
+platform without having to install a bunch of stuff.  But
+all of this needs more experimentation.
+
 
 # One script per file?  Can't I just put it all in one big Redofile like make does?
 
@@ -220,21 +232,26 @@ because of a one-line Makefile change.  (Some build tools avoid that same
 problem by tracking which variables and commands were used to do the build. 
 But that's more complex, more error prone, and slower.)
 
-Still, it would be rather easy to make a "Redofile" parser that just has a
-bunch of sections like this:
-
-	myprog:
-		DEPS="a.o b.o"
-	        redo-ifchange $DEPS
-                gcc -o $3 $DEPS
-
-We could just auto-extract myprog.do by slurping out the indented sections
-into their own files.  You could even write a .do file to do it.
-
-It's not obvious that this would be a real improvement however.
-
 See djb's [Target files depend on build scripts](http://cr.yp.to/redo/honest-script.html)
 article for more information.
+
+However, if you really want to, you can simply create a
+default.do that looks something like this:
+
+	case $1 in
+		*.o) ...compile a .o file... ;;
+		myprog)  ...link a program... ;;
+		*) echo "no rule to build '$1'" >&2; exit 1 ;;
+	esac
+	
+Basically, default.do is the equivalent of a central
+Makefile in make.  As of recent versions of redo, you can
+use either a single toplevel default.do (which catches
+requests for files anywhere in the project that don't have
+their own .do files) or one per directory, or any
+combination of the above.  And you can put some of your
+targets in default.do and some of them in their own files. 
+Lay it out in whatever way makes sense to you.
 
 
 # Can I set my dircolors to highlight .do files?
@@ -300,12 +317,6 @@ like this, from a script named `default.o.do`:
 Note that $2, the output file's .o extension, is rarely useful
 since you always know what it is.
 
-FIXME: djb's design documentation doesn't clearly describe
-$1 and $2, although it's clear that $3 is the output
-filename.  We may have guessed $1 and $2, particularly $2,
-incorrectly, so we might have to change their meanings
-later in order to be compatible with djb's implementation.
-
 
 # What happens to the stdin/stdout/stderr in a redo file?
 
@@ -339,7 +350,7 @@ This might change someday.
 
 # Do end users have to have redo installed in order to build my project?
 
-No.  We include a very short (99 lines, as of this writing) shell script
+No.  We include a very short and simple shell script
 called `do` in the `minimal/` subdirectory of the redo project.  `do` is like
 `redo` (and it works with the same `*.do` scripts), except it doesn't
 understand dependencies; it just always rebuilds everything from the top.
@@ -359,7 +370,8 @@ named `.redo`.  That directory contains a sqlite3 database
 with dependency information.
 
 The format of the `.redo` directory is undocumented because
-it may change at any time.  If you really need to make a
+it may change at any time.  Maybe it will turn out that we
+can do something simpler than sqlite3.  If you really need to make a
 tool that pokes around in there, please ask on the mailing
 list if we can standardize something for you.
 
@@ -450,7 +462,7 @@ magic "#!/" sequence (eg. `#!/usr/bin/python`), then redo
 will execute your script using that particular interpreter.
 
 Note that this is slightly different from normal Unix
-execution semantics: redo never execs your script directly;
+execution semantics. redo never execs your script directly;
 it only looks for the "#!/" line.  The main reason for this
 is so that your .do scripts don't have to be marked
 executable (chmod +x).  Executable .do scripts would
@@ -685,13 +697,31 @@ different!  redo combines these two forms and does
 the right thing in both cases.
 
 Note: redo will always change to the directory containing
-the target before trying to build it.  So if you do
+the .do file before trying to build it.  So if you do
 
 	redo ../utils/foo.o
 
-the .do file will be run with its current directory set to
+the ../utils/default.o.do file will be run with its current directory set to
 ../utils.  Thus, the .do file's runtime environment is
 always reliable.
+
+On the other hand, if you had a file called ../default.o.do,
+but there was no ../utils/default.o.do, redo would select
+../default.o.do as the best matching .do file.  It would
+then run with its current directory set to .., and tell
+default.o.do to create an output file called "utils/foo.o"
+(that is, foo.o, with a relative path explaining how to
+find foo.o when you're starting from the directory
+containing the .do file).
+
+That sounds a lot more complicated than it is.  The results
+are actually very simple: if you have a toplevel
+default.o.do, then all your .o files will be compiled with
+$PWD set to the top level, and all the .o filenames passed
+as relative paths from $PWD.  That way, if you use relative
+paths in -I and -L gcc options (for example), they will
+always be correct no matter where in the hierarchy your
+source files are.
 
 
 # Can my filenames have spaces in them?
@@ -1117,6 +1147,11 @@ using redo as a build process.  If you switch your
 program's build process to use redo, please let us know and
 we can link to it here.
 
+Please don't take the other tests in `t/` as serious
+examples.  Many of them are doing things in deliberately
+psychotic ways in order to stress redo's code and find
+bugs.
+
 
 # What's missing?  How can I help?
 
@@ -1138,6 +1173,13 @@ Yes, it might not look like it, but you can subscribe without having a
 Google Account.  Just send a message here:
 
 	redo-list+subscribe@googlegroups.com
+	
+You can also send a message directly to the mailing list
+without subscribing first.  If you reply to someone on the
+list, please leave them in the cc: list, since if they
+haven't subscribed, they won't get your reply otherwise. 
+Nowadays everybody uses a mailer that removes duplicates,
+so don't worry about sending the same thing to them twice.
 
 Note the plus sign.
 
