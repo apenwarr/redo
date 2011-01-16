@@ -51,7 +51,7 @@ if [ -z "$DO_BUILT" ]; then
 fi
 
 
-_find_dofile()
+_find_dofile_pwd()
 {
 	DOFILE=default.$1.do
 	while :; do
@@ -61,6 +61,21 @@ _find_dofile()
 	EXT=${DOFILE#default}
 	EXT=${EXT%.do}
 	BASE=${1%$EXT}
+}
+
+
+_find_dofile()
+{
+	PREFIX=
+	while :; do
+		_find_dofile_pwd "$1"
+		[ -e "$DOFILE" ] && break
+		[ "$PWD" = "/" ] && break
+		TARGET=${PWD##*/}/$TARGET
+		PREFIX=${PWD##*/}/$PREFIX
+		cd ..
+	done
+	BASE=$PREFIX$BASE
 }
 
 
