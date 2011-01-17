@@ -14,7 +14,7 @@ Daniel J. Bernstein (creator of qmail and djbdns, among many other useful
 things).  He posted some very terse notes on his web site at one point
 (there is no date) with the unassuming title, "[Rebuilding target files when
 source files have changed](http://cr.yp.to/redo.html)." Those notes are
-enough information to understand how the system it supposed to work;
+enough information to understand how the system is supposed to work;
 unfortunately there's no code to go with it.  I get the impression that the
 hypothetical "djb redo" is incomplete and Bernstein doesn't yet consider it
 ready for the real world.
@@ -376,7 +376,7 @@ tool that pokes around in there, please ask on the mailing
 list if we can standardize something for you.
 
 
-# If a target didn't change, how to I prevent dependents from being rebuilt?
+# If a target didn't change, how do I prevent dependents from being rebuilt?
 
 For example, running ./configure creates a bunch of files including
 config.h, and config.h might or might not change from one run to the next. 
