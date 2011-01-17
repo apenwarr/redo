@@ -121,12 +121,23 @@ the following order:
 - default.do
 
 In all cases, the .do file must be in the same directory as
-the target file.
+the target file, or in one of the target's parent
+directories.  For example, if given a target named
+`../a/b/xtarget.y`, redo will look for a .do file in the
+following order:
+
+- $PWD/../a/b/xtarget.y
+- $PWD/../a/b/default.y.do
+- $PWD/../a/b/default.do
+- $PWD/../a/default.y.do
+- $PWD/../a/default.do
+- $PWD/../default.y.do
+- $PWD/../default.do
 
 The first matching .do file is executed as a `/bin/sh`
 script.  The .do script is always executed with the current
 working directory set to the directory containing the .do
-file (and thus the target).  Because of that rule, the
+file.  Because of that rule, the
 following two commands always have exactly identical
 behaviour:
 
@@ -152,6 +163,12 @@ The three arguments passed to the .do script are:
   
 Instead of using $3, the .do script may also write the
 produced data to stdout.
+
+If the .do file is in the same directory as the target, $1
+and $3 are guaranteed to be simple filenames (with no path
+component).  If the .do file is in a parent directory of
+the target, $1 and $3 will be relative paths (ie. will
+contain slashes).
 
 redo is designed to update its targets atomically, and only
 if the do script succeeds (ie. returns a zero exit code). 
