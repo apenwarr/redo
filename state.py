@@ -216,7 +216,7 @@ class File(object):
         self.is_generated = True
 
     def set_static(self):
-        self.update_stamp()
+        self.update_stamp(must_exist=True)
         self.is_override = False
         self.is_generated = False
 
@@ -224,8 +224,10 @@ class File(object):
         self.update_stamp()
         self.is_override = True
 
-    def update_stamp(self):
+    def update_stamp(self, must_exist=False):
         newstamp = self.read_stamp()
+        if must_exist and newstamp == STAMP_MISSING:
+            raise Exception("%r does not exist" % self.name)
         if newstamp != self.stamp:
             debug2("STAMP: %s: %r -> %r\n" % (self.name, self.stamp, newstamp))
             self.stamp = newstamp
