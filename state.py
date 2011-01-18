@@ -308,9 +308,9 @@ class Lock:
 
     def __del__(self):
         _locks[self.fid] = 0
-        os.close(self.lockfile)
         if self.owned:
             self.unlock()
+        os.close(self.lockfile)
 
     def trylock(self):
         assert(not self.owned)
