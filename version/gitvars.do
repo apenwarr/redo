@@ -13,7 +13,7 @@ while read line; do
 	if [ "$x" != "$line" ]; then
 		# git didn't substitute it
 		x=${x%\$}  # remove trailing $
-		if [ "$x" == "%d" ]; then
+		if [ "$x" = "%d" ]; then
 			tag=$(git describe --match="$PROD-*")
 			x="(tag: $tag)"
 		else
