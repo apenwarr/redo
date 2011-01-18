@@ -1,6 +1,6 @@
-% redo-ood(1) Redo 0.00
+% redo-ood(1) Redo %VERSION%
 % Avery Pennarun <apenwarr@gmail.com>
-% 2010-12-19
+% %DATE%
 
 # NAME
 

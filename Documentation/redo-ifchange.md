@@ -1,6 +1,6 @@
-% redo-ifchange(1) Redo 0.00
+% redo-ifchange(1) Redo %VERSION%
 % Avery Pennarun <apenwarr@gmail.com>
-% 2010-12-12
+% %DATE%
 
 # NAME
 
