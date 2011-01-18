@@ -15,19 +15,19 @@ check()
 	fi
 }
 
-check file.x.y.z "root file.x.y.z"
-check file.z "root file.z"
-check file "root file"
+check file.x.y.z "root file.x.y.z ."
+check file.z "root file.z ."
+check file "root file ."
 
 check a/file.x.y.z "default.x.y.z file .x.y.z"
 check a/file.y.z "default.z file.y .z"
 check a/file.z "default.z file .z"
-check a/file "root a/file"
+check a/file "root a/file a"
 
 check a/b/file.x.y.z "file file.x.y.z"
 check a/b/file.y.z "default.y.z file .y.z"
 check a/b/file.z "default.z b/file .z"
-check a/b/file "root a/b/file"
+check a/b/file "root a/b/file a/b"
 
 check a/d/file.x.y.z "default file.x.y.z"
 check a/d/file.y.z "default file.y.z"

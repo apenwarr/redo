@@ -15,7 +15,8 @@ def _default_do_files(filename):
 
 def _possible_do_files(t):
     dirname,filename = os.path.split(t)
-    yield os.path.join(vars.BASE, dirname), "%s.do" % filename, filename, ''
+    yield (os.path.join(vars.BASE, dirname), "%s.do" % filename,
+           '', filename, '')
 
     # It's important to try every possibility in a directory before resorting
     # to a parent directory.  Think about nested projects: I don't want
@@ -30,19 +31,20 @@ def _possible_do_files(t):
         basedir = join('/', dirbits[:i])
         subdir = join('/', dirbits[i:])
         for dofile,basename,ext in _default_do_files(filename):
-            yield basedir, dofile, os.path.join(subdir, basename), ext
+            yield (basedir, dofile,
+                   subdir, os.path.join(subdir, basename), ext)
         
 
 def _find_do_file(f):
-    for dodir,dofile,basename,ext in _possible_do_files(f.name):
+    for dodir,dofile,basedir,basename,ext in _possible_do_files(f.name):
         dopath = os.path.join(dodir, dofile)
         debug2('%s: %s:%s ?\n' % (f.name, dodir, dofile))
         if os.path.exists(dopath):
             f.add_dep('m', dopath)
-            return dodir,dofile,basename,ext
+            return dodir,dofile,basedir,basename,ext
         else:
             f.add_dep('c', dopath)
-    return None,None,None,None
+    return None,None,None,None,None
 
 
 def _nice(t):
@@ -120,7 +122,7 @@ class BuildJob:
             sf.save()
             return self._after2(0)
         sf.zap_deps1()
-        (dodir, dofile, basename, ext) = _find_do_file(sf)
+        (dodir, dofile, basedir, basename, ext) = _find_do_file(sf)
         if not dofile:
             if os.path.exists(t):
                 sf.set_static()
@@ -139,7 +141,7 @@ class BuildJob:
                 dofile,
                 basename, # target name (no extension)
                 ext,  # extension (if any), including leading dot
-                os.path.basename(self.tmpname2)  # randomized output file name
+                os.path.join(basedir, os.path.basename(self.tmpname2))  # temp output file name
                 ]
         if vars.VERBOSE: argv[1] += 'v'
         if vars.XTRACE: argv[1] += 'x'
