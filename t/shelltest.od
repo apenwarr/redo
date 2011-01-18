@@ -270,4 +270,15 @@ rm -f || fail 110
 	rmdir 'space home dir'
 ) || warn 111
 
+# reported by Alex Bradbury:
+#  http://www.debian.org/doc/debian-policy/ch-files.html#s-scripts
+# Debian says that 'local' isn't POSIX, but I like it, so let's reject
+# any shell where it doesn't exist.
+x=5 y=6 z=7
+lt() { x=1; local y=2 z=3; }
+lt
+[ "$x" = "1" ] || fail 112
+[ "$y$z" = "67" ] || fail 113
+
+
 exit $FAIL
