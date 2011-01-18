@@ -154,7 +154,7 @@ class BuildJob:
         self.argv = argv
         sf.is_generated = True
         sf.save()
-        dof = state.File(name=dofile)
+        dof = state.File(name=os.path.join(dodir, dofile))
         dof.set_static()
         dof.save()
         state.commit()
