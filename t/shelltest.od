@@ -259,4 +259,15 @@ test -e shellfile || fail 99
 # http://www.gnu.org/software/hello/manual/autoconf/Limitations-of-Usual-Tools.html
 rm -f || fail 110
 
+# reported by singpolyma in busybox-w32's issue tracker
+(
+	set -e
+	HOME="$PWD/space home dir"
+	rm -rf "$HOME"
+	mkdir "$HOME"
+	cd ~
+	cd ..
+	rmdir 'space home dir'
+) || warn 111
+
 exit $FAIL
