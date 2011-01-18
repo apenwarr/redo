@@ -12,7 +12,7 @@ def init(targets):
         seen = {}
         dirs = []
         for k in trynames:
-            if not seen.get(k) and os.path.exists('%s/.' % k):
+            if not seen.get(k):
                 seen[k] = 1
                 dirs.append(k)
         os.environ['PATH'] = ':'.join(dirs) + ':' + os.environ['PATH']
