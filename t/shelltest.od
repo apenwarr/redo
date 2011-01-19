@@ -265,7 +265,7 @@ rm -f || fail 110
 	HOME="$PWD/space home dir"
 	rm -rf "$HOME"
 	mkdir "$HOME"
-	cd ~
+	cd ~ || exit 1
 	cd ..
 	rmdir 'space home dir'
 ) || warn 111
