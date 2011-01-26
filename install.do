@@ -12,7 +12,7 @@ redo-ifchange _all
 echo "Installing to: $DESTDIR$PREFIX"
 
 # make dirs
-$INSTALL -d $MANDIR/man1 $DOCDIR $BINDIR $LIBDIR
+$INSTALL -d $MANDIR/man1 $DOCDIR $BINDIR $LIBDIR $LIBDIR/version
 
 # docs
 for d in Documentation/*.1; do
@@ -22,7 +22,7 @@ done
 $INSTALL -m 0644 README.md $DOCDIR
 
 # .py files (precompiled to .pyc files for speed)
-for d in *.py; do
+for d in *.py version/*.py; do
 	fix=$(echo $d | sed 's,-,_,g')
 	$INSTALL -m 0644 $d $LIBDIR/$fix
 done
