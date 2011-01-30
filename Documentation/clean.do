@@ -1,2 +1,2 @@
-rm -f *~ .*~ *.1 md-to-man *.tmp
+rm -f *~ .*~ *.1 t/*.1 md-to-man *.tmp t/*.tmp
 
