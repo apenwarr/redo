@@ -110,7 +110,7 @@ _do()
 			echo "do: $TARGET: no .do file" >&2
 			return 1
 		fi
-		: >>"$TARGET.did"
+		[ ! -e "$DO_BUILD" ] || : >>"$TARGET.did"
 		( _run_dofile "$BASE" "$EXT" "$TARGET.tmp" )
 		RV=$?
 		if [ $RV != 0 ]; then
@@ -147,6 +147,7 @@ fi
 
 if [ -n "$DO_TOP" ]; then
 	echo "Removing stamp files..." >&2
+	[ ! -e "$DO_BUILT" ] ||
 	while read f; do printf "%s.did\0" "$f"; done <"$DO_BUILT" |
 	xargs -0 rm -f 2>/dev/null
 fi
