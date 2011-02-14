@@ -15,6 +15,7 @@ def _connect(dbfile):
     _db = sqlite3.connect(dbfile, timeout=TIMEOUT)
     _db.execute("pragma synchronous = off")
     _db.execute("pragma journal_mode = PERSIST")
+    _db.text_factory = str
     return _db
 
 
