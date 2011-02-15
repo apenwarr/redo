@@ -17,9 +17,10 @@ names_to_tag()
 	x=${x%\)}
 	cur=
 	while [ "$cur" != "$x" ]; do
+		x=${x# }
 		cur=${x%%,*}
 		cur=${cur#tag: }
-		cur=${cur## }
+		cur=${cur# }
 		tagpost=${cur#$PROD-}
 		if [ "$cur" != "$tagpost" ]; then
 			echo "$tagpost"
