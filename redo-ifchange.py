@@ -1,7 +1,5 @@
 #!/usr/bin/python
 import sys, os
-if not sys.argv[1:]:
-    sys.exit(0)  # nothing to do, so we can't possibly do it wrong
 
 import vars_init
 vars_init.init(sys.argv[1:])

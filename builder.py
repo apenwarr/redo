@@ -297,6 +297,7 @@ def main(targets, shouldbuildfunc):
     # In the first cycle, we just build as much as we can without worrying
     # about any lock contention.  If someone else has it locked, we move on.
     seen = {}
+    lock = None
     for t in targets:
         if t in seen:
             continue
