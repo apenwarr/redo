@@ -572,8 +572,10 @@ There are disadvantages to using checksums for everything
 automatically, however:
 
 - Building stuff unnecessarily is *much* less dangerous
-  than not building stuff that should be built.  Using
-  checksums will 
+  than not building stuff that should be built.  Checksums
+  aren't perfect (think of zero-byte output files); using
+  checksums will cause more builds to be skipped by
+  default, which is very dangerous.
 
 - It makes it hard to *force* things to rebuild when you
   know you absolutely want that.  (With timestamps, you can
