@@ -48,11 +48,11 @@ of .h files it depends on. You can pass this information
 along to redo-ifchange, so if any of those headers are
 changed or deleted, your .c file will be rebuilt:
 
-        redo-ifchange $1$2
-        gcc -o $3 -c $1$2 \
-            -MMD -MF $1.deps -MT DELETE_ME
-        redo-ifchange $(sed -e 's,^DELETE_ME:,,' \
-                            -e 's,\\,,' $1.deps)
+        redo-ifchange $1.c
+        gcc -o $3 -c $1.c \
+            -MMD -MF $1.deps
+        read DEPS <$1.deps
+        redo-ifchange ${DEPS#*:}
 
 This is much less confusing than the equivalent
 autodependency mechanism in `make`(1), because make

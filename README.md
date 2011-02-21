@@ -75,10 +75,9 @@ The easiest way to show it is with an example.
 Create a file called default.o.do:
 
 	redo-ifchange $1.c
-	gcc -MD -MF $3.deps.tmp -c -o $3 $1.c
-	DEPS=$(sed -e "s/^$3://" -e 's/\\//g' <$3.deps.tmp)
-	rm -f $3.deps.tmp
-	redo-ifchange $DEPS
+	gcc -MD -MF $1.d -c -o $3 $1.c
+	read DEPS <$1.d
+	redo-ifchange ${DEPS#*:}
 
 Create a file called myprog.do:
 
