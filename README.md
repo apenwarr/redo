@@ -252,6 +252,19 @@ combination of the above.  And you can put some of your
 targets in default.do and some of them in their own files. 
 Lay it out in whatever way makes sense to you.
 
+One more thing: if you put all your build rules in a single
+default.do, you'll soon discover that changing *anything*
+in that default.do will cause all your targets to rebuilt -
+because their .do file has changed.  This is technically
+correct, but you might find it annoying.  To work around
+it, try making your default.do look like this:
+
+	. ./default.od
+
+And then put the above case statement in default.od
+instead.  Since you didn't `redo-ifchange default.od`,
+changes to default.od won't cause everything to rebuild.
+
 
 # Can I set my dircolors to highlight .do files?
 
@@ -276,6 +289,13 @@ To activate it, you can add a line like this to your .bashrc:
 
 
 # What are the three parameters ($1, $2, $3) to a .do file?
+
+FIXME:
+These definitions might change.  It turns out that
+djb's original definitions differ from these and we should
+probably change ours in order to maintain compatibility. 
+(In his version, $1 is always the name of the target, and
+$2 is the target with the extension removed.)
 
 $1 is the name of the target, with the extension removed,
 if any.
@@ -317,14 +337,33 @@ Note that $2, the output file's .o extension, is rarely useful
 since you always know what it is.
 
 
+# Why not named variables like $FILE, $EXT, $OUT instead of $1, $2, $3?
+
+That sounds tempting and easy, but one downside would be
+lack of backward compatibility with djb's original redo
+design.
+
+Longer names aren't necessarily better.  Learning the
+meanings of the three numbers doesn't take long, and over
+time, those extra few keystrokes can add up.  And remember
+that Makefiles and perl have had strange one-character
+variable names for a long time.  It's not at all clear that
+removing them is an improvement.
+
+
 # What happens to the stdin/stdout/stderr in a redo file?
 
 As with make, stdin is not redirected.  You're probably
 better off not using it, though, because especially with
-parallel builds, it might not do anything useful.
+parallel builds, it might not do anything useful.  We might
+change this behaviour someday since it's such a terrible
+idea for .do scripts to read from stdin.
 
 As with make, stderr is also not redirected.  You can use
-it to print status messages as your build proceeds.
+it to print status messages as your build proceeds. 
+(Eventually, we might want to capture stderr so it's easier
+to look at the results of parallel builds, but this is
+tricky to do in a user-friendly way.)
 
 Redo treats stdout specially: it redirects it to point at
 $3 (see previous question).  That is, if your .do file
@@ -336,6 +375,55 @@ contains only this:
 
 will correctly, and atomically, generate an output file
 named `chicken` only if the echo command succeeds.
+
+
+# Isn't it confusing to have stdout go to the target by default?
+
+Yes, it is.  It's unlike what almost any other program
+does, especially make, and it's very easy to make a
+mistake.  For example, if you write in your script:
+
+	echo "Hello world"
+	
+it will go to the target file rather than to the screen.
+
+A more common mistake is to run a program that writes to
+stdout by accident as it runs.  When you do that, you'll
+produce your target on $3, but it might be intermingled
+with junk you wrote to stdout.  redo is pretty good about
+catching this mistake, and it'll print a message like this:
+
+	redo  zot.do wrote to stdout *and* created $3.
+	redo  ...you should write status messages to stderr, not stdout.
+	redo  zot: exit code 207
+
+Despite the disadvantages, though, automatically capturing
+stdout does make certain kinds of .do scripts really
+elegant.  The "simplest possible .do file" can be very
+short.  For example, here's one that produces a sub-list
+from a list:
+
+	redo-ifchange filelist
+	grep ^src/ filelist
+	
+redo's simplicity is an attempt to capture the "Zen of
+Unix," which has a lot to do with concepts like pipelines
+and stdout.  Why should every program have to implement its
+own -o (output filename) option when the shell already has
+a redirection operator?  Maybe if redo gets more popular,
+more programs in the world will be able to be even simpler
+than they are today.
+
+By the way, if you're running some programs that might
+misbehave and write garbage to stdout instead of stderr
+(Informational/status messages always belong on stderr, not
+stdout!  Fix your programs!), then just add this line to
+the top of your .do script:
+
+	exec >&2
+	
+That will redirect your stdout to stderr, so it works more
+like you expect.
 
 
 # Can a *.do file itself be generated as part of the build process?
@@ -375,6 +463,58 @@ tool that pokes around in there, please ask on the mailing
 list if we can standardize something for you.
 
 
+# Isn't using sqlite3 overkill?  And un-djb-ish?
+
+Well, yes.  Sort of.  I think people underestimate how
+"lite" sqlite really is:
+
+	root root 573376 2010-10-20 09:55 /usr/lib/libsqlite3.so.0.8.6
+
+573k for a *complete* and *very fast* and *transactional*
+SQL database.  For comparison, libdb is:
+
+	root root 1256548 2008-09-13 03:23 /usr/lib/libdb-4.6.so
+
+...more than twice as big, and it doesn't even have an SQL parser in
+it!  Or if you want to be really horrified:
+
+	root root 1995612 2009-02-03 13:54 /usr/lib/libmysqlclient.so.15.0.0
+
+The mysql *client* library is two megs, and it doesn't even
+have a database server in it!  People who think SQL
+databases are automatically bloated and gross have not yet
+actually experienced the joys of sqlite.  SQL has a
+well-deserved bad reputation, but sqlite is another story
+entirely.  It's excellent, and much simpler and better
+written than you'd expect.
+
+But still, I'm pretty sure it's not very "djbish" to use a
+general-purpose database, especially one that has a *SQL
+parser* in it.  (One of the great things about redo's
+design is that it doesn't ever need to parse anything, so
+a SQL parser is a bit embarrassing.)
+
+I'm pretty sure djb never would have done it that way.
+However, I don't think we can reach the performance we want
+with dependency/build/lock information stored in plain text
+files; among other things, that results in too much
+fstat/open activity, which is slow in general, and even
+slower if you want to run on Windows.  That leads us to a
+binary database, and if the binary database isn't sqlite or
+libdb or something, that means we have to implement our own
+data structures.  Which is probably what djb would do, of
+course, but I'm just not convinced that I can do a better
+(or even a smaller) job of it than the sqlite guys did.
+
+Most of the state database stuff has been isolated in
+state.py.  If you're feeling brave, you can try to
+implement your own better state database, with or without
+sqlite.
+
+It is almost certainly possible to do it much more nicely
+than I have, so if you do, please send it in!
+
+
 # If a target didn't change, how do I prevent dependents from being rebuilt?
 
 For example, running ./configure creates a bunch of files including
@@ -410,7 +550,15 @@ your build can always do the minimum amount of work
 necessary.)
 
 
-# Why not always use checksum-based dependencies instead of timestamps?
+# What hash algorithm does redo-stamp use?
+
+It's intentionally undocumented because you shouldn't need
+to care and it might change at any time.  But trust me,
+it's not the slow part of your build, and you'll never
+accidentally get a hash collision.
+
+
+# Why not *always* use checksum-based dependencies instead of timestamps?
 
 Some build systems keep a checksum of target files and rebuild dependents
 only when the target changes.  This is appealing in some cases; for example,
@@ -420,23 +568,66 @@ dependencies automatically.  This keeps build scripts simple and gets rid of
 the need for people to re-implement file comparison over and over in every
 project or for multiple files in the same project.
 
-There are disadvantages to using checksums for everything,
-however:
+There are disadvantages to using checksums for everything
+automatically, however:
 
-- calculating checksums for every output file adds time to
-  the build;
+- Building stuff unnecessarily is *much* less dangerous
+  than not building stuff that should be built.  Using
+  checksums will 
+
+- It makes it hard to *force* things to rebuild when you
+  know you absolutely want that.  (With timestamps, you can
+  just `touch filename` to rebuild everything that depends
+  on `filename`.)
   
-- it makes it hard to *force* things to rebuild when you
-  know you absolutely want that;
-  
-- targets that are just used for aggregation (ie. they
+- Targets that are just used for aggregation (ie. they
   don't produce any output of their own) would always have
   the same checksum - the checksum of a zero-byte file -
   which causes confusing results.
 
+- Calculating checksums for every output file adds time to
+  the build, even if you don't need that feature.
+  
+- Building stuff unnecessarily and then stamping it is
+  much slower than just not building it in the first place,
+  so for *almost* every use of redo-stamp, it's not the
+  right solution anyway.
+  
+- To steal a line from the Zen of Python: explicit is
+  better than implicit.  Making people think about when
+  they're using the stamp feature - knowing that it's slow
+  and a little annoying to do - will help people design
+  better build scripts that depend on this feature as
+  little as possible.
+  
+- djb's (as yet unreleased) version of redo doesn't
+  implement checksums, so doing that would produce an
+  incompatible implementation.  With redo-stamp and
+  redo-always being separate programs, you can simply
+  choose not to use them if you want to keep maximum
+  compatibility for the future.
+  
+- Bonus: the redo-stamp algorithm is interchangeable.  You
+  don't have to stamp the target file or the source files
+  or anything in particular; you can stamp any data you
+  want, including the output of `ls` or the content of a
+  web page.  We could never have made things like that
+  implicit anyway, so some form of explicit redo-stamp
+  would always have been needed, and then we'd have to
+  explain when to use the explicit one and when to use the
+  implicit one.
+  
 Thus, we made the decision to only use checksums for
 targets that explicitly call `redo-stamp` (see previous
 question).
+
+I suggest actually trying it out to see how it feels for
+you.  For myself, before there was redo-stamp and
+redo-always, a few types of problems (in particular,
+depending on a list of which files exist and which don't)
+were really annoying, and I definitely felt it.  Adding
+redo-stamp and redo-always work the way they do made the
+pain disappear, so I stopped changing things.
 
 
 # Why does 'redo target' always redo the target, even if it's unchanged?
@@ -452,6 +643,41 @@ needs it or not.
 
 If you really want to only rebuild targets that have
 changed, you can run `redo-ifchange target` instead.
+
+The reasons I like this arrangement come down to semantics:
+
+- "make target" implies that if target exists, you're done;
+  conversely, "redo target" in English implies you really
+  want to *redo* it, not just sit around.
+  
+- If this weren't the rule, `redo` and `redo-ifchange`
+  would mean the same thing, which seems rather confusing.
+  
+- If `redo` could refuse to run a .do script, you would
+  have no easy one-line way to force a particular target to
+  be rebuilt.  You'd have to remove the target and *then*
+  redo it, which is more typing.  On the other hand, nobody
+  actually types "redo foo.o" if they honestly think foo.o
+  doesn't need rebuilding.
+  
+- For "contentless" targets like "test" or "clean", it would
+  be extremely confusing if they refused to run just
+  because they ran successfully last time.
+  
+In make, things get complicated because it doesn't
+differentiate between these two modes.  Makefile rules
+with no dependencies run every time, *unless* the target
+exists, in which case they run never, *unless* the target
+is marked ".PHONY", in which case they run every time.  But
+targets that *do* have dependencies follow totally
+different rules.  And all this is needed because there's no
+way to tell make, "Listen, I just really want you to run
+the rules for this target *right now*."
+
+With redo, the semantics are really simple to explain.  If
+your brain has already been fried by make, you might be
+surprised by it at first, but once you get used to it, it's
+really much nicer this way.
 
 
 # Can my .do files be written in a language other than sh?
@@ -721,6 +947,33 @@ as relative paths from $PWD.  That way, if you use relative
 paths in -I and -L gcc options (for example), they will
 always be correct no matter where in the hierarchy your
 source files are.
+
+
+# Can I put my .o files in a different directory from my .c files?
+
+Yes.  There's nothing in redo that assumes anything about
+the location of your source files.  You can do all sorts of
+interesting tricks, limited only by your imagination.  For
+example, imagine that you have a toplevel default.o.do that looks
+like this:
+
+	ARCH=${1#out/}
+	ARCH=${ARCH%%/*}
+	SRC=${1#out/$ARCH/}
+	redo-ifchange $SRC.c
+	$ARCH-gcc -o $3 -c $SRC.c
+
+If you run `redo out/i586-mingw32msvc/path/to/foo.o`, then
+the above script would end up running
+
+	i586-mingw32msvc-gcc -o $3 -c path/to/foo.c
+
+You could also choose to read the compiler name or options from
+out/$ARCH/config.sh, or config.$ARCH.sh, or use any other
+arrangement you want.
+
+You could use the same technique to have separate build
+directories for out/debug, out/optimized, out/profiled, and so on.
 
 
 # Can my filenames have spaces in them?
