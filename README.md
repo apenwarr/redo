@@ -45,6 +45,9 @@ implementations, should there be any.
 My extremely minimal implementation, called `do`, is in the `minimal/`
 directory of this repository.
 
+(Want to discuss redo?  See the bottom of this file for
+information about our mailing list.)
+
 
 # License
 
