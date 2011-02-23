@@ -6,7 +6,7 @@ if [ -e t1a ]; then
 else
 	BEFORE=
 fi
-../flush-cache.sh
+../flush-cache.py
 redo-ifchange t1a  # it definitely had to rebuild because t1dep changed
 AFTER="$(cat t1a)"
 if [ "$BEFORE" = "$AFTER" ]; then
