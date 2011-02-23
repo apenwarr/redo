@@ -1,0 +1,16 @@
+#!/usr/bin/env python
+import sys, os, sqlite3
+
+if "DO_BUILT" in os.environ:
+    sys.exit(0)
+
+sys.stderr.write("Flushing redo cache...\n")
+
+db_file = os.path.join(os.environ["REDO_BASE"], ".redo/db.sqlite3")
+db = sqlite3.connect(db_file, timeout=5000)
+
+db.executescript("pragma synchronous = off;"
+                 "update Files set checked_runid=checked_runid-1, "
+                 "                 changed_runid=changed_runid-1, "
+                 "                 failed_runid=failed_runid-1;")
+db.commit()

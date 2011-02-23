@@ -1,11 +1,11 @@
 rm -f log dir1/log dir1/stinky
 touch t1.do
-../../flush-cache.py
+../../flush-cache
 redo t1
 touch t1.do
-../../flush-cache.py
+../../flush-cache
 redo t1
-../../flush-cache.py
+../../flush-cache
 redo-ifchange t1
 C1="$(wc -l <dir1/log)"
 C2="$(wc -l <log)"

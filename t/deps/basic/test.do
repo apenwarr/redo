@@ -1,10 +1,10 @@
 rm -f *.out *.log
 
-../../flush-cache.py
+../../flush-cache
 redo-ifchange 1.out 2.out
 [ "$(cat 1.log | wc -l)" -eq 1 ] || exit 55
 [ "$(cat 2.log | wc -l)" -eq 1 ] || exit 56
-../../flush-cache.py
+../../flush-cache
 touch 1.in
 redo-ifchange 1.out 2.out
 [ "$(cat 2.log | wc -l)" -eq 1 ] || exit 58
