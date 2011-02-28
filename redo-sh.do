@@ -7,7 +7,8 @@ mkdir $1.new
 GOOD=
 WARN=
 
-for sh in dash sh ash mksh ksh ksh88 ksh93 pdksh bash zsh busybox; do
+for sh in dash sh /usr/xpg4/bin/sh ash mksh ksh ksh88 ksh93 pdksh \
+		bash zsh busybox; do
 	printf "Testing %s... " "$sh"
 	FOUND=`which $sh 2>/dev/null` || { echo "missing"; continue; }
 	
