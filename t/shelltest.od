@@ -289,4 +289,10 @@ lt
 false
 . ./nothing.od || warn 114
 
+# this one seems to be a bug in some versions of dash: the parameters to the
+# '.' command must not be ignored.
+set x y z
+. ./dotparams.od a b || fail 115
+[ "$1-$2-$3" = "x-y-z" ] || fail 116
+
 exit $FAIL

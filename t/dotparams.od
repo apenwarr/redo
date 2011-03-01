@@ -1,0 +1,2 @@
+# call this as ". ./dotparams.od a b" from shelltest.od
+[ "$1" = a ] && [ "$2" = b ] && [ "$#" = 2 ] || fail 115
