@@ -90,7 +90,7 @@ _run_dofile()
 	if [ "$cmd" != "$line1" ]; then
 		/$cmd "$PWD/$DOFILE" "$@" >"$TARGET.tmp2"
 	else
-		. "$PWD/$DOFILE" >"$TARGET.tmp2"
+		:; . "$PWD/$DOFILE" >"$TARGET.tmp2"
 	fi
 }
 
