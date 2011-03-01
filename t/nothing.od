@@ -1,0 +1,2 @@
+# this shell script contains no commands.
+# it's used for testing the return value of '. ./nothing.od' in shelltest.od.

@@ -280,5 +280,13 @@ lt
 [ "$x" = "1" ] || fail 112
 [ "$y$z" = "67" ] || fail 113
 
+# reported by Tim Allen:
+# some shells don't return 0 from an empty '.' script; they return the
+# previous command's exit code instead.
+# See:
+#  http://pubs.opengroup.org/onlinepubs/009695399/utilities/dot.html
+#  http://austingroupbugs.net/view.php?id=114
+false
+. ./nothing.od || warn 114
 
 exit $FAIL
