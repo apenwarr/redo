@@ -18,3 +18,4 @@ test2.args
 /broken
 /shellfile
 /nonshelltest
+/*.vartest

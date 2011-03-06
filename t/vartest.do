@@ -1,3 +1,3 @@
-PREFIX=/a/b/c/d/e redo vartest2
-read x <vartest2
+PREFIX=/a/b/c/d/e redo chicken.vartest
+read x <chicken.vartest
 [ "$x" = "/a/b/c/d/e" ] || exit 45
