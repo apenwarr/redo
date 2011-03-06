@@ -99,7 +99,7 @@ _do()
 {
 	DIR=$1
 	TARGET=$2
-	if [ ! -e "$TARGET" ] || [ -e "$TARGET/." -a ! -e "$TARGET.did" ]; then
+	if [ ! -e "$TARGET" ] || [ -d "$TARGET/." -a ! -e "$TARGET.did" ]; then
 		printf '%sdo  %s%s%s%s\n' \
 			"$GREEN" "$DO_DEPTH" "$BOLD" "$DIR$TARGET" "$PLAIN" >&2
 		echo "$PWD/$TARGET" >>"$DO_BUILT"
