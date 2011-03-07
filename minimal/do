@@ -111,7 +111,7 @@ _do()
 			echo "do: $target: no .do file" >&2
 			return 1
 		fi
-		[ ! -e "$DO_BUILD" ] || : >>"$target.did"
+		[ ! -e "$DO_BUILT" ] || : >>"$target.did"
 		( _run_dofile "$base" "$ext" "$target.tmp" )
 		rv=$?
 		if [ $rv != 0 ]; then

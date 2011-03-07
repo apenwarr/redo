@@ -1,4 +1,3 @@
-. ./skip-if-minimal-do.sh
 rm -f makedir.log
 redo makedir
 touch makedir/outfile
