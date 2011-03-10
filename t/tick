@@ -1,0 +1,6 @@
+#!/usr/bin/env python
+import time
+
+t1 = int(time.time())
+while int(time.time()) == t1:
+    pass
