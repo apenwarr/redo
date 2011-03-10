@@ -221,7 +221,8 @@ class BuildJob:
         after_t = _try_stat(t)
         st1 = os.fstat(f.fileno())
         st2 = _try_stat(self.tmpname2)
-        if (after_t and after_t != before_t and 
+        if (after_t and 
+            (not before_t or before_t.st_ctime != after_t.st_ctime) and
             not stat.S_ISDIR(after_t.st_mode)):
             err('%s modified %s directly!\n' % (self.argv[2], t))
             err('...you should update $3 (a temp file) or stdout, not $1.\n')
