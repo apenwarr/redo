@@ -19,7 +19,7 @@ version    print the current version and exit
 o = options.Options('redo', optspec)
 (opt, flags, extra) = o.parse(sys.argv[1:])
 
-targets = extra or ['all']
+targets = extra
 
 if opt.version:
     import version

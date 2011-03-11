@@ -3,6 +3,8 @@ import sys, os
 def init(targets):
     if not os.environ.get('REDO'):
         # toplevel call to redo
+        if len(targets) == 0:
+            targets.append('all')
         exenames = [os.path.abspath(sys.argv[0]),
                     os.path.realpath(sys.argv[0])]
         dirnames = [os.path.dirname(p) for p in exenames]
