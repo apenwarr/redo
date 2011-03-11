@@ -99,7 +99,7 @@ def _clean(s):
 
 
 def _bitlist(tag):
-    if not getattr(tag, 'contents', None):
+    if getattr(tag, 'contents', None) == None:
         for i in _split_lines(str(tag)):
             yield None,_clean(i)
     else:
@@ -214,7 +214,7 @@ def do(tag):
             macro('.fi')
             macro('.RE')
             w.end_para()
-    elif name == 'p':
+    elif name == 'p' or name == 'br':
         g = re.match(re.compile(r'([^\n]*)\n +: +(.*)', re.S), str(tag))
         if g:
             # it's a definition list (which some versions of python-markdown
