@@ -2,6 +2,16 @@
 # Most of these tests were inspired by:
 # http://www.gnu.org/software/hello/manual/autoconf/Shell-Substitutions.html
 #
+# Note that this file isn't really a test for POSIX compliance.  It's a test
+# for usefulness-compliance, that is, interpreting POSIX in a particular way
+# for consistency, so that users of redo can depend on all the following
+# functionality.
+#
+# Where POSIX makes a clear statement about something working a particular
+# way, POSIX wins.  But where POSIX is unclear on a point, I don't mind
+# picking a particular way and requiring it here, if that makes writing
+# scripts easier for everyone in the future.
+#
 exec >&2
 set +e
 FAIL=
@@ -78,6 +88,27 @@ out=$(echo ${f1:-foo} ${f2:-foo} ${g1:=foo} ${g2:=foo})
 [ "$f1$f2$g1$g2" = "gooroogoo" ] || fail 17
 
 
+# This is really a test that ${x:=} can span multiple lines without requiring
+# quoting, which is apparently required by POSIX but not supported in some
+# shells.  But to make ash/dash not abort the test script *entirely* when it
+# fails, we use the $() + eval nonsense.
+f3=$(eval ': ${f3:=
+	a
+	b
+}' && echo "$f3")
+g3="
+	a
+	b"
+[ "$f3" = "$g3" ] || fail 18
+
+
+# Note: assignment of $@ in this context is unspecified (what do you even expect
+# it to do?) so we don't test it.  But we should expect $* to work.
+set "a b" "c d" "*"
+t1=$*
+[ "$t1" = "a b c d *" ] || fail 19
+
+
 unset a
 t1=$(echo ${a-b  c})
 t2=$(echo ${a-'b  c'})
@@ -139,6 +170,31 @@ c"
 [ "$t2" = "$WANT" ] || fail 45
 
 
+# Arguably, 'export' and 'local' shouldn't change variable assignment quoting
+# rules, but in almost all shells (except bash), they do, and POSIX doesn't say
+# anything about it.  So let's not bother testing this, other than just letting
+# it check our syntax.
+#
+bob="a b *"
+bob=$(eval 'export bob=$bob:hello'; echo "$bob")
+#[ "$bob" = "a b *:hello" ] || warn 46
+bob="a b *"
+nob=$(eval 'f() { local nob=$bob:hello; echo "$nob"; }'; f)
+#[ "$nob" = "a b *:hello" ] || warn 47
+
+
+# Someone pointed out that temporary variable assignments aren't
+# temporary anymore, if the thing you're calling is a function or builtin.
+f() { ls >/dev/null; }
+g=1 h=1 i=1
+g=2 f
+h=2 :
+i=2 ls >/dev/null
+[ "$g" = "2" ] || fail 48
+[ "$h" = "2" ] || fail 49
+[ "$i" = "1" ] || fail 50
+
+
 var='a a b b'
 t1=${#var}
 t2=${var#a* }
@@ -168,11 +224,16 @@ echo "`printf 'foo\r\n'`"" bar" | diff -q - broken || fail 59
 
 
 #
-# This one is too obnoxious.  dash and ash pass the test, but nothing else
-# does, and this case is just too dumb to care about.  Just don't do that!
+# This one is too obnoxious.  dash and ash pass the test, but most shells don't,
+# and this case is just too dumb to care about.  Just don't do that!
 #
 #t=`echo $(case x in x) echo hello;; esac)`
 #[ "$t" = "hello" ] || fail 60
+#
+# Note that with the little-known optional left-paren, this *does* work.  Let's
+# try it to make sure that remains true.
+t=`echo $(case x in (x) echo hello;; esac)`
+[ "$t" = "hello" ] || fail 60
 
 
 x=5
@@ -289,8 +350,9 @@ lt
 false
 . ./nothing.od || warn 114
 
-# this one seems to be a bug in some versions of dash: the parameters to the
-# '.' command must not be ignored.
+# this is actually a bash/kshism, but is allowed by POSIX: the parameters to
+# '.' should be passed to the sub-script.  Because it's so useful, let's
+# require it, even though it's not strictly required by POSIX.
 set x y z
 . ./dotparams.od a b || fail 115
 [ "$1-$2-$3" = "x-y-z" ] || fail 116
