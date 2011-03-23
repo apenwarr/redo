@@ -71,8 +71,13 @@ class BuildJob:
     def __init__(self, t, sf, lock, shouldbuildfunc, donefunc):
         self.t = t  # original target name, not relative to vars.BASE
         self.sf = sf
-        self.tmpname1 = '%s.redo1.tmp' % t
-        self.tmpname2 = '%s.redo2.tmp' % t
+        tmpbase = t
+        while not os.path.isdir(os.path.dirname(tmpbase) or '.'):
+            ofs = tmpbase.rfind('/')
+            assert(ofs >= 0)
+            tmpbase = tmpbase[:ofs] + '__' + tmpbase[ofs+1:]
+        self.tmpname1 = '%s.redo1.tmp' % tmpbase
+        self.tmpname2 = '%s.redo2.tmp' % tmpbase
         self.lock = lock
         self.shouldbuildfunc = shouldbuildfunc
         self.donefunc = donefunc
@@ -141,7 +146,8 @@ class BuildJob:
                 dofile,
                 basename, # target name (no extension)
                 ext,  # extension (if any), including leading dot
-                os.path.join(basedir, os.path.basename(self.tmpname2))  # temp output file name
+                # temp output file name
+                state.relpath(os.path.abspath(self.tmpname2), dodir),
                 ]
         if vars.VERBOSE: argv[1] += 'v'
         if vars.XTRACE: argv[1] += 'x'

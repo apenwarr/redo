@@ -24,6 +24,13 @@ _dirsplit()
 	dir=${1%$base}
 }
 
+dirname()
+(
+	_dirsplit "$1"
+	dir=${dir%/}
+	echo "${dir:-.}"
+)
+
 _dirsplit "$0"
 export REDO=$(cd "${dir:-.}" && echo "$PWD/$base")
 
@@ -73,6 +80,7 @@ _find_dofile()
 		[ -e "$dofile" ] && break
 		[ "$PWD" = "/" ] && break
 		target=${PWD##*/}/$target
+		tmp=${PWD##*/}/$tmp
 		prefix=${PWD##*/}/$prefix
 		cd ..
 	done
@@ -89,17 +97,17 @@ _run_dofile()
 	read line1 <"$PWD/$dofile"
 	cmd=${line1#"#!/"}
 	if [ "$cmd" != "$line1" ]; then
-		/$cmd "$PWD/$dofile" "$@" >"$target.tmp2"
+		/$cmd "$PWD/$dofile" "$@" >"$tmp.tmp2"
 	else
-		:; . "$PWD/$dofile" >"$target.tmp2"
+		:; . "$PWD/$dofile" >"$tmp.tmp2"
 	fi
 }
 
 
 _do()
 {
-	local dir=$1 target=$2
-	if [ ! -e "$target" ] || [ -d "$target/." -a ! -e "$target.did" ]; then
+	local dir=$1 target=$2 tmp=$3
+	if [ ! -e "$target" ] || [ -d "$target" -a ! -e "$target.did" ]; then
 		printf '%sdo  %s%s%s%s\n' \
 			"$green" "$DO_DEPTH" "$bold" "$dir$target" "$plain" >&2
 		echo "$PWD/$target" >>"$DO_BUILT"
@@ -111,22 +119,37 @@ _do()
 			echo "do: $target: no .do file" >&2
 			return 1
 		fi
-		[ ! -e "$DO_BUILT" ] || : >>"$target.did"
-		( _run_dofile "$base" "$ext" "$target.tmp" )
+		[ ! -e "$DO_BUILT" ] || [ ! -d "$(dirname "$target")" ] ||
+		: >>"$target.did"
+		( _run_dofile "$base" "$ext" "$tmp.tmp" )
 		rv=$?
 		if [ $rv != 0 ]; then
 			printf "do: %s%s\n" "$DO_DEPTH" \
 				"$dir$target: got exit code $rv" >&2
-			rm -f "$target.tmp" "$target.tmp2"
+			rm -f "$tmp.tmp" "$tmp.tmp2"
 			return $rv
 		fi
-		mv "$target.tmp" "$target" 2>/dev/null ||
-		! test -s "$target.tmp2" ||
-		mv "$target.tmp2" "$target" 2>/dev/null
-		rm -f "$target.tmp2"
+		mv "$tmp.tmp" "$target" 2>/dev/null ||
+		! test -s "$tmp.tmp2" ||
+		mv "$tmp.tmp2" "$target" 2>/dev/null
+		rm -f "$tmp.tmp2"
 	else
 		echo "do  $DO_DEPTH$target exists." >&2
 	fi
+}
+
+
+# Make corrections for directories that don't actually exist yet.
+_dir_shovel()
+{
+	local dir base
+	xdir=$1 xbase=$2 xbasetmp=$2
+	while [ ! -d "$xdir" -a -n "$xdir" ]; do
+		_dirsplit "${xdir%/}"
+		xbasetmp=${base}__$xbase
+		xdir=$dir xbase=$base/$xbase
+		echo "xbasetmp='$xbasetmp'" >&2
+	done
 }
 
 
@@ -134,7 +157,9 @@ redo()
 {
 	for i in "$@"; do
 		_dirsplit "$i"
-		( cd "$dir" && _do "$dir" "$base" ) || return 1
+		_dir_shovel "$dir" "$base"
+		dir=$xdir base=$xbase basetmp=$xbasetmp
+		( cd "$dir" && _do "$dir" "$base" "$basetmp" ) || return 1
 	done
 }
 
