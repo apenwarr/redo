@@ -9,7 +9,7 @@ WARN=
 
 for sh in dash sh /usr/xpg4/bin/sh ash posh mksh ksh ksh88 ksh93 pdksh \
 		bash zsh busybox; do
-	printf "Testing %s... " "$sh"
+	printf "%-30s" "Testing $sh..."
 	FOUND=`which $sh 2>/dev/null` || { echo "missing"; continue; }
 	
 	# It's important for the file to actually be named 'sh'.  Some
@@ -20,14 +20,30 @@ for sh in dash sh /usr/xpg4/bin/sh ash posh mksh ksh ksh88 ksh93 pdksh \
 	ln -s $FOUND $1.new/sh
 	
 	set +e
-	( cd t && ../$1.new/sh shelltest.od >/dev/null 2>&1 )
+	( cd t && ../$1.new/sh shelltest.od >shelltest.tmp 2>&1 )
 	RV=$?
 	set -e
 	
+	msgs=
+	crash=
+	while read line; do
+		#echo "line: '$line'" >&2
+		stripw=${line#warning: }
+		stripf=${line#failed: }
+		crash=$line
+		[ "$line" != "$stripw" ] && msgs="$msgs W$stripw"
+		[ "$line" != "$stripf" ] && msgs="$msgs F$stripf"
+	done <t/shelltest.tmp
+	rm -f t/shelltest.tmp
+	msgs=${msgs# }
+	crash=${crash##*:}
+	crash=${crash# }
+	
 	case $RV in
-		0) echo "good"; [ -n "$GOOD" ] || GOOD=$FOUND ;;
-		42) echo "warnings"; [ -n "$WARN" ] || WARN=$FOUND ;;
-		*) echo "failed" ;;
+		0)  echo "ok $msgs"; [ -n "$GOOD" ] || GOOD=$FOUND ;;
+		41) echo "failed    $msgs" ;;
+		42) echo "warnings  $msgs"; [ -n "$WARN" ] || WARN=$FOUND ;;
+		*)  echo "crashed   $crash" ;;
 	esac
 done
 
