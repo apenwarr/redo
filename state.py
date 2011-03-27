@@ -120,6 +120,7 @@ def relpath(t, base):
     if not _cwd:
         _cwd = os.getcwd()
     t = os.path.normpath(os.path.join(_cwd, t))
+    base = os.path.normpath(base)
     tparts = t.split('/')
     bparts = base.split('/')
     for tp,bp in zip(tparts,bparts):
