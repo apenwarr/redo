@@ -104,7 +104,6 @@ class BuildJob:
         sf = self.sf
         newstamp = sf.read_stamp()
         if (sf.is_generated and
-            not sf.failed_runid and
             newstamp != state.STAMP_MISSING and 
             (sf.stamp != newstamp or sf.is_override)):
                 state.warn_override(_nice(t))
