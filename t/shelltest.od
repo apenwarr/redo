@@ -196,16 +196,24 @@ i=2 ls >/dev/null
 
 
 var='a a b b'
+var2='*a'
 t1=${#var}
 t2=${var#a* }
 t3=${var##a* }
 t4=${var%b*}
 t5=${var%%b*}
+t6="${var2#'*'}"
+t7="${var2#"*"}"
 [ "$t1" = "7" ] || fail 51
 [ "$t2" = "a b b" ] || fail 52
 [ "$t3" = "b" ] || fail 53
 [ "$t4" = "a a b " ] || fail 54
 [ "$t5" = "a a " ] || fail 55
+
+# shells I tested work with #"*" but dash doesn't work with #'*' .  The
+# workaround is to simply use double quotes, so I'll make that one a warning.
+[ "$t6" = "a" ] || warn 56
+[ "$t7" = "a" ] || fail 56
 
 
 in="a
