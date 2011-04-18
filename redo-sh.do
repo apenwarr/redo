@@ -40,10 +40,10 @@ for sh in dash sh /usr/xpg4/bin/sh ash posh mksh ksh ksh88 ksh93 pdksh \
 	crash=${crash# }
 	
 	case $RV in
-		0)  echo "ok $msgs"; [ -n "$GOOD" ] || GOOD=$FOUND ;;
+		40)  echo "ok $msgs"; [ -n "$GOOD" ] || GOOD=$FOUND ;;
 		41) echo "failed    $msgs" ;;
 		42) echo "warnings  $msgs"; [ -n "$WARN" ] || WARN=$FOUND ;;
-		*)  echo "crashed   $crash" ;;
+		*)  echo "crash     $crash" ;;
 	esac
 done
 

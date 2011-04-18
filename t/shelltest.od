@@ -365,4 +365,5 @@ set x y z
 . ./dotparams.od a b || fail 115
 [ "$1-$2-$3" = "x-y-z" ] || fail 116
 
+[ -n "$FAIL" ] || exit 40
 exit $FAIL
