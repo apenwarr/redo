@@ -1,4 +1,5 @@
 set +e
+export SHELLTEST_QUIET=1
 ( . ./shelltest.od )
 RV=$?
 case $RV in
