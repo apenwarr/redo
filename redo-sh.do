@@ -7,6 +7,10 @@ mkdir $1.new
 GOOD=
 WARN=
 
+# Note: list low-functionality, maximally POSIX-like shells before more
+# powerful ones.  We want weaker shells to take precedence, as long as they
+# pass the tests, because weaker shells are more likely to point out when you
+# use some non-portable feature.
 for sh in dash sh /usr/xpg4/bin/sh ash posh mksh ksh ksh88 ksh93 pdksh \
 		bash zsh busybox; do
 	printf "%-30s" "Testing $sh..."
@@ -31,8 +35,8 @@ for sh in dash sh /usr/xpg4/bin/sh ash posh mksh ksh ksh88 ksh93 pdksh \
 		stripw=${line#warning: }
 		stripf=${line#failed: }
 		crash=$line
-		[ "$line" != "$stripw" ] && msgs="$msgs W$stripw"
-		[ "$line" != "$stripf" ] && msgs="$msgs F$stripf"
+		[ "$line" = "$stripw" ] || msgs="$msgs W$stripw"
+		[ "$line" = "$stripf" ] || msgs="$msgs F$stripf"
 	done <t/shelltest.tmp
 	rm -f t/shelltest.tmp
 	msgs=${msgs# }
@@ -40,7 +44,7 @@ for sh in dash sh /usr/xpg4/bin/sh ash posh mksh ksh ksh88 ksh93 pdksh \
 	crash=${crash# }
 	
 	case $RV in
-		40)  echo "ok $msgs"; [ -n "$GOOD" ] || GOOD=$FOUND ;;
+		40) echo "ok $msgs"; [ -n "$GOOD" ] || GOOD=$FOUND ;;
 		41) echo "failed    $msgs" ;;
 		42) echo "warnings  $msgs"; [ -n "$WARN" ] || WARN=$FOUND ;;
 		*)  echo "crash     $crash" ;;
@@ -59,5 +63,5 @@ elif [ -n "$WARN" ]; then
 	ln -s $WARN $3/sh
 else
 	echo "No good shells found!  Maybe install dash, bash, or zsh."
-	exit 1
+	exit 13
 fi
