@@ -269,7 +269,7 @@ instead.  Since you didn't `redo-ifchange default.od`,
 changes to default.od won't cause everything to rebuild.
 
 
-# Can I set my dircolors to highlight .do files?
+# Can I set my dircolors to highlight .do files in ls output?
 
 Yes!  At first, having a bunch of .do files in each
 directory feels like a bit of a nuisance, but once you get
@@ -516,6 +516,35 @@ sqlite.
 
 It is almost certainly possible to do it much more nicely
 than I have, so if you do, please send it in!
+
+
+# Is it better to run redo-ifchange once per dependency or just once?
+
+The obvious way to write a list of dependencies might be
+something like this:
+
+	for d in *.c; do
+		redo-ifchange ${d%.c}.o
+	done
+
+But it turns out that's very non-optimal.  First of all, it
+forces all your dependencies to be built in order
+(redo-ifchange doesn't return until it has finished
+building), which makes -j parallelism a lot less useful. 
+And secondly, it forks and execs redo-ifchange over and
+over, which can waste CPU time unnecessarily.
+
+A better way is something like this:
+
+	for d in *.c; do
+		echo ${d%.c}.o
+	done |
+	xargs redo-ifchange
+	
+That only runs redo-ifchange once (or maybe a few times, if
+there are really a *lot* of dependencies and xargs has to
+split it up), which saves fork/exec time and allows for
+parallelism.
 
 
 # If a target didn't change, how do I prevent dependents from being rebuilt?

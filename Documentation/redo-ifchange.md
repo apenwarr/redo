@@ -38,7 +38,7 @@ redo-ifchange returns only after all the given
 *targets* are known to be up to date.
 
 
-# TIP
+# TIP 1
 
 You don't have to run redo-ifchange *before* generating
 your target; you can generate your target first, then
@@ -58,6 +58,24 @@ This is much less confusing than the equivalent
 autodependency mechanism in `make`(1), because make
 requires that you declare all your dependencies before
 running the target build commands.
+
+
+# TIP 2
+
+Try to list as many dependencies as possible in a single
+call to redo-ifchange.  Every time you run redo-ifchange,
+the shell has to fork+exec it, which takes time.  Plus redo
+can only parallelize your build if you give it multiple
+targets to build at once.  It's fine to have a couple of
+separate redo-ifchange invocations for a particular target
+when necessary (as in TIP 1 above), but try to keep it to a
+minimum.  For example here's a trick for generating a list
+of targets, but redo-ifchanging them all at once:
+
+	for d in *.c; do
+		echo ${d%.c}.o
+	done |
+	xargs redo-ifchange
 
 
 # REDO
