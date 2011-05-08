@@ -72,11 +72,13 @@ def db():
                     "     primary key (target,source))")
         _db.execute("insert into Schema (version) values (?)", [SCHEMA_VER])
         # eat the '0' runid and File id
-        _db.execute("insert into Runid default values")
+        _db.execute("insert into Runid values "
+                    "     ((select max(id)+1 from Runid))")
         _db.execute("insert into Files (name) values (?)", [ALWAYS])
 
     if not vars.RUNID:
-        _db.execute("insert into Runid default values")
+        _db.execute("insert into Runid values "
+                    "     ((select max(id)+1 from Runid))")
         vars.RUNID = _db.execute("select last_insert_rowid()").fetchone()[0]
         os.environ['REDO_RUNID'] = str(vars.RUNID)
     
