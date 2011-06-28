@@ -269,6 +269,79 @@ instead.  Since you didn't `redo-ifchange default.od`,
 changes to default.od won't cause everything to rebuild.
 
 
+# Can I have my .do files somewhere out of my eyes? I mean, I don't keep my sources in the root directory either!
+
+Sure! If it looks like you're going to have a lot of different .do files, and
+they start polluting your project's root directory, an option is to create a
+do/ directory and place all the .do files in it. For an example, the following
+project:
+
+    default.o.do
+    include/
+        b.h
+    myprog.do
+    src/
+        a.c
+        b.c
+
+can be restructured by moving the .do files around to this:
+
+    do/
+        default.o.do
+        myprog.do
+    include/
+        b.h
+    src/
+        a.c
+        b.c
+
+When searching for a .do file matching the given target, redo will perform a
+secondary look for do/ directories on every level of the search. E.g., given a
+target in path `/project/hello.i.o`, matching .do files are searched upwards as
+follows:
+
+    /project/world.i.o.do
+    /project/do/world.i.o.do
+    /project/default.i.o.do
+    /project/do/default.i.o.do
+    /project/default.o.do
+    /project/do/default.o.do
+    /project/default.do
+    /project/do/default.do
+    /default.i.o.do
+    /do/default.i.o.do
+    /default.o.do
+    /do/default.o.do
+    /default.do
+    /do/default.do
+
+Note: A .do file in do/ directory will be executed as `do/rulename.do`, i.e. its
+working directory will be the same as if the .do file was placed next to the do/
+directory. Thus, if your directory looked like this:
+
+    do/
+        myprog.do
+    helper.sh     # <-- a helper script, sourced by myprog.do
+    src.c
+
+then the .do file can source the helper script as:
+
+    # file: do/myprog.do
+    . helper.sh && redo-ifchange helper.sh
+    # (etc.)
+
+On the other hand, if you wanted to move the helper script below the do/
+directory as well, you'll need to change the .do file accordingly:
+
+    do/
+        helper.sh  # <-- the helper script was also moved to the do/ directory
+        myprog.do
+    src.c
+
+    # file: do/myprog.do
+    . do/helper.sh && redo-ifchange do/helper.sh  # <-- change path accordingly
+    # (etc.)
+
 # Can I set my dircolors to highlight .do files in ls output?
 
 Yes!  At first, having a bunch of .do files in each
