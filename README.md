@@ -327,7 +327,7 @@ directory. Thus, if your directory looked like this:
 then the .do file can source the helper script as:
 
     # file: do/myprog.do
-    . helper.sh && redo-ifchange helper.sh
+    redo-ifchange helper.sh && . ./helper.sh
     # (etc.)
 
 On the other hand, if you wanted to move the helper script below the do/
@@ -339,7 +339,7 @@ directory as well, you'll need to change the .do file accordingly:
     src.c
 
     # file: do/myprog.do
-    . do/helper.sh && redo-ifchange do/helper.sh  # <-- change path accordingly
+    redo-ifchange do/helper.sh && . ./do/helper.sh # <-- change path accordingly
     # (etc.)
 
 # Can I set my dircolors to highlight .do files in ls output?
