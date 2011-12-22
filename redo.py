@@ -16,7 +16,7 @@ debug-locks  print messages about file locking (useful for debugging)
 debug-pids   print process ids as part of log messages (useful for debugging)
 version    print the current version and exit
 """
-o = options.Options('redo', optspec)
+o = options.Options(optspec)
 (opt, flags, extra) = o.parse(sys.argv[1:])
 
 targets = extra
