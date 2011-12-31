@@ -1,1 +1,1 @@
-echo default.z $1 $2
+echo default.z $2 ${1#$2}

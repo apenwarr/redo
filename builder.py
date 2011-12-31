@@ -141,10 +141,16 @@ class BuildJob:
         close_on_exec(ffd, True)
         self.f = os.fdopen(ffd, 'w+')
         # this will run in the dofile's directory, so use only basenames here
+        if vars.OLD_ARGS:
+            arg1 = basename  # target name (no extension)
+            arg2 = ext       # extension (if any), including leading dot
+        else:
+            arg1 = basename + ext  # target name (including extension)
+            arg2 = basename        # target name (without extension)
         argv = ['sh', '-e',
                 dofile,
-                basename, # target name (no extension)
-                ext,  # extension (if any), including leading dot
+                arg1,
+                arg2,
                 # temp output file name
                 state.relpath(os.path.abspath(self.tmpname2), dodir),
                 ]

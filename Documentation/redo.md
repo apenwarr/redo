@@ -104,6 +104,14 @@ dependencies.
     output message.  This makes it easier to figure out
     which sub-instance of redo is doing what.
 
+--old-args
+:   old versions of redo provided different definitions of
+    the $1 and $2 parameters to .do scripts.  The new
+    version is compatible with djb's original
+    specification.  This option goes back to the old
+    definitions so you can use .do scripts you haven't yet
+    converted to the new style.
+
 
 # DISCUSSION
 
@@ -156,8 +164,8 @@ redo does not have this problem.)
 
 The three arguments passed to the .do script are:
 
-- $1: the basename of the target (eg. mytarget.a.b)
-- $2: the extension of the target, if any (eg. .c.d)
+- $1: the target name (eg. mytarget.a.b)
+- $2: the basename of the target, minus its extension (eg. mytarget)
 - $3: a temporary filename that the .do script should write
   its output to.
   
@@ -165,7 +173,7 @@ Instead of using $3, the .do script may also write the
 produced data to stdout.
 
 If the .do file is in the same directory as the target, $1
-and $3 are guaranteed to be simple filenames (with no path
+is guaranteed to be a simple filename (with no path
 component).  If the .do file is in a parent directory of
 the target, $1 and $3 will be relative paths (ie. will
 contain slashes).

@@ -1,1 +1,1 @@
-echo default $1 $2
+echo default $2 ${1#$2}

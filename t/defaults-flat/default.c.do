@@ -1,4 +1,4 @@
-redo-ifchange $1$2.c
+redo-ifchange $1.c
 echo c-to-c
-cat $1$2.c
+cat $1.c
 ../sleep 1.3

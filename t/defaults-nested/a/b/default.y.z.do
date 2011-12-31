@@ -1,1 +1,1 @@
-echo default.y.z $1 $2
+echo default.y.z $2 ${1#$2}

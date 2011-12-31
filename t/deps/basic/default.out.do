@@ -1,3 +1,3 @@
-redo-ifchange $1.in
+redo-ifchange $2.in
 echo $$
-echo $$ >>$1.log
+echo $$ >>$2.log

@@ -77,9 +77,9 @@ The easiest way to show it is with an example.
 
 Create a file called default.o.do:
 
-	redo-ifchange $1.c
-	gcc -MD -MF $1.d -c -o $3 $1.c
-	read DEPS <$1.d
+	redo-ifchange $2.c
+	gcc -MD -MF $2.d -c -o $3 $2.c
+	read DEPS <$2.d
 	redo-ifchange ${DEPS#*:}
 
 Create a file called myprog.do:
@@ -293,34 +293,30 @@ To activate it, you can add a line like this to your .bashrc:
 
 # What are the three parameters ($1, $2, $3) to a .do file?
 
-FIXME:
-These definitions might change.  It turns out that
-djb's original definitions differ from these and we should
-probably change ours in order to maintain compatibility. 
-(In his version, $1 is always the name of the target, and
-$2 is the target with the extension removed.)
+NOTE: These definitions have changed since the earliest
+(pre-0.10) versions of redo.  The new definitions match
+what djb's original redo implementation did.
 
-$1 is the name of the target, with the extension removed,
-if any.
+$1 is the name of the target file.
 
-$2 is the extension of the target, including the leading
-dot.
+$2 is the basename of the target, minus the extension, if
+any.
 
 $3 is the name of a temporary file that will be renamed to
 the target filename atomically if your .do file returns a
 zero (success) exit code.
 
 In a file called `chicken.a.b.c.do` that builds a file called
-`chicken.a.b.c`, $1 is `chicken.a.b.c`, $2 is blank, and $3 is a
+`chicken.a.b.c`, $1 and $2 are `chicken.a.b.c`, and $3 is a
 temporary name like `chicken.a.b.c.tmp`.  You might have expected
-$1 to be just `chicken`, but that's not possible, because
+$2 to be just `chicken`, but that's not possible, because
 redo doesn't know which portion of the filename is the
 "extension."  Is it `.c`, `.b.c`, or `.a.b.c`?
 
 .do files starting with `default.` are special; they can
 build any target ending with the given extension.  So let's
 say we have a file named `default.c.do` building a file
-called `chicken.a.b.c`. $1 is `chicken.a.b`, $2 is `.c`,
+called `chicken.a.b.c`. $1 is `chicken.a.b.c`, $2 is `chicken.a.b`,
 and $3 is a temporary name like `chicken.a.b.c.tmp`.
 
 You should use $1 and $2 only in constructing input
@@ -333,11 +329,8 @@ to stdout instead of $3 if you want.)
 For example, you could compile a .c file into a .o file
 like this, from a script named `default.o.do`:
 	
-	redo-ifchange $1.c
-	gcc -o $3 -c $1.c
-
-Note that $2, the output file's .o extension, is rarely useful
-since you always know what it is.
+	redo-ifchange $2.c
+	gcc -o $3 -c $2.c
 
 
 # Why not named variables like $FILE, $EXT, $OUT instead of $1, $2, $3?
@@ -762,7 +755,7 @@ So we haven't thought about this enough yet.
 Note that it's *okay* for a .do file to produce targets
 other than the advertised one; you just have to be careful. 
 You could have a default.javac.do that runs 'javac
-$1.java', and then have your program depend on a bunch of .javac
+$2.java', and then have your program depend on a bunch of .javac
 files.  Just be careful not to depend on the .class files
 themselves, since redo won't know how to regenerate them.
 
@@ -848,12 +841,12 @@ create a file called `compile.do`:
 	
 	redo-ifchange config.sh
 	. ./config.sh
-	echo "gcc -c -o \$3 $1.c $CFLAGS" >$3
+	echo "gcc -c -o \$3 $2.c $CFLAGS" >$3
 	chmod a+x $3
 
 Then, your `default.o.do` can simply look like this:
 
-	redo-ifchange compile $1.c
+	redo-ifchange compile $2.c
 	./compile $1 $2 $3
 
 This is not only elegant, it's useful too.  With make, you have to always
@@ -884,7 +877,7 @@ look something like this:
         redo-ifchange config.sh
         . ./config.sh
         cat <<-EOF
-                [ -e "\$1.cc" ] && EXT=.cc || EXT=.c
+                [ -e "\$2.cc" ] && EXT=.cc || EXT=.c
                 gcc -o "\$3" -c "\$1\$EXT" -Wall $CFLAGS
         EOF
         chmod a+x "$3"

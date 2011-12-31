@@ -1,1 +1,1 @@
-echo file $1 $2
+echo file $2 ${1#$2}

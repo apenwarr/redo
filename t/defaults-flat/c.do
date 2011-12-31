@@ -1,3 +1,3 @@
-redo-ifchange $1$2.c
+redo-ifchange $1.c
 echo c.do
-cat $1$2.c
+cat $1.c
