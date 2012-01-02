@@ -46,7 +46,7 @@ if opt.old_args:
 import vars_init
 vars_init.init(targets)
 
-import vars, state, builder, jwack
+import vars, state, builder
 from log import warn, err
 
 try:
@@ -60,11 +60,7 @@ try:
     j = atoi(opt.jobs or 1)
     if j < 1 or j > 1000:
         err('invalid --jobs value: %r\n' % opt.jobs)
-    jwack.setup(j)
-    try:
-        retcode = builder.main(targets, lambda t: True)
-    finally:
-        jwack.force_return_tokens()
+    retcode = builder.main(targets, lambda t: True)
     sys.exit(retcode)
 except KeyboardInterrupt:
     sys.exit(200)

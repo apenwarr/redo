@@ -147,6 +147,9 @@ class File(object):
     # use this mostly to avoid accidentally assigning to typos
     __slots__ = ['id'] + _file_cols[1:]
 
+    def __repr__(self):
+        return 'state.File(%s)' % self.name
+
     def _init_from_idname(self, id, name):
         q = ('select %s from Files ' % join(', ', _file_cols))
         if id != None:
@@ -292,50 +295,3 @@ def files():
     q = ('select %s from Files order by name' % join(', ', _file_cols))
     for cols in db().execute(q).fetchall():
         yield File(cols=cols)
-
-
-# FIXME: I really want to use fcntl F_SETLK, F_SETLKW, etc here.  But python
-# doesn't do the lockdata structure in a portable way, so we have to use
-# fcntl.lockf() instead.  Usually this is just a wrapper for fcntl, so it's
-# ok, but it doesn't have F_GETLK, so we can't report which pid owns the lock.
-# The makes debugging a bit harder.  When we someday port to C, we can do that.
-_locks = {}
-class Lock:
-    def __init__(self, fid):
-        self.owned = False
-        self.fid = fid
-        self.lockfile = os.open(os.path.join(vars.BASE, '.redo/lock.%d' % fid),
-                                os.O_RDWR | os.O_CREAT, 0666)
-        close_on_exec(self.lockfile, True)
-        assert(_locks.get(fid,0) == 0)
-        _locks[fid] = 1
-
-    def __del__(self):
-        _locks[self.fid] = 0
-        if self.owned:
-            self.unlock()
-        os.close(self.lockfile)
-
-    def trylock(self):
-        assert(not self.owned)
-        try:
-            fcntl.lockf(self.lockfile, fcntl.LOCK_EX|fcntl.LOCK_NB, 0, 0)
-        except IOError, e:
-            if e.errno in (errno.EAGAIN, errno.EACCES):
-                pass  # someone else has it locked
-            else:
-                raise
-        else:
-            self.owned = True
-
-    def waitlock(self):
-        assert(not self.owned)
-        fcntl.lockf(self.lockfile, fcntl.LOCK_EX, 0, 0)
-        self.owned = True
-            
-    def unlock(self):
-        if not self.owned:
-            raise Exception("can't unlock %r - we don't own it" 
-                            % self.lockname)
-        fcntl.lockf(self.lockfile, fcntl.LOCK_UN, 0, 0)
-        self.owned = False

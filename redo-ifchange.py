@@ -4,7 +4,7 @@ import sys, os
 import vars_init
 vars_init.init(sys.argv[1:])
 
-import vars, state, builder, jwack, deps
+import vars, state, builder, deps
 from helpers import unlink
 from log import debug, debug2, err
 
@@ -26,15 +26,12 @@ try:
     else:
         f = me = None
         debug2('redo-ifchange: not adding depends.\n')
-    try:
-        targets = sys.argv[1:]
-        if f:
-            for t in targets:
-                f.add_dep('m', t)
-            f.save()
-        rv = builder.main(targets, should_build)
-    finally:
-        jwack.force_return_tokens()
+    targets = sys.argv[1:]
+    if f:
+        for t in targets:
+            f.add_dep('m', t)
+        f.save()
+    rv = builder.main(targets, should_build)
 except KeyboardInterrupt:
     sys.exit(200)
 state.commit()
