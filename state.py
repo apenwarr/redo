@@ -1,297 +1,199 @@
-import sys, os, errno, glob, stat, fcntl, sqlite3
+import sys, os, errno, glob, stat
 import vars
-from helpers import unlink, close_on_exec, join
+from helpers import unlink, join
 from log import warn, err, debug2, debug3
 
-SCHEMA_VER=1
-TIMEOUT=60
-
-ALWAYS='//ALWAYS'   # an invalid filename that is always marked as dirty
-STAMP_DIR='dir'     # the stamp of a directory; mtime is unhelpful
-STAMP_MISSING='0'   # the stamp of a nonexistent file
-
-
-def _connect(dbfile):
-    _db = sqlite3.connect(dbfile, timeout=TIMEOUT)
-    _db.execute("pragma synchronous = off")
-    _db.execute("pragma journal_mode = PERSIST")
-    _db.text_factory = str
-    return _db
-
-
-_db = None
-def db():
-    global _db
-    if _db:
-        return _db
-        
-    dbdir = '%s/.redo' % vars.BASE
-    dbfile = '%s/db.sqlite3' % dbdir
-    try:
-        os.mkdir(dbdir)
-    except OSError, e:
-        if e.errno == errno.EEXIST:
-            pass  # if it exists, that's okay
-        else:
-            raise
-
-    must_create = not os.path.exists(dbfile)
-    if not must_create:
-        _db = _connect(dbfile)
-        try:
-            row = _db.cursor().execute("select version from Schema").fetchone()
-        except sqlite3.OperationalError:
-            row = None
-        ver = row and row[0] or None
-        if ver != SCHEMA_VER:
-            err("state database: discarding v%s (wanted v%s)\n"
-                % (ver, SCHEMA_VER))
-            must_create = True
-            _db = None
-    if must_create:
-        unlink(dbfile)
-        _db = _connect(dbfile)
-        _db.execute("create table Schema "
-                    "    (version int)")
-        _db.execute("create table Runid "
-                    "    (id integer primary key autoincrement)")
-        _db.execute("create table Files "
-                    "    (name not null primary key, "
-                    "     is_generated int, "
-                    "     is_override int, "
-                    "     checked_runid int, "
-                    "     changed_runid int, "
-                    "     failed_runid int, "
-                    "     stamp, "
-                    "     csum)")
-        _db.execute("create table Deps "
-                    "    (target int, "
-                    "     source int, "
-                    "     mode not null, "
-                    "     delete_me int, "
-                    "     primary key (target,source))")
-        _db.execute("insert into Schema (version) values (?)", [SCHEMA_VER])
-        # eat the '0' runid and File id
-        _db.execute("insert into Runid values "
-                    "     ((select max(id)+1 from Runid))")
-        _db.execute("insert into Files (name) values (?)", [ALWAYS])
-
-    if not vars.RUNID:
-        _db.execute("insert into Runid values "
-                    "     ((select max(id)+1 from Runid))")
-        vars.RUNID = _db.execute("select last_insert_rowid()").fetchone()[0]
-        os.environ['REDO_RUNID'] = str(vars.RUNID)
-    
-    _db.commit()
-    return _db
-    
-
-def init():
-    db()
-
-
-_wrote = 0
-def _write(q, l):
-    if _insane:
-        return
-    global _wrote
-    _wrote += 1
-    db().execute(q, l)
-
-
-def commit():
-    if _insane:
-        return
-    global _wrote
-    if _wrote:
-        db().commit()
-        _wrote = 0
-
-
-_insane = None
-def check_sane():
-    global _insane, _writable
-    if not _insane:
-        _insane = not os.path.exists('%s/.redo' % vars.BASE)
-    return not _insane
-
-
-_cwd = None
-def relpath(t, base):
-    global _cwd
-    if not _cwd:
-        _cwd = os.getcwd()
-    t = os.path.normpath(os.path.join(_cwd, t))
-    base = os.path.normpath(base)
-    tparts = t.split('/')
-    bparts = base.split('/')
-    for tp,bp in zip(tparts,bparts):
-        if tp != bp:
-            break
-        tparts.pop(0)
-        bparts.pop(0)
-    while bparts:
-        tparts.insert(0, '..')
-        bparts.pop(0)
-    return join('/', tparts)
+ALWAYS = '//ALWAYS'   # an invalid filename that is always marked as dirty
+STAMP_DIR = 'dir'     # the stamp of a directory; mtime is unhelpful
+STAMP_MISSING = '0'   # the stamp of a nonexistent file
 
 
 def warn_override(name):
     warn('%s - you modified it; skipping\n' % name)
 
 
-_file_cols = ['rowid', 'name', 'is_generated', 'is_override',
-              'checked_runid', 'changed_runid', 'failed_runid',
-              'stamp', 'csum']
+def fix_chdir(targets):
+    abs_pwd = os.path.join(vars.STARTDIR, vars.PWD)
+    if os.path.samefile('.', abs_pwd):
+        return targets  # nothing to change
+    rel_orig_dir = os.path.relpath('.', abs_pwd)
+    os.chdir(abs_pwd)
+    return [os.path.join(rel_orig_dir, t) for t in targets]
+
+
+def _files(target, seen):
+    dir = os.path.dirname(target)
+    f = File(name=target)
+    if f.name not in seen:
+        seen[f.name] = 1
+        yield f
+    for stamp, dep in f.deps:
+        fullname = os.path.join(dir, dep)
+        for i in _files(fullname, seen):
+            yield i
+
+
+def files():
+    seen = {}
+    for depfile in glob.glob('*.deps.redo'):
+        for i in _files(depfile[:-10], seen):
+            yield i
+
+
 class File(object):
-    # use this mostly to avoid accidentally assigning to typos
-    __slots__ = ['id'] + _file_cols[1:]
+    # FIXME: I think parent is always None
+    def __init__(self, junk=None, name=None, parent=None):
+        assert(junk is None)
+        if name != ALWAYS and name.startswith('/'):
+            name = os.path.relpath(name, os.getcwd())
+        if parent:
+            self.name = os.path.join(parent.dir, name)
+        else:
+            self.name = name
+        self.dir = os.path.split(self.name)[0]
+        self._file_prefix = None
+        self.refresh()
 
     def __repr__(self):
         return 'state.File(%s)' % self.name
 
-    def _init_from_idname(self, id, name):
-        q = ('select %s from Files ' % join(', ', _file_cols))
-        if id != None:
-            q += 'where rowid=?'
-            l = [id]
-        elif name != None:
-            name = (name==ALWAYS) and ALWAYS or relpath(name, vars.BASE)
-            q += 'where name=?'
-            l = [name]
-        else:
-            raise Exception('name or id must be set')
-        d = db()
-        row = d.execute(q, l).fetchone()
-        if not row:
-            if not name:
-                raise Exception('File with id=%r not found and '
-                                'name not given' % id)
-            try:
-                _write('insert into Files (name) values (?)', [name])
-            except sqlite3.IntegrityError:
-                # some parallel redo probably added it at the same time; no
-                # big deal.
-                pass
-            row = d.execute(q, l).fetchone()
-            assert(row)
-        return self._init_from_cols(row)
-
-    def _init_from_cols(self, cols):
-        (self.id, self.name, self.is_generated, self.is_override,
-         self.checked_runid, self.changed_runid, self.failed_runid,
-         self.stamp, self.csum) = cols
-        if self.name == ALWAYS and self.changed_runid < vars.RUNID:
-            self.changed_runid = vars.RUNID
-    
-    def __init__(self, id=None, name=None, cols=None):
-        if cols:
-            return self._init_from_cols(cols)
-        else:
-            return self._init_from_idname(id, name)
+    def _file(self, filetype):
+        return '%s.%s.redo' % (self._file_prefix or self.name, filetype)
 
     def refresh(self):
-        self._init_from_idname(self.id, None)
-
-    def save(self):
-        cols = join(', ', ['%s=?'%i for i in _file_cols[2:]])
-        _write('update Files set '
-               '    %s '
-               '    where rowid=?' % cols,
-               [self.is_generated, self.is_override,
-                self.checked_runid, self.changed_runid, self.failed_runid,
-                self.stamp, self.csum,
-                self.id])
-
-    def set_checked(self):
-        self.checked_runid = vars.RUNID
-
-    def set_checked_save(self):
-        self.set_checked()
-        self.save()
-
-    def set_changed(self):
-        debug2('BUILT: %r (%r)\n' % (self.name, self.stamp))
-        self.changed_runid = vars.RUNID
-        self.failed_runid = None
-        self.is_override = False
-
-    def set_failed(self):
-        debug2('FAILED: %r\n' % self.name)
-        self.update_stamp()
-        self.failed_runid = vars.RUNID
-        self.is_generated = True
-
-    def set_static(self):
-        self.update_stamp(must_exist=True)
-        self.is_override = False
-        self.is_generated = False
-
-    def set_override(self):
-        self.update_stamp()
-        self.is_override = True
-
-    def update_stamp(self, must_exist=False):
-        newstamp = self.read_stamp()
-        if must_exist and newstamp == STAMP_MISSING:
-            raise Exception("%r does not exist" % self.name)
-        if newstamp != self.stamp:
-            debug2("STAMP: %s: %r -> %r\n" % (self.name, self.stamp, newstamp))
-            self.stamp = newstamp
-            self.set_changed()
-
-    def is_checked(self):
-        return self.checked_runid and self.checked_runid >= vars.RUNID
-
-    def is_changed(self):
-        return self.changed_runid and self.changed_runid >= vars.RUNID
-
-    def is_failed(self):
-        return self.failed_runid and self.failed_runid >= vars.RUNID
-
-    def deps(self):
-        q = ('select Deps.mode, Deps.source, %s '
-             '  from Files '
-             '    join Deps on Files.rowid = Deps.source '
-             '  where target=?' % join(', ', _file_cols[1:]))
-        for row in db().execute(q, [self.id]).fetchall():
-            mode = row[0]
-            cols = row[1:]
-            assert(mode in ('c', 'm'))
-            yield mode,File(cols=cols)
-
-    def zap_deps1(self):
-        debug2('zap-deps1: %r\n' % self.name)
-        _write('update Deps set delete_me=? where target=?', [True, self.id])
-
-    def zap_deps2(self):
-        debug2('zap-deps2: %r\n' % self.name)
-        _write('delete from Deps where target=? and delete_me=1', [self.id])
-
-    def add_dep(self, mode, dep):
-        src = File(name=dep)
-        debug3('add-dep: "%s" < %s "%s"\n' % (self.name, mode, src.name))
-        assert(self.id != src.id)
-        _write("insert or replace into Deps "
-               "    (target, mode, source, delete_me) values (?,?,?,?)",
-               [self.id, mode, src.id, False])
-
-    def read_stamp(self):
+        if self.name == ALWAYS:
+            self.stamp_mtime = str(vars.RUNID)
+            self.exitcode = 0
+            self.deps = []
+            self.is_generated = True
+            self.csum = None
+            self.stamp = str(vars.RUNID)
+            return
+        assert(not self.name.startswith('/'))
         try:
-            st = os.stat(os.path.join(vars.BASE, self.name))
+            # read the state file
+            f = open(self._file('deps'))
+        except IOError:
+            try:
+                # okay, check for the file itself
+                st = os.stat(self.name)
+            except OSError:
+                # it doesn't exist at all yet
+                self.stamp_mtime = 0  # no stamp file
+                self.exitcode = 0
+                self.deps = []
+                self.stamp = STAMP_MISSING
+                self.csum = None
+                self.is_generated = True
+            else:
+                # it's a source file (without a .deps file)
+                self.stamp_mtime = 0  # no stamp file
+                self.exitcode = 0
+                self.deps = []
+                self.is_generated = False
+                self.csum = None
+                self.stamp = self.read_stamp()
+        else:
+            # it's a target (with a .deps file)
+            st = os.fstat(f.fileno())
+            lines = f.read().strip().split('\n')
+            self.stamp_mtime = int(st.st_mtime)
+            self.exitcode = int(lines.pop(-1))
+            self.is_generated = True
+            self.csum = None
+            self.stamp = lines.pop(-1)
+            self.deps = [line.split(' ', 1) for line in lines]
+            while self.deps and self.deps[-1][1] == '.':
+                # a line added by redo-stamp
+                self.csum = self.deps.pop(-1)[0]
+
+    def forget(self):
+        debug3('forget(%s)\n' % self.name)
+        unlink(self._file('deps'))
+
+    def _add(self, line):
+        depsname = self._file('deps2')
+        debug3('_add(%s) to %r\n' % (line, depsname))
+        #assert os.path.exists(depsname)
+        line = str(line)
+        f = open(depsname, 'a')
+        assert('\n' not in line)
+        f.write(line + '\n')
+
+    def build_starting(self):
+        self._file_prefix = self.name
+        while 1:
+            depsname = self._file('deps2')
+            if os.path.isdir(os.path.join(os.path.dirname(depsname), '.')):
+                break
+            parts = self._file_prefix.split('/')
+            parts = parts[:-2] + [parts[-2] + '__' + parts[-1]]
+            self._file_prefix = os.path.join(*parts)
+        debug3('build starting: %r\n' % depsname)
+        unlink(depsname)
+
+    def build_done(self, exitcode):
+        depsname = self._file('deps2')
+        debug3('build ending: %r\n' % depsname)
+        self._add(self.read_stamp(runid=vars.RUNID))
+        self._add(exitcode)
+        os.utime(depsname, (vars.RUNID, vars.RUNID))
+        os.rename(depsname, self._file('deps'))
+        self.refresh()  # FIXME: unnecessary?
+
+    def add_dep(self, file):
+        relname = os.path.relpath(file.name, self.dir)
+        debug3('add-dep: %r < %r %r\n' % (self.name, file.stamp, relname))
+        assert('\n' not in file.name)
+        assert(' '  not in file.stamp)
+        assert('\n' not in file.stamp)
+        assert('\t' not in file.stamp)
+        assert('\r' not in file.stamp)
+        self._add('%s %s' % (file.csum or file.stamp, relname))
+
+    def read_stamp(self, runid=None):
+        # FIXME: make this formula more well-defined
+        if runid is None:
+            try:
+                st_deps = os.stat(self._file('deps'))
+            except OSError:
+                runid_suffix = ''
+            else:
+                runid_suffix = '+' + str(int(st_deps.st_mtime))
+        else:
+            runid_suffix = '+' + str(int(runid))
+        try:
+            st = os.stat(self.name)
         except OSError:
-            return STAMP_MISSING
+            return STAMP_MISSING + runid_suffix
         if stat.S_ISDIR(st.st_mode):
-            return STAMP_DIR
+            return STAMP_DIR + runid_suffix
         else:
             # a "unique identifier" stamp for a regular file
-            return str((st.st_ctime, st.st_mtime, st.st_size, st.st_ino))
+            return join('-', (st.st_ctime, st.st_mtime,
+                              st.st_size, st.st_ino)) + runid_suffix
+
+    def exists(self):
+        return os.path.exists(self.name)
+
+    # FIXME: this function is confusing.  Various parts of the code need to
+    #  know whether they want the csum or the stamp, when in theory, the csum
+    #  should just override the stamp.
+    def csum_or_read_stamp(self):
+        newstamp = self.read_stamp()
+        if newstamp == self.stamp:
+            return self.csum or newstamp
+        else:
+            # old csum is meaningless because file changed after it was
+            # recorded.
+            return newstamp
 
     def nicename(self):
-        return relpath(os.path.join(vars.BASE, self.name), vars.STARTDIR)
+        # FIXME: this function is obsolete (I think)
+        return self.name
 
 
-def files():
-    q = ('select %s from Files order by name' % join(', ', _file_cols))
-    for cols in db().execute(q).fetchall():
-        yield File(cols=cols)
+def is_missing(stamp):
+    if not stamp:
+        return False
+    return stamp.startswith(STAMP_MISSING + '+')

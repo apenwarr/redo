@@ -3,7 +3,7 @@ from atoi import atoi
 
 
 def join(between, l):
-    return between.join(l)
+    return between.join(str(i) for i in l)
 
 
 def unlink(f):

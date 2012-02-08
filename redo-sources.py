@@ -14,5 +14,5 @@ if len(sys.argv[1:]) != 0:
 for f in state.files():
     if f.name.startswith('//'):
         continue  # special name, ignore
-    if not f.is_generated and f.read_stamp() != state.STAMP_MISSING:
-        print f.nicename()
+    if not f.is_generated and f.exists():
+        print f.name

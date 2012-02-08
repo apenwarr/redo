@@ -3,3 +3,4 @@
 *.pyc
 *.tmp
 /redo-sh
+*.redo

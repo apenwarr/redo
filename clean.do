@@ -1,4 +1,4 @@
-rm -rf t/.redo redo-sh
+rm -rf t/.redo redo-sh redo-sh.tmp
 if [ -e .do_built ]; then
 	while read x; do
 		[ -d "$x" ] || rm -f "$x"

@@ -33,21 +33,6 @@ csum = sh.hexdigest()
 if not vars.TARGET:
     sys.exit(0)
 
-me = os.path.join(vars.STARTDIR, 
-                  os.path.join(vars.PWD, vars.TARGET))
-f = state.File(name=me)
-changed = (csum != f.csum)
-debug2('%s: old = %s\n' % (f.name, f.csum))
-debug2('%s: sum = %s (%s)\n' % (f.name, csum,
-                                changed and 'changed' or 'unchanged'))
-f.is_generated = True
-f.is_override = False
-f.failed_runid = None
-if changed:
-    f.set_changed()  # update_stamp might not do this if the mtime is identical
-    f.csum = csum
-else:
-    # unchanged
-    f.set_checked()
-f.save()
-state.commit()
+state.fix_chdir([])
+f = state.File(name=vars.TARGET)
+f._add('%s .' % csum)

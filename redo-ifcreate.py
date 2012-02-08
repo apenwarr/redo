@@ -5,15 +5,14 @@ from log import err
 
 
 try:
-    me = os.path.join(vars.STARTDIR, 
-                      os.path.join(vars.PWD, vars.TARGET))
-    f = state.File(name=me)
-    for t in sys.argv[1:]:
+    targets = sys.argv[1:]
+    targets = state.fix_chdir(targets)
+    f = state.File(name=vars.TARGET)
+    for t in targets:
         if os.path.exists(t):
             err('redo-ifcreate: error: %r already exists\n' % t)
             sys.exit(1)
         else:
-            f.add_dep('c', t)
-    state.commit()
+            f.add_dep(state.File(name=t))
 except KeyboardInterrupt:
     sys.exit(200)

@@ -1,36 +1,42 @@
 import sys, os
 import vars, state, builder
-from log import debug
+from log import debug, debug2, debug3, warn
 
 CLEAN = 0
 DIRTY = 1
 
-def isdirty(f, depth, max_changed,
-            is_checked=state.File.is_checked,
-            set_checked=state.File.set_checked_save):
+# FIXME: sanitize the return values of this function into a tuple instead.
+# FIXME: max_runid is probably the wrong concept.
+def isdirty(f, depth, expect_stamp, max_runid,
+            is_checked=lambda x: False,  #FIXME
+            set_checked=lambda y: None):  #FIXME
     if vars.DEBUG >= 1:
         debug('%s?%s\n' % (depth, f.nicename()))
 
-    if f.failed_runid:
+    if not f.is_generated and not expect_stamp and f.exists():
+        debug('%s-- CLEAN (static)\n' % depth)
+        return CLEAN
+    if f.exitcode:
         debug('%s-- DIRTY (failed last time)\n' % depth)
         return DIRTY
-    if f.changed_runid == None:
+    if not state.is_missing(expect_stamp) and state.is_missing(f.stamp):
         debug('%s-- DIRTY (never built)\n' % depth)
         return DIRTY
-    if f.changed_runid > max_changed:
+    if f.stamp_mtime > max_runid:
         debug('%s-- DIRTY (built)\n' % depth)
-        return DIRTY  # has been built more recently than parent
-    if is_checked(f):
-        if vars.DEBUG >= 1:
-            debug('%s-- CLEAN (checked)\n' % depth)
+        return DIRTY
+    if is_checked(f) or f.stamp_mtime >= vars.RUNID:
+        debug('%s-- CLEAN (checked)\n' % depth)
         return CLEAN  # has already been checked during this session
     if not f.stamp:
         debug('%s-- DIRTY (no stamp)\n' % depth)
         return DIRTY
 
-    newstamp = f.read_stamp()
-    if f.stamp != newstamp:
-        if newstamp == state.STAMP_MISSING:
+    newstamp = f.csum_or_read_stamp()
+    debug3('%r\n expect=%r\n    old=%r\n    new=%r\n'
+           % (f.name, expect_stamp, f.csum or f.stamp, newstamp))
+    if expect_stamp != newstamp:
+        if state.is_missing(newstamp):
             debug('%s-- DIRTY (missing)\n' % depth)
         else:
             debug('%s-- DIRTY (mtime)\n' % depth)
@@ -40,22 +46,16 @@ def isdirty(f, depth, max_changed,
             return DIRTY
 
     must_build = []
-    for mode,f2 in f.deps():
+    for stamp2, f2 in f.deps:
         dirty = CLEAN
-        if mode == 'c':
-            if os.path.exists(os.path.join(vars.BASE, f2.name)):
-                debug('%s-- DIRTY (created)\n' % depth)
-                dirty = DIRTY
-        elif mode == 'm':
-            sub = isdirty(f2, depth = depth + '  ',
-                          max_changed = max(f.changed_runid,
-                                            f.checked_runid),
-                          is_checked=is_checked, set_checked=set_checked)
-            if sub:
-                debug('%s-- DIRTY (sub)\n' % depth)
-                dirty = sub
-        else:
-            assert(mode in ('c','m'))
+        f2 = state.File(name=f2, parent=f)
+        sub = isdirty(f2, depth = depth + '  ',
+                      expect_stamp = stamp2,
+                      max_runid = max(f.stamp_mtime, vars.RUNID),
+                      is_checked=is_checked, set_checked=set_checked)
+        if sub:
+            debug('%s-- DIRTY (sub)\n' % depth)
+            dirty = sub
         if not f.csum:
             # f is a "normal" target: dirty f2 means f is instantly dirty
             if dirty:
@@ -71,7 +71,7 @@ def isdirty(f, depth, max_changed,
                 # redo.  However, after that, f might turn out to be
                 # unchanged.
                 return [f]
-            elif isinstance(dirty,list):
+            elif isinstance(dirty, list):
                 # our child f2 might be dirty, but it's not sure yet.  It's
                 # given us a list of targets we have to redo in order to
                 # be sure.
@@ -85,7 +85,10 @@ def isdirty(f, depth, max_changed,
         return must_build
 
     # if we get here, it's because the target is clean
-    if f.is_override:
+    debug2('%s-- CLEAN (dropped off)\n' % depth)
+    newstamp = f.read_stamp()
+    if f.stamp != newstamp and not state.is_missing(newstamp):
+        warn('%r != %r\n' % (f.stamp, newstamp))
         state.warn_override(f.name)
     set_checked(f)
     return CLEAN

@@ -1,6 +1,8 @@
 exec >&2
 redo-ifchange t/shelltest.od
 
+set "redo-sh" "redo-sh" "redo-sh.tmp"
+
 rm -rf $1.new $1/sh
 mkdir $1.new
 

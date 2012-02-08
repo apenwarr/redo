@@ -50,17 +50,18 @@ import vars, state, builder
 from log import warn, err
 
 try:
-    for t in targets:
-        if os.path.exists(t):
-            f = state.File(name=t)
-            if not f.is_generated:
-                warn('%s: exists and not marked as generated; not redoing.\n'
-                     % f.nicename())
-    
     j = atoi(opt.jobs or 1)
     if j < 1 or j > 1000:
         err('invalid --jobs value: %r\n' % opt.jobs)
-    retcode = builder.main(targets, lambda t: True)
-    sys.exit(retcode)
+
+    targets = state.fix_chdir(targets)
+    for t in targets:
+        f = state.File(name=t)
+        if os.path.exists(t) and not f.is_generated:
+            warn('%s: exists and not marked as generated; not redoing.\n'
+                 % f.nicename())
+        retcode = builder.build(t)
+        if retcode:
+            sys.exit(retcode)
 except KeyboardInterrupt:
     sys.exit(200)
