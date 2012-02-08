@@ -1,5 +1,4 @@
-/bin/ls *.md t/*.md |
-sed 's/\.md/.1/' |
-xargs redo-ifchange
+redo-ifchange md-file-list
 
-redo-always
+sed 's/\.md/.1/' <md-file-list |
+xargs redo-ifchange
