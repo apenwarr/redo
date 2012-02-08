@@ -1,10 +1,5 @@
+/.redo
 *~
 *.pyc
 *.tmp
-/.redo
-t/CC
-t/LD
-t/[yb]ellow
-t/hello
-t/*.o
 /redo-sh
