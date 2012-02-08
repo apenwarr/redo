@@ -25,27 +25,32 @@ redo-ifchange usestamp
 [ "$(wc -l <usestamp.log)" -eq 1 ] || exit 42
 
 # stampy depends on bob, so we'll have to rebuild stampy automatically.  But
-# stampy's checksum will still be identical.
+# stampy's checksum will still be identical, so usestamp shouldn't rebuild.
 ../flush-cache
 redo bob
+../flush-cache
 redo-ifchange usestamp
 [ "$(wc -l <stampy.log)" -eq 3 ] || exit 43
 [ "$(wc -l <usestamp.log)" -eq 1 ] || exit 44
 
-# Make sure the previous step correctly marked stampy and usestamp as up-to-date
-# even though *neither* of them is newer than bob.
+# Make sure the previous step correctly marked stampy and usestamp as
+# up-to-date even though *neither* of them is newer than bob.
 ../flush-cache
 redo-ifchange usestamp
 [ "$(wc -l <stampy.log)" -eq 3 ] || exit 45
 [ "$(wc -l <usestamp.log)" -eq 1 ] || exit 46
 
-# now we're changing the contents of stampy.
-../flush-cache
+# now we're changing the contents of stampy.  Thus usestamp will need to
+# be rebuilt, but not yet...
 echo two >inp
+../flush-cache
 redo stampy
 [ "$(wc -l <stampy.log)" -eq 4 ] || exit 51
 [ "$(wc -l <usestamp.log)" -eq 1 ] || exit 52
 
+# let's see about usestamp.  It needs to be rebuilt because stampy has changed,
+# but since stampy is *already* changed, stampy itself shouldn't be re-rebuilt.
+../flush-cache
 redo-ifchange usestamp usestamp2
 [ "$(wc -l <stampy.log)" -eq 4 ] || exit 61
 [ "$(wc -l <usestamp.log)" -eq 2 ] || exit 62
