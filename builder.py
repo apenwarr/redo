@@ -109,8 +109,12 @@ def build(target_name):
     tmp1_f = os.fdopen(tmp1_fd, 'w+')
 
     # this will run in the dofile's directory, so use only basenames here
-    arg1 = basename + ext  # target name (including extension)
-    arg2 = basename        # target name (without extension)
+    if vars.OLD_ARGS:
+        arg1 = basename  # target name (no extension)
+        arg2 = ext       # extension (if any), including leading dot
+    else:
+        arg1 = basename + ext  # target name (including extension)
+        arg2 = basename        # target name (without extension)
     argv = ['sh', '-e',
             dofile,
             arg1,
