@@ -59,7 +59,7 @@ try:
         f = state.File(name=t)
         if os.path.exists(t) and not f.is_generated:
             warn('%s: exists and not marked as generated; not redoing.\n'
-                 % f.nicename())
+                 % f.name)
         retcode = builder.build(t)
         if retcode:
             sys.exit(retcode)

@@ -188,10 +188,6 @@ class File(object):
             # recorded.
             return newstamp
 
-    def nicename(self):
-        # FIXME: this function is obsolete (I think)
-        return self.name
-
 
 def is_missing(stamp):
     if not stamp:

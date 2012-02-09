@@ -11,7 +11,7 @@ def isdirty(f, depth, expect_stamp, max_runid,
             is_checked=lambda x: False,  #FIXME
             set_checked=lambda y: None):  #FIXME
     if vars.DEBUG >= 1:
-        debug('%s?%s\n' % (depth, f.nicename()))
+        debug('%s?%s\n' % (depth, f.name))
 
     if not f.is_generated and not expect_stamp and f.exists():
         debug('%s-- CLEAN (static)\n' % depth)
