@@ -94,7 +94,7 @@ _run_dofile()
 	export REDO_TARGET=$PWD/$target
 	local line1
 	set -e
-	read line1 <"$PWD/$dofile"
+	read line1 <"$PWD/$dofile" || true
 	cmd=${line1#"#!/"}
 	if [ "$cmd" != "$line1" ]; then
 		/$cmd "$PWD/$dofile" "$@" >"$tmp.tmp2"
