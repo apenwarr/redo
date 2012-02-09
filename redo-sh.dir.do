@@ -67,3 +67,4 @@ else
 	echo "No good shells found!  Maybe install dash, bash, or zsh."
 	exit 13
 fi
+mv $3 redo-sh
