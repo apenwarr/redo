@@ -46,7 +46,7 @@ def _find_do_file(f):
             dodir = os.path.normpath(dodir)
         dopath = os.path.join(dodir, dofile)
         debug2('%s: %s:%s ?\n' % (f.name, dodir, dofile))
-        dof = state.File(name=dopath)
+        dof = state.File(dopath)
         if os.path.exists(dopath):
             f.add_dep(dof)
             return dodir,dofile,basedir,basename,ext
@@ -71,7 +71,7 @@ def _try_stat(filename):
 
 def build(t):
     tmpbase = t
-    sf = state.File(name=t)
+    sf = state.File(t)
     debug3('thinking about building %r\n' % sf.name)
     sf.build_starting()
     while not os.path.isdir(os.path.dirname(tmpbase) or '.'):

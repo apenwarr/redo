@@ -6,7 +6,7 @@ from log import err
 
 try:
     state.fix_chdir([])
-    f = state.File(name=vars.TARGET)
+    f = state.File(vars.TARGET)
     f.add_dep(state.File(name=state.ALWAYS))
 except KeyboardInterrupt:
     sys.exit(200)

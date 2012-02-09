@@ -7,7 +7,7 @@ from log import err
 try:
     targets = sys.argv[1:]
     targets = state.fix_chdir(targets)
-    f = state.File(name=vars.TARGET)
+    f = state.File(vars.TARGET)
     for t in targets:
         if os.path.exists(t):
             err('redo-ifcreate: error: %r already exists\n' % t)

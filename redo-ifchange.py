@@ -9,7 +9,7 @@ from log import debug, debug2, err
 
 
 def should_build(t):
-    f = state.File(name=t)
+    f = state.File(t)
     if f.stamp_mtime >= vars.RUNID and f.exitcode:
         raise Exception('earlier build of %r failed with code %d'
                         % (f.name, f.exitcode))

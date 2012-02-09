@@ -48,7 +48,7 @@ def isdirty(f, depth, expect_stamp, max_runid,
     must_build = []
     for stamp2, f2 in f.deps:
         dirty = CLEAN
-        f2 = state.File(name=f2, parent=f)
+        f2 = state.File(os.path.join(f.dir, f2))
         sub = isdirty(f2, depth = depth + '  ',
                       expect_stamp = stamp2,
                       max_runid = max(f.stamp_mtime, vars.RUNID),

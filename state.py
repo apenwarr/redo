@@ -23,7 +23,7 @@ def fix_chdir(targets):
 
 def _files(target, seen):
     dir = os.path.dirname(target)
-    f = File(name=target)
+    f = File(target)
     if f.name not in seen:
         seen[f.name] = 1
         yield f
@@ -41,15 +41,10 @@ def files():
 
 
 class File(object):
-    # FIXME: I think parent is always None
-    def __init__(self, junk=None, name=None, parent=None):
-        assert(junk is None)
+    def __init__(self, name):
         if name != ALWAYS and name.startswith('/'):
             name = os.path.relpath(name, os.getcwd())
-        if parent:
-            self.name = os.path.join(parent.dir, name)
-        else:
-            self.name = name
+        self.name = name
         self.dir = os.path.split(self.name)[0]
         self._file_prefix = None
         self.refresh()

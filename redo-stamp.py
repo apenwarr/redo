@@ -34,5 +34,5 @@ if not vars.TARGET:
     sys.exit(0)
 
 state.fix_chdir([])
-f = state.File(name=vars.TARGET)
+f = state.File(vars.TARGET)
 f._add('%s .' % csum)

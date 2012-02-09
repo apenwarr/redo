@@ -56,7 +56,7 @@ try:
 
     targets = state.fix_chdir(targets)
     for t in targets:
-        f = state.File(name=t)
+        f = state.File(t)
         if os.path.exists(t) and not f.is_generated:
             warn('%s: exists and not marked as generated; not redoing.\n'
                  % f.name)
