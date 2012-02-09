@@ -69,14 +69,8 @@ def build(t):
     sf = state.File(t)
     debug3('thinking about building %r\n', sf.name)
     sf.build_starting()
-    # FIXME: build_starting does this already
-    tmpbase = t
-    while not os.path.isdir(os.path.dirname(tmpbase) or '.'):
-        ofs = tmpbase.rfind('/')
-        assert(ofs >= 0)
-        tmpbase = tmpbase[:ofs] + '__' + tmpbase[ofs+1:]
-    tmpname1 = '%s.redo1.tmp' % tmpbase
-    tmpname2 = '%s.redo2.tmp' % tmpbase
+    tmpname1 = sf.tmpfilename('redo1.tmp')
+    tmpname2 = sf.tmpfilename('redo2.tmp')
     before_t = _try_stat(t)
 
     newstamp = sf.read_stamp()

@@ -68,7 +68,7 @@ class File(object):
     def __repr__(self):
         return 'state.File(%s)' % self.name
 
-    def _file(self, filetype):
+    def tmpfilename(self, filetype):
         return '%s.%s.redo' % (self._file_prefix or self.name, filetype)
 
     def printable_name(self):
@@ -105,7 +105,7 @@ class File(object):
         assert(not self.name.startswith('/'))
         try:
             # read the state file
-            f = open(self._file('deps'))
+            f = open(self.tmpfilename('deps'))
         except IOError:
             try:
                 # okay, check for the file itself
@@ -146,10 +146,10 @@ class File(object):
     def forget(self):
         """Turn a 'target' file back into a 'source' file."""
         debug3('forget(%s)\n', self.name)
-        unlink(self._file('deps'))
+        unlink(self.tmpfilename('deps'))
 
     def _add(self, line):
-        depsname = self._file('deps2')
+        depsname = self.tmpfilename('deps2')
         debug3('_add(%s) to %r\n', line, depsname)
         #assert os.path.exists(depsname)
         line = str(line)
@@ -161,7 +161,7 @@ class File(object):
         """Call this when you're about to start building this target."""
         self._file_prefix = self.name
         while 1:
-            depsname = self._file('deps2')
+            depsname = self.tmpfilename('deps2')
             if os.path.isdir(os.path.join(os.path.dirname(depsname), '.')):
                 break
             parts = self._file_prefix.split('/')
@@ -172,12 +172,12 @@ class File(object):
 
     def build_done(self, exitcode):
         """Call this when you're done building this target."""
-        depsname = self._file('deps2')
+        depsname = self.tmpfilename('deps2')
         debug3('build ending: %r\n', depsname)
         self._add(self.read_stamp(runid=vars.RUNID))
         self._add(exitcode)
         os.utime(depsname, (vars.RUNID, vars.RUNID))
-        os.rename(depsname, self._file('deps'))
+        os.rename(depsname, self.tmpfilename('deps'))
 
     def add_dep(self, file):
         """Mark the given File() object as a dependency of this target.
@@ -199,7 +199,7 @@ class File(object):
         # FIXME: make this formula more well-defined
         if runid is None:
             try:
-                st_deps = os.stat(self._file('deps'))
+                st_deps = os.stat(self.tmpfilename('deps'))
             except OSError:
                 runid_suffix = ''
             else:
