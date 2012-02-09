@@ -13,6 +13,21 @@ def warn_override(name):
 
 
 def fix_chdir(targets):
+    """Undo any chdir() done by the .do script that called us.
+
+    When we run a .do script, we do it from the directory containing that .do
+    script, which is represented by STARTDIR/PWD (ie. the redo start directory
+    plus any relative path of the current script).  However, the .do script
+    is allowed to do chdir() and then run various redo commands.  We need
+    to be running in well-defined conditions, so we chdir() to the original
+    STARTDIR/PWD and paraphrase all the command-line arguments (targets) into
+    paths relative to that directory.
+
+    Args:
+      targets: almost always sys.argv[1:]; paths relative to os.getcwd().
+    Returns:
+      targets, but relative to the (newly changed) os.getcwd().
+    """
     abs_pwd = os.path.join(vars.STARTDIR, vars.PWD)
     if os.path.samefile('.', abs_pwd):
         return targets  # nothing to change
@@ -34,6 +49,7 @@ def _files(target, seen):
 
 
 def files():
+    """Return a list of files known to redo, starting in os.getcwd()."""
     seen = {}
     for depfile in glob.glob('*.deps.redo'):
         for i in _files(depfile[:-10], seen):
@@ -54,6 +70,28 @@ class File(object):
 
     def _file(self, filetype):
         return '%s.%s.redo' % (self._file_prefix or self.name, filetype)
+
+    def printable_name(self):
+        """Return the name relative to vars.STARTDIR, normalized.
+
+        "normalized" means we use os.path.normpath(), but only if that doesn't
+        change the meaning of the filename.  (If there are symlinks,
+        simplifying a/b/../c into a/c might not be correct.)
+
+        The result is suitable for printing in the output, where all filenames
+        will be relative to the user's starting directory, regardless of
+        which .do file we're in or the getcwd() of the moment.
+        """
+        base = os.path.join(vars.PWD, self.name)
+        base_full_dir = os.path.dirname(os.path.join(vars.STARTDIR, base))
+        norm = os.path.normpath(base)
+        norm_full_dir = os.path.dirname(os.path.join(vars.STARTDIR, norm))
+        try:
+            if os.path.samefile(base_full_dir, norm_full_dir):
+                return norm
+        except OSError:
+            raise
+        return base
 
     def refresh(self):
         if self.name == ALWAYS:
@@ -134,7 +172,6 @@ class File(object):
         self._add(exitcode)
         os.utime(depsname, (vars.RUNID, vars.RUNID))
         os.rename(depsname, self._file('deps'))
-        self.refresh()  # FIXME: unnecessary?
 
     def add_dep(self, file):
         relname = os.path.relpath(file.name, self.dir)
