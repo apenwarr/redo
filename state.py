@@ -28,6 +28,9 @@ def fix_chdir(targets):
     Returns:
       targets, but relative to the (newly changed) os.getcwd().
     """
+    if vars.SHUFFLE:
+        import random
+        random.shuffle(targets)
     abs_pwd = os.path.join(vars.STARTDIR, vars.PWD)
     if os.path.samefile('.', abs_pwd):
         return targets  # nothing to change
