@@ -52,7 +52,7 @@ from log import warn, err
 try:
     j = atoi(opt.jobs or 1)
     if j < 1 or j > 1000:
-        err('invalid --jobs value: %r\n' % opt.jobs)
+        err('invalid --jobs value: %r\n', opt.jobs)
 
     targets = state.fix_chdir(targets)
     for t in targets:

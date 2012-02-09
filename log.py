@@ -17,33 +17,41 @@ if sys.stderr.isatty() and (os.environ.get('TERM') or 'dumb') != 'dumb':
     PLAIN  = "\x1b[m"
 
 
-def log_(s):
+def log_(s, *args):
+    if args:
+        ss = s % args
+    else:
+        ss = s
     sys.stdout.flush()
     if vars.DEBUG_PIDS:
-        sys.stderr.write('%d %s' % (os.getpid(), s))
+        sys.stderr.write('%d %s' % (os.getpid(), ss))
     else:
-        sys.stderr.write(s)
+        sys.stderr.write(ss)
     sys.stderr.flush()
 
 
-def log(s):
-    log_(''.join([GREEN,  "redo  ", vars.DEPTH, BOLD, s, PLAIN]))
-
-def err(s):
-    log_(''.join([RED,    "redo  ", vars.DEPTH, BOLD, s, PLAIN]))
-
-def warn(s):
-    log_(''.join([YELLOW, "redo  ", vars.DEPTH, BOLD, s, PLAIN]))
+def log(s, *args):
+    log_(''.join([GREEN,  "redo  ", vars.DEPTH, BOLD, s, PLAIN]), *args)
 
 
-def debug(s):
+def err(s, *args):
+    log_(''.join([RED,    "redo  ", vars.DEPTH, BOLD, s, PLAIN]), *args)
+
+
+def warn(s, *args):
+    log_(''.join([YELLOW, "redo  ", vars.DEPTH, BOLD, s, PLAIN]), *args)
+
+
+def debug(s, *args):
     if vars.DEBUG >= 1:
-        log_('redo: %s%s' % (vars.DEPTH, s))
-def debug2(s):
+        log_('redo: %s%s' % (vars.DEPTH, s), *args)
+
+
+def debug2(s, *args):
     if vars.DEBUG >= 2:
-        log_('redo: %s%s' % (vars.DEPTH, s))
-def debug3(s):
+        log_('redo: %s%s' % (vars.DEPTH, s), *args)
+
+
+def debug3(s, *args):
     if vars.DEBUG >= 3:
-        log_('redo: %s%s' % (vars.DEPTH, s))
-
-
+        log_('redo: %s%s' % (vars.DEPTH, s), *args)

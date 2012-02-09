@@ -9,7 +9,7 @@ STAMP_MISSING = '0'   # the stamp of a nonexistent file
 
 
 def warn_override(name):
-    warn('%s - you modified it; skipping\n' % name)
+    warn('%s - you modified it; skipping\n', name)
 
 
 def fix_chdir(targets):
@@ -145,12 +145,12 @@ class File(object):
 
     def forget(self):
         """Turn a 'target' file back into a 'source' file."""
-        debug3('forget(%s)\n' % self.name)
+        debug3('forget(%s)\n', self.name)
         unlink(self._file('deps'))
 
     def _add(self, line):
         depsname = self._file('deps2')
-        debug3('_add(%s) to %r\n' % (line, depsname))
+        debug3('_add(%s) to %r\n', line, depsname)
         #assert os.path.exists(depsname)
         line = str(line)
         f = open(depsname, 'a')
@@ -167,13 +167,13 @@ class File(object):
             parts = self._file_prefix.split('/')
             parts = parts[:-2] + [parts[-2] + '__' + parts[-1]]
             self._file_prefix = os.path.join(*parts)
-        debug3('build starting: %r\n' % depsname)
+        debug3('build starting: %r\n', depsname)
         unlink(depsname)
 
     def build_done(self, exitcode):
         """Call this when you're done building this target."""
         depsname = self._file('deps2')
-        debug3('build ending: %r\n' % depsname)
+        debug3('build ending: %r\n', depsname)
         self._add(self.read_stamp(runid=vars.RUNID))
         self._add(exitcode)
         os.utime(depsname, (vars.RUNID, vars.RUNID))
@@ -187,7 +187,7 @@ class File(object):
         result in this target being rebuilt.
         """
         relname = os.path.relpath(file.name, self.dir)
-        debug3('add-dep: %r < %r %r\n' % (self.name, file.stamp, relname))
+        debug3('add-dep: %r < %r %r\n', self.name, file.stamp, relname)
         assert('\n' not in file.name)
         assert(' '  not in file.stamp)
         assert('\n' not in file.stamp)

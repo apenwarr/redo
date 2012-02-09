@@ -45,7 +45,7 @@ try:
     targets = state.fix_chdir(targets)
     if vars.TARGET:
         f = state.File(name=vars.TARGET)
-        debug2('TARGET: %r %r %r\n' % (vars.STARTDIR, vars.PWD, vars.TARGET))
+        debug2('TARGET: %r %r %r\n', vars.STARTDIR, vars.PWD, vars.TARGET)
     else:
         f = me = None
         debug2('redo-ifchange: no target - not adding depends.\n')

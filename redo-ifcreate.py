@@ -10,7 +10,7 @@ try:
     f = state.File(vars.TARGET)
     for t in targets:
         if os.path.exists(t):
-            err('redo-ifcreate: error: %r already exists\n' % t)
+            err('redo-ifcreate: error: %r already exists\n', t)
             sys.exit(1)
         else:
             f.add_dep(state.File(name=t))

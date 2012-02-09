@@ -1,7 +1,7 @@
 import sys, os, errno, stat
 import vars, state
 from helpers import unlink, close_on_exec, join
-from log import log, log_, debug, debug2, debug3, err, warn
+from log import log, log_, debug, debug2, debug3, err
 
 
 def _default_do_files(filename):
@@ -45,7 +45,7 @@ def _find_do_file(f):
             # create the sub-path.
             dodir = os.path.normpath(dodir)
         dopath = os.path.join(dodir, dofile)
-        debug2('%s: %s:%s ?\n' % (f.name, dodir, dofile))
+        debug2('%s: %s:%s ?\n', f.name, dodir, dofile)
         dof = state.File(dopath)
         if os.path.exists(dopath):
             f.add_dep(dof)
@@ -67,7 +67,7 @@ def _try_stat(filename):
 
 def build(t):
     sf = state.File(t)
-    debug3('thinking about building %r\n' % sf.name)
+    debug3('thinking about building %r\n', sf.name)
     sf.build_starting()
     # FIXME: build_starting does this already
     tmpbase = t
@@ -83,7 +83,7 @@ def build(t):
     if sf.is_generated and newstamp != sf.stamp:
         if state.is_missing(newstamp):
             # was marked generated, but is now deleted
-            debug3('oldstamp=%r newstamp=%r\n' % (sf.stamp, newstamp))
+            debug3('oldstamp=%r newstamp=%r\n', sf.stamp, newstamp)
             sf.forget()
             sf.refresh()
         else:
@@ -95,12 +95,12 @@ def build(t):
         # For example, a rule called default.c.do could be used to try
         # to produce hello.c, but we don't want that to happen if
         # hello.c was created in advance by the end user.
-        debug2("-- static (%r)\n" % t)
+        debug2("-- static (%r)\n", t)
         return 0
     (dodir, dofile, basedir, basename, ext) = _find_do_file(sf)
     if not dofile:
         if state.is_missing(newstamp):
-            err('no rule to make %r\n' % t)
+            err('no rule to make %r\n', t)
             return 1
         else:
             sf.forget()
@@ -126,7 +126,7 @@ def build(t):
     firstline = open(os.path.join(dodir, dofile)).readline().strip()
     if firstline.startswith('#!/'):
         argv[0:2] = firstline[2:].split(' ')
-    log('%s\n' % sf.printable_name())
+    log('%s\n', sf.printable_name())
 
     pid = os.fork()
     if pid == 0:  # child
@@ -166,11 +166,11 @@ def build(t):
     if (after_t and 
         (not before_t or before_t.st_ctime != after_t.st_ctime) and
         not stat.S_ISDIR(after_t.st_mode)):
-            err('%s modified %s directly!\n' % (argv[2], t))
+            err('%s modified %s directly!\n', argv[2], t)
             err('...you should update $3 (a temp file) or stdout, not $1.\n')
             rv = 206
     elif st2 and st1.st_size > 0:
-        err('%s wrote to stdout *and* created $3.\n' % argv[2])
+        err('%s wrote to stdout *and* created $3.\n', argv[2])
         err('...you should write status messages to stderr, not stdout.\n')
         rv = 207
     if rv==0:
@@ -189,12 +189,12 @@ def build(t):
             unlink(tmpname1)
             unlink(t)
         if vars.VERBOSE or vars.XTRACE or vars.DEBUG:
-            log('%s (done)\n\n' % sf.printable_name())
+            log('%s (done)\n\n', sf.printable_name())
     else:
         unlink(tmpname1)
         unlink(tmpname2)
     sf.build_done(exitcode=rv)
     f.close()
     if rv != 0:
-        err('%s: exit code %d\n' % (sf.printable_name(), rv))
+        err('%s: exit code %d\n', sf.printable_name(), rv)
     return rv

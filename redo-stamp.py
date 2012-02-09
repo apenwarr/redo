@@ -4,11 +4,11 @@ import vars, state
 from log import err, debug2
 
 if len(sys.argv) > 1:
-    err('%s: no arguments expected.\n' % sys.argv[0])
+    err('%s: no arguments expected.\n', sys.argv[0])
     sys.exit(1)
 
 if os.isatty(0):
-    err('%s: you must provide the data to stamp on stdin\n' % sys.argv[0])
+    err('%s: you must provide the data to stamp on stdin\n', sys.argv[0])
     sys.exit(1)
 
 # hashlib is only available in python 2.5 or higher, but the 'sha' module
