@@ -140,7 +140,11 @@ class File(object):
                 # a line added by redo-stamp
                 self.csum = self.deps.pop(-1)[0]
 
+    def exists(self):
+        return os.path.exists(self.name)
+
     def forget(self):
+        """Turn a 'target' file back into a 'source' file."""
         debug3('forget(%s)\n' % self.name)
         unlink(self._file('deps'))
 
@@ -154,6 +158,7 @@ class File(object):
         f.write(line + '\n')
 
     def build_starting(self):
+        """Call this when you're about to start building this target."""
         self._file_prefix = self.name
         while 1:
             depsname = self._file('deps2')
@@ -166,6 +171,7 @@ class File(object):
         unlink(depsname)
 
     def build_done(self, exitcode):
+        """Call this when you're done building this target."""
         depsname = self._file('deps2')
         debug3('build ending: %r\n' % depsname)
         self._add(self.read_stamp(runid=vars.RUNID))
@@ -174,6 +180,12 @@ class File(object):
         os.rename(depsname, self._file('deps'))
 
     def add_dep(self, file):
+        """Mark the given File() object as a dependency of this target.
+
+        The filesystem file it refers to may or may not exist.  If it doesn't
+        exist, creating the file is considered a "modified" event and will
+        result in this target being rebuilt.
+        """
         relname = os.path.relpath(file.name, self.dir)
         debug3('add-dep: %r < %r %r\n' % (self.name, file.stamp, relname))
         assert('\n' not in file.name)
@@ -204,9 +216,6 @@ class File(object):
             # a "unique identifier" stamp for a regular file
             return join('-', (st.st_ctime, st.st_mtime,
                               st.st_size, st.st_ino)) + runid_suffix
-
-    def exists(self):
-        return os.path.exists(self.name)
 
     # FIXME: this function is confusing.  Various parts of the code need to
     #  know whether they want the csum or the stamp, when in theory, the csum
