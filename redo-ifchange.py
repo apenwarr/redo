@@ -37,9 +37,11 @@ def build_ifchanged(sf):
         rv = builder.build(sf.name)
         if rv:
             return rv
+    return 0
 
 
-rv = 202
+retcode = 202
+any_errors = 0
 try:
     targets = sys.argv[1:]
     targets = state.fix_chdir(targets)
@@ -50,15 +52,17 @@ try:
         f = me = None
         debug2('redo-ifchange: no target - not adding depends.\n')
 
-    rv = 0
+    retcode = 0
     for t in targets:
         sf = state.File(name=t)
-        rv = build_ifchanged(sf)
+        retcode = build_ifchanged(sf)
+        any_errors += retcode
         if f:
             sf.refresh()
             f.add_dep(sf)
-        if rv:
-            break
+        if retcode and not vars.KEEP_GOING:
+            sys.exit(retcode)
 except KeyboardInterrupt:
     sys.exit(200)
-sys.exit(rv)
+if any_errors:
+    sys.exit(1)

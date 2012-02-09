@@ -49,6 +49,7 @@ vars_init.init(targets)
 import vars, state, builder
 from log import warn, err
 
+any_errors = 0
 try:
     j = atoi(opt.jobs or 1)
     if j < 1 or j > 1000:
@@ -61,7 +62,10 @@ try:
             warn('%s: exists and not marked as generated; not redoing.\n'
                  % f.name)
         retcode = builder.build(t)
-        if retcode:
+        any_errors += retcode
+        if retcode and not vars.KEEP_GOING:
             sys.exit(retcode)
 except KeyboardInterrupt:
     sys.exit(200)
+if any_errors:
+    sys.exit(1)
