@@ -7,9 +7,7 @@ DIRTY = 1
 
 # FIXME: sanitize the return values of this function into a tuple instead.
 # FIXME: max_runid is probably the wrong concept.
-def isdirty(f, depth, expect_stamp, max_runid,
-            is_checked=lambda x: False,  #FIXME
-            set_checked=lambda y: None):  #FIXME
+def isdirty(f, depth, expect_stamp, max_runid):
     if vars.DEBUG >= 1:
         debug('%s?%s\n' % (depth, f.name))
 
@@ -25,7 +23,7 @@ def isdirty(f, depth, expect_stamp, max_runid,
     if f.stamp_mtime > max_runid:
         debug('%s-- DIRTY (built)\n' % depth)
         return DIRTY
-    if is_checked(f) or f.stamp_mtime >= vars.RUNID:
+    if f.stamp_mtime >= vars.RUNID:
         debug('%s-- CLEAN (checked)\n' % depth)
         return CLEAN  # has already been checked during this session
     if not f.stamp:
@@ -51,8 +49,7 @@ def isdirty(f, depth, expect_stamp, max_runid,
         f2 = state.File(os.path.join(f.dir, f2))
         sub = isdirty(f2, depth = depth + '  ',
                       expect_stamp = stamp2,
-                      max_runid = max(f.stamp_mtime, vars.RUNID),
-                      is_checked=is_checked, set_checked=set_checked)
+                      max_runid = max(f.stamp_mtime, vars.RUNID))
         if sub:
             debug('%s-- DIRTY (sub)\n' % depth)
             dirty = sub
@@ -90,7 +87,6 @@ def isdirty(f, depth, expect_stamp, max_runid,
     if f.stamp != newstamp and not state.is_missing(newstamp):
         warn('%r != %r\n' % (f.stamp, newstamp))
         state.warn_override(f.name)
-    set_checked(f)
     return CLEAN
 
 
