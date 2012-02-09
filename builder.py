@@ -89,7 +89,7 @@ def build(target_name):
         # For example, a rule called default.c.do could be used to try
         # to produce hello.c, but we don't want that to happen if
         # hello.c was created in advance by the end user.
-        debug2("-- static (%r)\n", target.name)
+        debug2('-- static (%r)\n', target.name)
         return 0
     (dodir, dofile, basedir, basename, ext) = _find_do_file(target)
     if not dofile:

@@ -90,7 +90,7 @@ class File(object):
             if os.path.samefile(base_full_dir, norm_full_dir):
                 return norm
         except OSError:
-            raise
+            pass
         return base
 
     def refresh(self):
@@ -233,4 +233,4 @@ class File(object):
 def is_missing(stamp):
     if not stamp:
         return False
-    return stamp.startswith(STAMP_MISSING + '+')
+    return stamp == STAMP_MISSING or stamp.startswith(STAMP_MISSING + '+')
