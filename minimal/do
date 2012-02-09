@@ -153,19 +153,21 @@ _dir_shovel()
 }
 
 
-redo()
+_redo()
 {
+	set +e
 	for i in "$@"; do
 		_dirsplit "$i"
 		_dir_shovel "$dir" "$base"
 		dir=$xdir base=$xbase basetmp=$xbasetmp
-		( cd "$dir" && _do "$dir" "$base" "$basetmp" ) || return 1
+		( cd "$dir" && _do "$dir" "$base" "$basetmp" )
+		[ "$?" = 0 ] || return 1
 	done
 }
 
 
-set -e
-redo "$@"
+_redo "$@"
+[ "$?" = 0 ] || exit 1
 
 if [ -n "$DO_TOP" ]; then
 	echo "Removing stamp files..." >&2
