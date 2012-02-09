@@ -69,8 +69,6 @@ def build(t):
     sf = state.File(t)
     debug3('thinking about building %r\n', sf.name)
     sf.build_starting()
-    tmpname1 = sf.tmpfilename('redo1.tmp')
-    tmpname2 = sf.tmpfilename('redo2.tmp')
     before_t = _try_stat(t)
 
     newstamp = sf.read_stamp()
@@ -99,11 +97,15 @@ def build(t):
         else:
             sf.forget()
             return 0  # no longer a generated target, but exists, so ok
+
+    tmpname1 = sf.tmpfilename('redo1.tmp')  # name connected to stdout
+    tmpname2 = sf.tmpfilename('redo2.tmp')  # name provided as $3
     unlink(tmpname1)
     unlink(tmpname2)
-    ffd = os.open(tmpname1, os.O_CREAT|os.O_RDWR|os.O_EXCL, 0666)
-    close_on_exec(ffd, True)
-    f = os.fdopen(ffd, 'w+')
+    tmp1_fd = os.open(tmpname1, os.O_CREAT|os.O_RDWR|os.O_EXCL, 0666)
+    close_on_exec(tmp1_fd, True)
+    tmp1_f = os.fdopen(tmp1_fd, 'w+')
+
     # this will run in the dofile's directory, so use only basenames here
     arg1 = basename + ext  # target name (including extension)
     arg2 = basename        # target name (without extension)
@@ -131,8 +133,8 @@ def build(t):
             os.environ['REDO_DEPTH'] = vars.DEPTH + '  '
             if dn:
                 os.chdir(dn)
-            os.dup2(f.fileno(), 1)
-            os.close(f.fileno())
+            os.dup2(tmp1_f.fileno(), 1)
+            os.close(tmp1_f.fileno())
             close_on_exec(1, False)
             if vars.VERBOSE or vars.XTRACE: log_('* %s\n' % ' '.join(argv))
             os.execvp(argv[0], argv)
@@ -155,7 +157,7 @@ def build(t):
         rv = -os.WSTOPSIG(status)
 
     after_t = _try_stat(t)
-    st1 = os.fstat(f.fileno())
+    st1 = os.fstat(tmp1_f.fileno())
     st2 = _try_stat(tmpname2)
     if (after_t and 
         (not before_t or before_t.st_ctime != after_t.st_ctime) and
@@ -188,7 +190,7 @@ def build(t):
         unlink(tmpname1)
         unlink(tmpname2)
     sf.build_done(exitcode=rv)
-    f.close()
+    tmp1_f.close()
     if rv != 0:
         err('%s: exit code %d\n', sf.printable_name(), rv)
     return rv
