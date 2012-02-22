@@ -1,7 +1,5 @@
 exec >&2
 
-DESTDIR="$(pwd)/root" redo install
-
 if ! which fpm >/dev/null 2>&1; then
   echo "To build system packages, you need fpm"
   echo "You can get it using the ruby gem 'fpm':"
@@ -22,7 +20,8 @@ fi
 
 desc=$(git describe)
 
-set -x
+DESTDIR="$(pwd)/root" redo install
+
 fpm \
   --name redo \
   --version ${desc#redo-} \
