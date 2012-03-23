@@ -1402,21 +1402,20 @@ use of them.)
 
 # The output of 'ps ax' is ugly because of the python interpreter!
 
-FIXME:
-Yes, this is a general problem with python.  All the lines
-in 'ps' end up looking like
+If the [setproctitle](http://code.google.com/p/py-setproctitle/) module is
+installed, redo will use it in its script to clean up the displayed title. The
+module is also available in many distributions. A `ps afx` output would look
+like:
 
-	28460 pts/2 Sl 0:00 /usr/bin/python /path/to/redo-ifchange stuff...
+	...
+	23461 pts/21   T      0:00      \_ make test
+	23462 pts/21   T      0:00      |   \_ redo test
+	23463 pts/21   T      0:00      |       \_ sh -e test.do test test test.redo2.tmp
+	23464 pts/21   T      0:00      |           \_ redo-ifchange _all
+	23465 pts/21   T      0:00      |               \_ sh -e _all.do _all _all _all.redo2.tmp
+	...
 
-...which means that the "stuff..." part is often cut off on
-the right hand side.  There are gross workarounds to fix
-this in python, but the easiest fix will be to just rewrite
-redo in C.  Then it'll look like this:
 
-	28460 pts/2 Sl 0:00 redo-ifchange stuff...
-
-...the way it should.
-	
 
 # Are there examples?
 
