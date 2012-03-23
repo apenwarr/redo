@@ -3,6 +3,17 @@ import vars
 from helpers import unlink, join
 from log import warn, err, debug2, debug3
 
+# When the module is imported, change the process title.
+# We do it here because this module is imported by all the scripts.
+try:
+	from setproctitle import setproctitle
+except ImportError:
+	pass
+else:
+	cmdline = sys.argv[:]
+	cmdline[0] = os.path.splitext(os.path.basename(cmdline[0]))[0]
+	setproctitle(" ".join(cmdline))
+
 ALWAYS = '//ALWAYS'   # an invalid filename that is always marked as dirty
 STAMP_DIR = 'dir'     # the stamp of a directory; mtime is unhelpful
 STAMP_MISSING = '0'   # the stamp of a nonexistent file
