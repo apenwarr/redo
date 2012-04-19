@@ -24,7 +24,7 @@ def init(targets):
         base = os.path.commonprefix([os.path.abspath(os.path.dirname(t))
                                      for t in targets] + [os.getcwd()])
         bsplit = base.split('/')
-        for i in range(len(bsplit)-1, 0, -1):
+        for i in range(len(bsplit), 0, -1):
             newbase = '/'.join(bsplit[:i])
             if os.path.exists(newbase + '/.redo'):
                 base = newbase
