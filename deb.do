@@ -7,11 +7,16 @@ if ! which fpm >/dev/null 2>&1; then
   exit 1
 fi
 
-if which rpmbuild >/dev/null 2>&1; then
-  redo rpm
-elif which dpkg >/dev/null 2>&1; then
-  redo deb
-else
-  echo "Your packaging system is not supported"
-  exit 1
-fi
+DESTDIR="$(pwd)/root" redo install
+
+desc=$(git describe)
+
+fpm \
+  --name redo \
+  --version ${desc#redo-} \
+  -C root \
+  -d python \
+  -a all \
+  -s dir -t deb .
+
+rm -rf root
