@@ -45,10 +45,10 @@ def _files(target, seen):
     if f.name not in seen:
         seen[f.name] = 1
         yield f
-    for stamp, dep in f.deps:
-        fullname = os.path.join(dir, dep)
-        for i in _files(fullname, seen):
-            yield i
+        for stamp, dep in f.deps:
+            fullname = os.path.join(dir, dep)
+            for i in _files(fullname, seen):
+                yield i
 
 
 def files():
