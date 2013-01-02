@@ -1,5 +1,5 @@
 umask 0022
 redo mode1
-MODE="$(ls -l mode1 | cut -d' ' -f1)"
-[ "$MODE" = "-rw-r--r--" ] || exit 78
+MODE=$(python -c 'import os; print oct(os.stat("mode1").st_mode & 07777)')
+[ "$MODE" = "0644" ] || exit 78
 
