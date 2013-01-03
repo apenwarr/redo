@@ -29,11 +29,15 @@ def isdirty(f, depth, expect_stamp, max_runid):
         debug('%s-- DIRTY (no stamp)\n', depth)
         return DIRTY
 
+    oldstamp = f.csum or f.stamp
     newstamp = f.csum_or_read_stamp()
     debug3('%r\n expect=%r\n    old=%r\n    new=%r\n',
-           f.name, expect_stamp, f.csum or f.stamp, newstamp)
+           f.name, expect_stamp, oldstamp, newstamp)
     if expect_stamp != newstamp:
-        if state.is_missing(newstamp):
+        if oldstamp == newstamp:
+            debug('%s-- DIRTY (parent)\n', depth)
+            return DIRTY
+        elif state.is_missing(newstamp):
             debug('%s-- DIRTY (missing)\n', depth)
         else:
             debug('%s-- DIRTY (mtime)\n', depth)

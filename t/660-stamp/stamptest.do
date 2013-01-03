@@ -77,5 +77,5 @@ redo-ifchange stampy
 redo-ifchange ab
 rm -f doing_ab
 redo-ifchange ab
-[ ! -f doing_ab ] && exit 75
+[ ! -f doing_ab ] || exit 75
 
