@@ -74,6 +74,9 @@ class LockHelper:
         else:
             self.lock.unlock()
 
+LOCK_EX = fcntl.LOCK_EX
+LOCK_SH = fcntl.LOCK_SH
+
 class Lock:
     def __init__(self, name):
         self.owned = False

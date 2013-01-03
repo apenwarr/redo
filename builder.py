@@ -220,8 +220,23 @@ class BuildJob:
         return rv
 
     def done(self, t, rv):
+        # assert self.target.lock.owned == state.LOCK_EX
+        # TODO: require self.target.lock.owned and release it
         self.result[0] += rv
         self.result[1] += 1
+    
+    def prepare(self):
+        # assert self.target.lock.owned
+        # TODO: require self.target.lock.owned
+        # Do everything that requires a lock
+        # self.build must not require the lock at all
+        pass
+    
+    def schedule_job(self):
+        # TODO: require self.target.lock.owned
+        self.prepare()
+        jwack.start_job(self.target, self.build, self.done)
+        jwack.wait_all() # temp: wait for the job to complete
 
 def build(f, any_errors, should_build):
     dirty = should_build(f)
@@ -236,9 +251,7 @@ def build(f, any_errors, should_build):
         #assert(dirty in (deps.DIRTY, deps.CLEAN))
     if dirty:
         job = BuildJob(f, any_errors)
-        #job.build()
-        jwack.start_job(f, job.build, job.done)
-        jwack.wait_all() # temp: wait for the job to complete
+        job.schedule_job()
 
 def main(targets, should_build = (lambda f: deps.DIRTY), parent = None):
     any_errors = [0, 0]
