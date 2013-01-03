@@ -143,16 +143,31 @@ class File(object):
             name = os.path.relpath(name, os.getcwd())
         self.name = name
         self.dir = os.path.split(self.name)[0]
-        self._file_prefix = None
         if name != ALWAYS:
-            self.lock = Lock(self.tmpfilename("lock"))
+            self.redo_dir = self._get_redodir(name)
+            try: os.makedirs(self.redo_dir)
+            except: pass
+            self.read_only = not os.path.isdir(self.redo_dir)
+            if not self.read_only:
+                self.lock = Lock(self.tmpfilename("lock"))
         self.refresh()
 
     def __repr__(self):
         return 'state.File(%s)' % self.name
 
+    def _get_redodir(self, name):
+        d = os.path.dirname(name)
+        #r = [".redo"]
+        #while not os.path.isdir(d):
+        #    d, sep, base = d.rpartition.split('/')
+        #    if not sep: break
+        #    r.append("%s.redo" % base)
+        #return os.path.join(d, *r)
+        return os.path.join(d, ".redo")
+
     def tmpfilename(self, filetype):
-        return '%s.%s.redo' % (self._file_prefix or self.name, filetype)
+        name = os.path.basename(self.name)
+        return '%s.%s' % (os.path.join(self.redo_dir, name), filetype)
 
     def printable_name(self):
         """Return the name relative to vars.STARTDIR, normalized.
@@ -185,8 +200,11 @@ class File(object):
             self.csum = None
             self.stamp = str(vars.RUNID)
             return
-        with self.lock.read():
+        if self.read_only:
             self._refresh_locked()
+        else:
+            with self.lock.read():
+                self._refresh_locked()
 
     def _refresh_locked(self):
         assert(not self.name.startswith('/'))
@@ -246,14 +264,7 @@ class File(object):
 
     def build_starting(self):
         """Call this when you're about to start building this target."""
-        self._file_prefix = self.name
-        while 1:
-            depsname = self.tmpfilename('deps2')
-            if os.path.isdir(os.path.join(os.path.dirname(depsname), '.')):
-                break
-            parts = self._file_prefix.split('/')
-            parts = parts[:-2] + [parts[-2] + '__' + parts[-1]]
-            self._file_prefix = os.path.join(*parts)
+        depsname = self.tmpfilename('deps2')
         debug3('build starting: %r\n', depsname)
         unlink(depsname)
 
