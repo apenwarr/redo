@@ -72,6 +72,7 @@ def _try_read(fd, n):
 
 
 def setup(maxjobs):
+    "Start the job server"
     global _fds, _toplevel
     if _fds:
         return  # already set up
@@ -135,11 +136,13 @@ def wait(want_token):
 
 
 def has_token():
+    "Return True if we have one or more tokens available"
     if _mytokens >= 1:
         return True
 
 
 def get_token(reason):
+    "Ensure we have one token available."
     global _mytokens
     assert(_mytokens <= 1)
     setup(1)
@@ -167,10 +170,12 @@ def get_token(reason):
 
 
 def running():
+    "Tell if jobs are running"
     return len(_waitfds)
 
 
 def wait_all():
+    "Wait for all jobs to be finished"
     _debug("wait_all\n")
     while running():
         while _mytokens >= 1:
@@ -220,6 +225,11 @@ class Job:
 
             
 def start_job(reason, jobfunc, donefunc):
+    """
+    Start a job
+    jobfunc:  executed in the child process
+    doncfunc: executed in the parent process during a wait or wait_all call
+    """
     global _mytokens
     assert(_mytokens <= 1)
     get_token(reason)

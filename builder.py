@@ -216,10 +216,12 @@ class BuildJob:
 
     def build(self):
         with self.target.lock.read():
-            res = self._build_locked()
-            self.result[0] += res
-            self.result[1] += 1
-        return res
+            rv = self._build_locked()
+        return rv
+
+    def done(self, t, rv):
+        self.result[0] += rv
+        self.result[1] += 1
 
 def build(f, any_errors, should_build):
     dirty = should_build(f)
@@ -234,7 +236,9 @@ def build(f, any_errors, should_build):
         #assert(dirty in (deps.DIRTY, deps.CLEAN))
     if dirty:
         job = BuildJob(f, any_errors)
-        job.build()
+        #job.build()
+        jwack.start_job(f, job.build, job.done)
+        jwack.wait_all() # temp: wait for the job to complete
 
 def main(targets, should_build = (lambda f: deps.DIRTY), parent = None):
     any_errors = [0, 0]
