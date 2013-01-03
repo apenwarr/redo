@@ -138,7 +138,6 @@ class File(object):
             except: pass
             self.read_only = not os.path.isdir(self.redo_dir)
             if not self.read_only:
-                self._lock  = Lock(self.tmpfilename("deps.lock"))
                 self.dolock = Lock(self.tmpfilename("do.lock"))
         self.refresh()
 
@@ -195,46 +194,38 @@ class File(object):
             # read the state file
             f = open(self.tmpfilename('deps'))
         except IOError:
-            if self.read_only:
-                self._refresh_rest()
+            try:
+                # okay, check for the file itself
+                st = os.stat(self.name)
+            except OSError:
+                # it doesn't exist at all yet
+                self.stamp_mtime = 0  # no stamp file
+                self.exitcode = 0
+                self.deps = []
+                self.stamp = STAMP_MISSING
+                self.csum = None
+                self.is_generated = True
             else:
-                with self._lock.read():
-                    self._refresh_rest()
+                # it's a source file (without a .deps file)
+                self.stamp_mtime = 0  # no stamp file
+                self.exitcode = 0
+                self.deps = []
+                self.is_generated = False
+                self.csum = None
+                self.stamp = self.read_stamp(st=st)
         else:
             # it's a target (with a .deps file)
-            with self._lock.read():
-                st = os.fstat(f.fileno())
-                lines = f.read().strip().split('\n')
-                self.stamp_mtime = int(st.st_mtime)
-                self.exitcode = int(lines.pop(-1))
-                self.is_generated = True
-                self.csum = None
-                self.stamp = lines.pop(-1)
-                self.deps = [line.split(' ', 1) for line in lines]
-                while self.deps and self.deps[-1][1] == '.':
-                    # a line added by redo-stamp
-                    self.csum = self.deps.pop(-1)[0]
-
-    def _refresh_rest(self):
-        try:
-            # okay, check for the file itself
-            st = os.stat(self.name)
-        except OSError:
-            # it doesn't exist at all yet
-            self.stamp_mtime = 0  # no stamp file
-            self.exitcode = 0
-            self.deps = []
-            self.stamp = STAMP_MISSING
-            self.csum = None
+            st = os.fstat(f.fileno())
+            lines = f.read().strip().split('\n')
+            self.stamp_mtime = int(st.st_mtime)
+            self.exitcode = int(lines.pop(-1))
             self.is_generated = True
-        else:
-            # it's a source file (without a .deps file)
-            self.stamp_mtime = 0  # no stamp file
-            self.exitcode = 0
-            self.deps = []
-            self.is_generated = False
             self.csum = None
-            self.stamp = self.read_stamp(st=st)
+            self.stamp = lines.pop(-1)
+            self.deps = [line.split(' ', 1) for line in lines]
+            while self.deps and self.deps[-1][1] == '.':
+                # a line added by redo-stamp
+                self.csum = self.deps.pop(-1)[0]
 
     def exists(self):
         return os.path.exists(self.name)
@@ -267,8 +258,7 @@ class File(object):
         self._add(self.read_stamp(runid=vars.RUNID))
         self._add(exitcode)
         os.utime(depsname, (vars.RUNID, vars.RUNID))
-        with self._lock.write():
-            os.rename(depsname, self.tmpfilename('deps'))
+        os.rename(depsname, self.tmpfilename('deps'))
 
     def add_dep(self, file):
         """Mark the given File() object as a dependency of this target.

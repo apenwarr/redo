@@ -241,13 +241,14 @@ def build(f, any_errors, should_build):
             build(t2, any_errors, should_build)
             if any_errors[0] and not vars.KEEP_GOING:
                 return
+        jwack.wait_all()
         dirty = should_build(f)
         #assert(dirty in (deps.DIRTY, deps.CLEAN))
     if dirty:
         job = BuildJob(f, any_errors)
         f.dolock.waitlock()
         job.schedule_job()
-        jwack.wait_all() # temp: wait for the job to complete
+        # jwack.wait_all() # temp: wait for the job to complete
 
 def main(targets, should_build = (lambda f: deps.DIRTY), parent = None):
     any_errors = [0, 0]
@@ -264,6 +265,7 @@ def main(targets, should_build = (lambda f: deps.DIRTY), parent = None):
             build(f, any_errors, should_build)
             if any_errors[0] and not vars.KEEP_GOING:
                 break
+        jwack.wait_all()
     finally:
         jwack.force_return_tokens()
 
