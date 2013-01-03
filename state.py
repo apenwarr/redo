@@ -1,7 +1,7 @@
-import sys, os, errno, glob, stat
+import sys, os, errno, glob, stat, fcntl
 import vars
-from helpers import unlink, join
-from log import warn, err, debug2, debug3
+from helpers import unlink, join, close_on_exec
+from log import warn, err, debug, debug2, debug3
 
 # When the module is imported, change the process title.
 # We do it here because this module is imported by all the scripts.
@@ -65,14 +65,87 @@ def files():
         for i in _files(depfile[:-10], seen):
             yield i
 
+# FIXME: I really want to use fcntl F_SETLK, F_SETLKW, etc here.  But python
+# doesn't do the lockdata structure in a portable way, so we have to use
+# fcntl.lockf() instead.  Usually this is just a wrapper for fcntl, so it's
+# ok, but it doesn't have F_GETLK, so we can't report which pid owns the lock.
+# The makes debugging a bit harder.  When we someday port to C, we can do that.
+class LockHelper:
+    def __init__(self, lock, kind):
+        self.lock = lock
+        self.kind = kind
+
+    def __enter__(self):
+        self.oldkind = self.lock.owned
+        if self.kind != self.oldkind:
+            self.lock.waitlock(self.kind)
+
+    def __exit__(self, type, value, traceback):
+        if self.kind == self.oldkind:
+            pass
+        elif self.oldkind:
+            self.lock.waitlock(self.oldkind)
+        else:
+            self.lock.unlock()
+
+class Lock:
+    def __init__(self, name):
+        self.owned = False
+        self.name  = name
+        self.lockfile = os.open(self.name, os.O_RDWR | os.O_CREAT, 0666)
+        close_on_exec(self.lockfile, True)
+        self.shared = fcntl.LOCK_SH
+        self.exclusive = fcntl.LOCK_EX
+
+    def __del__(self):
+        if self.owned:
+            self.unlock()
+        os.close(self.lockfile)
+
+    def read(self):
+        return LockHelper(self, fcntl.LOCK_SH)
+
+    def write(self):
+        return LockHelper(self, fcntl.LOCK_EX)
+
+    def trylock(self, kind=fcntl.LOCK_EX):
+        assert(self.owned != kind)
+        try:
+            fcntl.lockf(self.lockfile, kind|fcntl.LOCK_NB, 0, 0)
+        except IOError, e:
+            if e.errno in (errno.EAGAIN, errno.EACCES):
+                if vars.DEBUG_LOCKS: debug("%s lock failed\n", self.name)
+                pass  # someone else has it locked
+            else:
+                raise
+        else:
+            if vars.DEBUG_LOCKS: debug("%s lock\n", self.name)
+            self.owned = kind
+
+    def waitlock(self, kind=fcntl.LOCK_EX):
+        assert(self.owned != kind)
+        if vars.DEBUG_LOCKS: debug("%s lock\n", self.name)
+        fcntl.lockf(self.lockfile, kind, 0, 0)
+        self.owned = kind
+
+    def unlock(self):
+        if not self.owned:
+            raise Exception("can't unlock %r - we don't own it" % self.name)
+        fcntl.lockf(self.lockfile, fcntl.LOCK_UN, 0, 0)
+        if vars.DEBUG_LOCKS: debug("%s unlock\n", self.name)
+        self.owned = False
 
 class File(object):
-    def __init__(self, name):
+    def __init__(self, name, context=None):
+        if name != ALWAYS and context:
+            name = os.path.join(context, name)
         if name != ALWAYS and name.startswith('/'):
             name = os.path.relpath(name, os.getcwd())
         self.name = name
         self.dir = os.path.split(self.name)[0]
         self._file_prefix = None
+        if name != ALWAYS:
+            self.lock = Lock(self.tmpfilename("lock"))
         self.refresh()
 
     def __repr__(self):
@@ -112,6 +185,10 @@ class File(object):
             self.csum = None
             self.stamp = str(vars.RUNID)
             return
+        with self.lock.read():
+            self._refresh_locked()
+
+    def _refresh_locked(self):
         assert(not self.name.startswith('/'))
         try:
             # read the state file
@@ -187,7 +264,8 @@ class File(object):
         self._add(self.read_stamp(runid=vars.RUNID))
         self._add(exitcode)
         os.utime(depsname, (vars.RUNID, vars.RUNID))
-        os.rename(depsname, self.tmpfilename('deps'))
+        with self.lock.write():
+            os.rename(depsname, self.tmpfilename('deps'))
 
     def add_dep(self, file):
         """Mark the given File() object as a dependency of this target.

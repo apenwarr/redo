@@ -68,6 +68,10 @@ def _try_stat(filename):
 def build(target_name):
     target = state.File(target_name)
     debug3('thinking about building %r\n', target.name)
+    with target.lock.read():
+        return _build_locked(target)
+
+def _build_locked(target):
     target.build_starting()
     before_t = _try_stat(target.name)
 
