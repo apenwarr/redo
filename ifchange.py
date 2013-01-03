@@ -1,9 +1,3 @@
-#!/usr/bin/env python
-import sys, os
-
-import vars_init
-vars_init.init(sys.argv[1:])
-
 import vars, state, builder, deps
 from log import debug, debug2, err
 
@@ -38,31 +32,3 @@ def build_ifchanged(sf):
         if rv:
             return rv
     return 0
-
-
-retcode = 202
-any_errors = 0
-try:
-    targets = sys.argv[1:]
-    targets = state.fix_chdir(targets)
-    if vars.TARGET:
-        f = state.File(name=vars.TARGET)
-        debug2('TARGET: %r %r %r\n', vars.STARTDIR, vars.PWD, vars.TARGET)
-    else:
-        f = me = None
-        debug2('redo-ifchange: no target - not adding depends.\n')
-
-    retcode = 0
-    for t in targets:
-        sf = state.File(name=t)
-        retcode = build_ifchanged(sf)
-        any_errors += retcode
-        if f:
-            sf.refresh()
-            f.add_dep(sf)
-        if retcode and not vars.KEEP_GOING:
-            sys.exit(retcode)
-except KeyboardInterrupt:
-    sys.exit(200)
-if any_errors:
-    sys.exit(1)
