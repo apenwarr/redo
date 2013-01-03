@@ -187,27 +187,28 @@ def _build_locked(target):
         err('%s wrote to stdout *and* created $3.\n', argv[2])
         err('...you should write status messages to stderr, not stdout.\n')
         rv = 207
-    if rv==0:
-        if st2:
-            os.rename(tmpname2, target.name)
-            os.unlink(tmpname1)
-        elif st1.st_size > 0:
-            try:
-                os.rename(tmpname1, target.name)
-            except OSError, e:
-                if e.errno == errno.ENOENT:
-                    unlink(target.name)
-                else:
-                    raise
-        else: # no output generated at all; that's ok
+    with target.lock.write():
+        if rv==0:
+            if st2:
+                os.rename(tmpname2, target.name)
+                os.unlink(tmpname1)
+            elif st1.st_size > 0:
+                try:
+                    os.rename(tmpname1, target.name)
+                except OSError, e:
+                    if e.errno == errno.ENOENT:
+                        unlink(target.name)
+                    else:
+                        raise
+            else: # no output generated at all; that's ok
+                unlink(tmpname1)
+                unlink(target.name)
+            if vars.VERBOSE or vars.XTRACE or vars.DEBUG:
+                log('%s (done)\n\n', target.printable_name())
+        else:
             unlink(tmpname1)
-            unlink(target.name)
-        if vars.VERBOSE or vars.XTRACE or vars.DEBUG:
-            log('%s (done)\n\n', target.printable_name())
-    else:
-        unlink(tmpname1)
-        unlink(tmpname2)
-    target.build_done(exitcode=rv)
+            unlink(tmpname2)
+        target.build_done(exitcode=rv)
     tmp1_f.close()
     if rv != 0:
         err('%s: exit code %d\n', target.printable_name(), rv)

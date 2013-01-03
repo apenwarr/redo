@@ -270,13 +270,13 @@ class File(object):
 
     def build_done(self, exitcode):
         """Call this when you're done building this target."""
+        assert self.lock.owned == self.lock.exclusive
         depsname = self.tmpfilename('deps2')
         debug3('build ending: %r\n', depsname)
         self._add(self.read_stamp(runid=vars.RUNID))
         self._add(exitcode)
         os.utime(depsname, (vars.RUNID, vars.RUNID))
-        with self.lock.write():
-            os.rename(depsname, self.tmpfilename('deps'))
+        os.rename(depsname, self.tmpfilename('deps'))
 
     def add_dep(self, file):
         """Mark the given File() object as a dependency of this target.
