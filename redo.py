@@ -96,6 +96,7 @@ if __name__ == '__main__':
         jobs, redo_flavour, targets = read_opts()
         init(targets, mains.keys())
         from log import err, debug
+        import jwack
 
         if not redo_flavour.startswith("redo"):
             redo_flavour = "redo-%s" % redo_flavour
@@ -107,6 +108,7 @@ if __name__ == '__main__':
         
         if jobs < 1 or jobs > 1000:
             err('invalid --jobs value: %r\n', opt.jobs)
+        jwack.setup(jobs)
         
         debug("%s %r\n", redo_flavour, targets)
         sys.exit(mains[redo_flavour](redo_flavour, targets) or 0)

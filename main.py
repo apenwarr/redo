@@ -1,26 +1,13 @@
 def main_redo(redo_flavour, targets):
-    import vars, state, builder
-
-    any_errors = 0
+    import builder, state
 
     targets = state.fix_chdir(targets)
-    for t in targets:
-        f = state.File(t)
-        retcode = builder.build(t)
-        any_errors += retcode
-        if retcode and not vars.KEEP_GOING:
-            return retcode
-    if any_errors:
-        return 1
+    return builder.main(targets)
 
 def main_redo_ifchange(redo_flavour, targets):
-    import ifchange, state, vars
+    import ifchange, state, vars, builder
     from log import debug2
 
-    retcode = 202
-    any_errors = 0
-
-    targets = state.fix_chdir(targets)
     if vars.TARGET:
         f = state.File(name=vars.TARGET)
         debug2('TARGET: %r %r %r\n', vars.STARTDIR, vars.PWD, vars.TARGET)
@@ -28,18 +15,8 @@ def main_redo_ifchange(redo_flavour, targets):
         f = me = None
         debug2('redo-ifchange: no target - not adding depends.\n')
 
-    retcode = 0
-    for t in targets:
-        sf = state.File(name=t)
-        retcode = ifchange.build_ifchanged(sf)
-        any_errors += retcode
-        if f:
-            sf.refresh()
-            f.add_dep(sf)
-        if retcode and not vars.KEEP_GOING:
-            return retcode
-    if any_errors:
-        return 1
+    targets = state.fix_chdir(targets)
+    return builder.main(targets, ifchange.should_build, f)
 
 def main_redo_ifcreate(redo_flavour, targets):
     import os
