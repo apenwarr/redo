@@ -69,7 +69,7 @@ class BuildJob:
         self.target = target
         self.result = result
 
-    def _build_locked(self):
+    def build(self):
         target = self.target
         debug3('thinking about building %r\n', target.name)
         target.build_starting()
@@ -187,56 +187,50 @@ class BuildJob:
             err('%s wrote to stdout *and* created $3.\n', argv[2])
             err('...you should write status messages to stderr, not stdout.\n')
             rv = 207
-        with target.lock.write():
-            if rv==0:
-                if st2:
-                    os.rename(tmpname2, target.name)
-                    os.unlink(tmpname1)
-                elif st1.st_size > 0:
-                    try:
-                        os.rename(tmpname1, target.name)
-                    except OSError, e:
-                        if e.errno == errno.ENOENT:
-                            unlink(target.name)
-                        else:
-                            raise
-                else: # no output generated at all; that's ok
-                    unlink(tmpname1)
-                    unlink(target.name)
-                if vars.VERBOSE or vars.XTRACE or vars.DEBUG:
-                    log('%s (done)\n\n', target.printable_name())
-            else:
+        if rv==0:
+            if st2:
+                os.rename(tmpname2, target.name)
+                os.unlink(tmpname1)
+            elif st1.st_size > 0:
+                try:
+                    os.rename(tmpname1, target.name)
+                except OSError, e:
+                    if e.errno == errno.ENOENT:
+                        unlink(target.name)
+                    else:
+                        raise
+            else: # no output generated at all; that's ok
                 unlink(tmpname1)
-                unlink(tmpname2)
-            target.build_done(exitcode=rv)
+                unlink(target.name)
+            if vars.VERBOSE or vars.XTRACE or vars.DEBUG:
+                log('%s (done)\n\n', target.printable_name())
+        else:
+            unlink(tmpname1)
+            unlink(tmpname2)
+        target.build_done(exitcode=rv)
         tmp1_f.close()
         if rv != 0:
             err('%s: exit code %d\n', target.printable_name(), rv)
         return rv
 
-    def build(self):
-        with self.target.lock.read():
-            rv = self._build_locked()
-        return rv
-
     def done(self, t, rv):
-        # assert self.target.lock.owned == state.LOCK_EX
-        # TODO: require self.target.lock.owned and release it
-        self.result[0] += rv
-        self.result[1] += 1
+        assert self.target.dolock.owned == state.LOCK_EX
+        try:
+            self.result[0] += rv
+            self.result[1] += 1
+        finally:
+            self.target.dolock.unlock()
     
     def prepare(self):
-        # assert self.target.lock.owned
-        # TODO: require self.target.lock.owned
+        assert self.target.dolock.owned == state.LOCK_EX
         # Do everything that requires a lock
         # self.build must not require the lock at all
         pass
     
     def schedule_job(self):
-        # TODO: require self.target.lock.owned
+        assert self.target.dolock.owned == state.LOCK_EX
         self.prepare()
         jwack.start_job(self.target, self.build, self.done)
-        jwack.wait_all() # temp: wait for the job to complete
 
 def build(f, any_errors, should_build):
     dirty = should_build(f)
@@ -251,7 +245,9 @@ def build(f, any_errors, should_build):
         #assert(dirty in (deps.DIRTY, deps.CLEAN))
     if dirty:
         job = BuildJob(f, any_errors)
+        f.dolock.waitlock()
         job.schedule_job()
+        jwack.wait_all() # temp: wait for the job to complete
 
 def main(targets, should_build = (lambda f: deps.DIRTY), parent = None):
     any_errors = [0, 0]
