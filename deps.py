@@ -89,7 +89,7 @@ def isdirty(f, depth, expect_stamp, max_runid):
     newstamp = f.read_stamp()
     if f.stamp != newstamp and not state.is_missing(newstamp):
         warn('%r != %r\n', f.stamp, newstamp)
-        state.warn_override(f.name)
+        warn('%s: you modified it; skipping because target is clean\n', f.name)
     return CLEAN
 
 

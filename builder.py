@@ -1,7 +1,7 @@
 import sys, os, errno, stat
 import vars, state
 from helpers import unlink, close_on_exec, join
-from log import log, log_, debug, debug2, debug3, err
+from log import log, log_, debug, debug2, debug3, err, warn
 
 
 def _default_do_files(filename):
@@ -78,8 +78,10 @@ def build(target_name):
             debug3('oldstamp=%r newstamp=%r\n', target.stamp, newstamp)
             target.forget()
             target.refresh()
+        elif vars.OVERWRITE:
+            warn('%s: you modified it; overwrite\n', target.printable_name())
         else:
-            state.warn_override(target.printable_name())
+            warn('%s: you modified it; skipping\n', target.printable_name())
             return 0
     if (os.path.exists(target.name) and
         not os.path.isdir(target.name) and
@@ -89,8 +91,14 @@ def build(target_name):
         # For example, a rule called default.c.do could be used to try
         # to produce hello.c, but we don't want that to happen if
         # hello.c was created in advance by the end user.
-        debug2('-- static (%r)\n', target.name)
-        return 0
+        if vars.OVERWRITE:
+            warn('%s: exists and not marked as generated; overwrite.\n',
+                 target.printable_name())
+        else:
+            warn('%s: exists and not marked as generated; not redoing.\n',
+                 target.printable_name())
+            debug2('-- static (%r)\n', target.name)
+            return 0
     (dodir, dofile, basedir, basename, ext) = _find_do_file(target)
     if not dofile:
         if state.is_missing(newstamp):

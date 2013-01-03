@@ -11,6 +11,7 @@ d,debug    print dependency checks as they happen
 v,verbose  print commands as they are read from .do files (variables intact)
 x,xtrace   print commands as they are executed (variables expanded)
 k,keep-going  keep going as long as possible even if some targets fail
+overwrite  overwrite files even if generated outside of redo
 shuffle    randomize the build order to find dependency bugs
 debug-locks  print messages about file locking (useful for debugging)
 debug-pids   print process ids as part of log messages (useful for debugging)
@@ -22,6 +23,8 @@ o = options.Options(optspec)
 
 targets = extra
 
+if opt.overwrite:
+    os.environ['REDO_OVERWRITE'] = '1'
 if opt.version:
     import version
     print version.TAG
@@ -58,9 +61,6 @@ try:
     targets = state.fix_chdir(targets)
     for t in targets:
         f = state.File(t)
-        if os.path.exists(t) and not f.is_generated:
-            warn('%s: exists and not marked as generated; not redoing.\n'
-                 % f.name)
         retcode = builder.build(t)
         any_errors += retcode
         if retcode and not vars.KEEP_GOING:

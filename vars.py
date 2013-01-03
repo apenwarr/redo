@@ -26,6 +26,9 @@ TARGET = os.environ.get('REDO_TARGET', '')
 # The deeper we go, the more space characters we append.
 DEPTH = os.environ.get('REDO_DEPTH', '')
 
+# The value of the --overwrite flag.
+OVERWRITE = os.environ.get('REDO_OVERWRITE', '') and 1 or 0
+
 # The value of the -d flag.
 DEBUG = atoi(os.environ.get('REDO_DEBUG', ''))
 

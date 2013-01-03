@@ -19,10 +19,6 @@ STAMP_DIR = 'dir'     # the stamp of a directory; mtime is unhelpful
 STAMP_MISSING = '0'   # the stamp of a nonexistent file
 
 
-def warn_override(name):
-    warn('%s - you modified it; skipping\n', name)
-
-
 def fix_chdir(targets):
     """Undo any chdir() done by the .do script that called us.
 
