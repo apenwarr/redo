@@ -24,7 +24,7 @@ def should_build(t):
 
 def build_ifchanged(sf):
     dirty = should_build(sf.name)
-    if dirty and dirty != deps.DIRTY:
+    while dirty and dirty != deps.DIRTY:
         # FIXME: bring back the old (targetname) notation in the output
         #  when we need to do this.  And add comments.
         for t2 in dirty:
