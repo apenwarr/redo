@@ -177,7 +177,6 @@ class BuildJob:
         else:
             unlink(tmpname1)
             unlink(tmpname2)
-        target.build_done(exitcode=rv)
         tmp1_f.close()
         if rv != 0:
             err('%s: exit code %d\n', target.printable_name(), rv)
@@ -186,6 +185,7 @@ class BuildJob:
     def done(self, t, rv):
         assert self.target.dolock.owned == state.LOCK_EX
         try:
+            self.target.build_done(exitcode=rv)
             self.result[0] += rv
             self.result[1] += 1
         finally:
