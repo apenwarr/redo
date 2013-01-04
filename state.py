@@ -309,18 +309,6 @@ class File(object):
             return join('-', (st.st_ctime, st.st_mtime,
                               st.st_size, st.st_ino)) + runid_suffix
 
-    # FIXME: this function is confusing.  Various parts of the code need to
-    #  know whether they want the csum or the stamp, when in theory, the csum
-    #  should just override the stamp.
-    def csum_or_read_stamp(self):
-        newstamp = self.read_stamp()
-        if newstamp == self.stamp:
-            return self.csum or newstamp
-        else:
-            # old csum is meaningless because file changed after it was
-            # recorded.
-            return newstamp
-
 
 def is_missing(stamp):
     if not stamp:
