@@ -159,6 +159,7 @@ class BuildJob:
             os.environ['REDO_DEPTH'] = vars.DEPTH + '  '
             if dn:
                 os.chdir(dn)
+            os.dup2(1, 3)
             os.dup2(self.tmp_sout_f.fileno(), 1)
             os.close(self.tmp_sout_f.fileno())
             close_on_exec(1, False)

@@ -421,6 +421,16 @@ the top of your .do script:
 That will redirect your stdout to stderr, so it works more
 like you expect.
 
+If you **really** want to use stdout, then you can use the `&3`
+file descriptor. To restore the stdout you can do:
+
+        exec >&3
+
+Or a more fancy version of this code that swaps `&1` and `&3`,
+allowing you to use `&3` instead of `$3` to generate the output:
+
+        exec 4>&1 >&3 3>&4 4>&-
+
 
 # Can a *.do file itself be generated as part of the build process?
 
