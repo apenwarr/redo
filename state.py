@@ -223,6 +223,8 @@ class File(object):
             self.csum = None
             self.stamp = lines.pop(-1)
             self.deps = [line.split(' ', 1) for line in lines]
+            # if the next line fails, it means that the .dep file is not
+            # correctly formatted
             while self.deps and self.deps[-1][1] == '.':
                 # a line added by redo-stamp
                 self.csum = self.deps.pop(-1)[0]
@@ -246,6 +248,7 @@ class File(object):
 
     def build_starting(self):
         """Call this when you're about to start building this target."""
+        assert self.dolock.owned == self.dolock.exclusive
         depsname = self.tmpfilename('deps2')
         debug3('build starting: %r\n', depsname)
         unlink(depsname)
@@ -253,6 +256,7 @@ class File(object):
     def build_done(self, exitcode):
         """Call this when you're done building this target."""
         assert self.dolock.owned == self.dolock.exclusive
+        assert not os.path.exists(self.tmpfilename('deps'))
         depsname = self.tmpfilename('deps2')
         debug3('build ending: %r\n', depsname)
         self._add(self.read_stamp(runid=vars.RUNID))
