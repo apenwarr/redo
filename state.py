@@ -232,6 +232,9 @@ class File(object):
     def exists(self):
         return os.path.exists(self.name)
 
+    def exists_not_dir(self):
+        return os.path.exists(self.name) and not os.path.isdir(self.name)
+
     def forget(self):
         """Turn a 'target' file back into a 'source' file."""
         debug3('forget(%s)\n', self.name)
@@ -256,7 +259,6 @@ class File(object):
     def build_done(self, exitcode):
         """Call this when you're done building this target."""
         assert self.dolock.owned == self.dolock.exclusive
-        assert not os.path.exists(self.tmpfilename('deps'))
         depsname = self.tmpfilename('deps2')
         debug3('build ending: %r\n', depsname)
         self._add(self.read_stamp(runid=vars.RUNID))

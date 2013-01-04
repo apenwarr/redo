@@ -3,9 +3,9 @@ from log import debug, debug2, err
 
 
 def should_build(f):
-    if f.stamp_mtime >= vars.RUNID and f.exitcode:
-        raise Exception('earlier build of %r failed with code %d'
-                        % (f.name, f.exitcode))
+    #if f.stamp_mtime >= vars.RUNID and f.exitcode:
+    #    raise Exception('earlier build of %r failed with code %d'
+    #                    % (f.name, f.exitcode))
     if f.stamp_mtime == 0:
         expect_stamp = None
     else:

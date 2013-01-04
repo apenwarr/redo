@@ -29,22 +29,27 @@ def isdirty(f, depth, expect_stamp, max_runid):
         debug('%s-- DIRTY (no stamp)\n', depth)
         return DIRTY
 
-    oldstamp = f.csum or f.stamp
-    newstamp = f.csum_or_read_stamp()
-    debug3('%r\n expect=%r\n    old=%r\n    new=%r\n',
-           f.name, expect_stamp, oldstamp, newstamp)
-    if expect_stamp != newstamp:
-        if oldstamp == newstamp:
-            debug('%s-- DIRTY (parent)\n', depth)
+    newstamp = f.read_stamp()
+
+    debug3('%sexpect: %s\n', depth, expect_stamp)
+    debug3('%sold:    %s\n', depth, f.stamp)
+    debug3('%snew:    %s\n', depth, newstamp)
+    if f.csum: debug3('%scsum:   %s\n', depth, f.csum)
+
+    if f.is_generated and newstamp != f.stamp and not state.is_missing(newstamp):
+        if vars.OVERWRITE:
+            debug('%s-- DIRTY (override)\n', depth)
             return DIRTY
-        elif state.is_missing(newstamp):
+        else:
+            debug('%s-- CLEAN (override)\n', depth)
+            return CLEAN
+
+    if newstamp != f.stamp:
+        if state.is_missing(newstamp):
             debug('%s-- DIRTY (missing)\n', depth)
         else:
             debug('%s-- DIRTY (mtime)\n', depth)
-        if f.csum:
-            return [f]
-        else:
-            return DIRTY
+        return [f] if f.csum else DIRTY
 
     must_build = []
     for stamp2, f2 in f.deps:
@@ -84,12 +89,14 @@ def isdirty(f, depth, expect_stamp, max_runid):
         # redo-ifchange f and it won't have any uncertainty next time.
         return must_build
 
+    if expect_stamp != (f.csum or f.stamp):
+        # This must be after we checked the children. Before, we didn't knew
+        # if the current target was dirty or not
+        debug('%s-- DIRTY (parent)\n', depth)
+        return DIRTY
+
     # if we get here, it's because the target is clean
     debug2('%s-- CLEAN (dropped off)\n', depth)
-    newstamp = f.read_stamp()
-    if f.stamp != newstamp and not state.is_missing(newstamp):
-        warn('%r != %r\n', f.stamp, newstamp)
-        warn('%s: you modified it; skipping because target is clean\n', f.name)
     return CLEAN
 
 
