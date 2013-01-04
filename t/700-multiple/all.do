@@ -1,4 +1,5 @@
 touch dep
+mkdir -p x/y
 : > x/y/z.dual.log
 redo x/y/z.dual
 
