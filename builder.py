@@ -65,10 +65,20 @@ def _try_stat(filename):
             raise
 
 class BuildJob:
-    def __init__(self, target, result, add_dep_to=None):
-        self.target = target
-        self.result = result
-        self.parent = add_dep_to
+    def __init__(self, target, result, add_dep_to=None, delegate=None):
+        self.target   = target
+        self.result   = result
+        self.parent   = add_dep_to
+        self.delegate = delegate
+
+    def _mkoutdir(self):
+        outdir1 = self.target.tmpfilename("out")
+        outdir2 = os.path.join(outdir1, self.dobasedir)
+        if os.path.exists(outdir1):
+            import shutil
+            shutil.rmtree(outdir1)
+        os.makedirs(outdir2)
+        return outdir1, outdir2
 
     def prepare(self):
         assert self.target.dolock.owned == state.LOCK_EX
@@ -114,8 +124,11 @@ class BuildJob:
                 debug2('-- forget (%r)\n', target.name)
                 return 0  # no longer a generated target, but exists, so ok
 
-        self.tmpname_sout = target.tmpfilename('redo1.tmp')  # name connected to stdout
-        self.tmpname_arg3 = target.tmpfilename('redo2.tmp')  # name provided as $3
+        self.outdir1, self.outdir2 = self._mkoutdir()
+        # name connected to stdout
+        self.tmpname_sout = target.tmpfilename('out.tmp')
+        # name provided as $3
+        self.tmpname_arg3 = os.path.join(self.outdir2, target.basename())
         unlink(self.tmpname_sout)
         unlink(self.tmpname_arg3)
         self.tmp_sout_fd = os.open(self.tmpname_sout, os.O_CREAT|os.O_RDWR|os.O_EXCL, 0666)
@@ -157,6 +170,7 @@ class BuildJob:
             os.environ['REDO_PWD'] = os.path.join(vars.PWD, dn)
             os.environ['REDO_TARGET'] = basename + ext
             os.environ['REDO_DEPTH'] = vars.DEPTH + '  '
+            os.environ['REDO_DOBASEDIR'] = self.dobasedir
             if dn:
                 os.chdir(dn)
             os.dup2(1, 3)
@@ -217,17 +231,50 @@ class BuildJob:
             if rv != 0:
                 err('%s: exit code %d\n', self.target.printable_name(), rv)
             self.target.build_done(exitcode=rv)
+            self.target.refresh()
+
+            self._move_extra_results(self.outdir1, self.dodir, rv)
 
             self.result[0] += rv
             self.result[1] += 1
             if self.parent:
-                self.target.refresh()
                 self.parent.add_dep(self.target)
 
         finally:
             self.tmp_sout_f.close()
             self.target.dolock.unlock()
-    
+
+    def _move_extra_results(self, srcdir, destdir, rv):
+        for f in os.listdir(srcdir):
+            sp = os.path.join(srcdir, f)
+            dp = os.path.join(destdir, f)
+            if os.path.isdir(sp) and os.path.isdir(dp):
+                self._move_extra_results(sp, dp, rv)
+            else:
+                sf = state.File(name=dp)
+                if sf == self.delegate:
+                    locked = True
+                    dp = os.path.join(
+                        sf.tmpfilename("out"),
+                        os.environ.get('REDO_DOBASEDIR', ''),
+                        sf.basename())
+                else:
+                    sf.dolock.trylock()
+                    locked = (sf.dolock.owned == state.LOCK_EX)
+                if locked:
+                    sf.build_starting()
+                    unlink(dp)
+                    os.rename(sp, dp)
+                    debug("rename %r %r\n", sp, dp)
+                    sf.copy_deps_from(self.target)
+                    sf.build_done(rv)
+                    if sf.dolock.owned:
+                        sf.dolock.unlock()
+                else:
+                    warn("%s: discarding (parallel build)\n", dp)
+                    unlink(sp)
+        os.rmdir(srcdir)
+
     def schedule_job(self):
         assert self.target.dolock.owned == state.LOCK_EX
         rv = self.prepare()
@@ -237,20 +284,20 @@ class BuildJob:
         else:
             jwack.start_job(self.target, self.build, self.done)
 
-def build(f, any_errors, should_build, add_dep_to=None):
+def build(f, any_errors, should_build, add_dep_to=None, delegate=None):
     dirty = should_build(f)
     while dirty and dirty != deps.DIRTY:
         # FIXME: bring back the old (targetname) notation in the output
         #  when we need to do this.  And add comments.
         for t2 in dirty:
-            build(t2, any_errors, should_build)
+            build(t2, any_errors, should_build, delegate)
             if any_errors[0] and not vars.KEEP_GOING:
                 return
         jwack.wait_all()
         dirty = should_build(f)
         #assert(dirty in (deps.DIRTY, deps.CLEAN))
     if dirty:
-        job = BuildJob(f, any_errors, add_dep_to)
+        job = BuildJob(f, any_errors, add_dep_to, delegate)
         f.dolock.waitlock()
         job.schedule_job()
         # jwack.wait_all() # temp: wait for the job to complete
@@ -258,16 +305,19 @@ def build(f, any_errors, should_build, add_dep_to=None):
         f.refresh()
         add_dep_to.add_dep(f)
 
-def main(targets, should_build = (lambda f: deps.DIRTY), parent = None):
+def main(targets, should_build = (lambda f: deps.DIRTY), parent=None, delegate=None):
     any_errors = [0, 0]
     if vars.SHUFFLE:
         import random
         random.shuffle(targets)
 
+    if delegate:
+        debug("delegated: %s\n", delegate)
+
     try:
         for t in targets:
             f = state.File(name=t)
-            build(f, any_errors, should_build, add_dep_to=parent)
+            build(f, any_errors, should_build, add_dep_to=parent, delegate=delegate)
             if any_errors[0] and not vars.KEEP_GOING:
                 break
         jwack.wait_all()

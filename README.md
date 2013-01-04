@@ -745,35 +745,41 @@ portability.
 
 # Can a single .do script generate multiple outputs?
 
-FIXME: Yes, but this is a bit imperfect.
+The multiple outputs must be managed with a master target and
+delegated targets.
 
-For example, compiling a .java file produces a bunch of .class
-files, but exactly which files?  It depends on the content
-of the .java file.  Ideally, we would like to allow our .do
-file to compile the .java file, note which .class files
-were generated, and tell redo about it for dependency
-checking.
+The master target must generate the delegated targets in
+`$(dirname $3)`. Redo will detect the new files in this directory
+and will put them back in the tree structure, with the same
+basename. Note that the master target does not necessarily need
+to generate a file.
 
-However, this ends up being confusing; if myprog depends
-on foo.class, we know that foo.class was generated from
-bar.java only *after* bar.java has been compiled.  But how
-do you know, the first time someone asks to build myprog,
-where foo.class is supposed to come from?
+The delegated targets must call the master target using
+`redo-delegate`. The master target will be invoked and update the
+delegated target.
 
-So we haven't thought about this enough yet.
+If you want to generate .c and .h file from a single template
+.tmpl file, your `default.c.do` can look like:
 
-Note that it's *okay* for a .do file to produce targets
-other than the advertised one; you just have to be careful. 
-You could have a default.javac.do that runs 'javac
-$2.java', and then have your program depend on a bunch of .javac
-files.  Just be careful not to depend on the .class files
-themselves, since redo won't know how to regenerate them.
+    redo-ifchange "$2.tmpl"
+    run-template --c-file="$3" --h-file="${3%.c}.h" <"$2.tmpl"
 
-This feature would also be useful, again, with ./configure:
-typically running the configure script produces several
-output files, and it would be nice to declare dependencies
-on all of them.
+And your `default.h.do` can look like:
 
+    redo-delegate "$2.c"
+
+If you have a builder that generates many files, but you don't
+know them all, you can have them be put in the `$(dirname $3)`
+directory. You won't be able to redo any generated file (because
+there is no associated .do file) but that makes sense. You don't
+know these files.
+
+For example, with an autoconf script:
+
+    redo-ifchange configure
+    dir="$PWD"
+    cd "$(dirname "$3")"
+    "$dir/configure"
 
 # Recursive make is considered harmful.  Isn't redo even *more* recursive?
 

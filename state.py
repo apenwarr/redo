@@ -108,12 +108,12 @@ class Lock:
             else:
                 raise
         else:
-            if vars.DEBUG_LOCKS: debug("%s lock\n", self.name)
+            if vars.DEBUG_LOCKS: debug("%s lock (try)\n", self.name)
             self.owned = kind
 
     def waitlock(self, kind=fcntl.LOCK_EX):
         assert(self.owned != kind)
-        if vars.DEBUG_LOCKS: debug("%s lock\n", self.name)
+        if vars.DEBUG_LOCKS: debug("%s lock (wait)\n", self.name)
         fcntl.lockf(self.lockfile, kind, 0, 0)
         self.owned = kind
 
@@ -155,8 +155,13 @@ class File(object):
         return os.path.join(d, ".redo")
 
     def tmpfilename(self, filetype):
-        name = os.path.basename(self.name)
-        return '%s.%s' % (os.path.join(self.redo_dir, name), filetype)
+        return '%s.%s' % (os.path.join(self.redo_dir, self.basename()), filetype)
+
+    def basename(self):
+        return os.path.basename(self.name)
+
+    def dirname(self):
+        return os.path.dirname(self.name)
 
     def printable_name(self):
         """Return the name relative to vars.STARTDIR, normalized.
@@ -251,14 +256,12 @@ class File(object):
 
     def build_starting(self):
         """Call this when you're about to start building this target."""
-        assert self.dolock.owned == self.dolock.exclusive
         depsname = self.tmpfilename('deps2')
         debug3('build starting: %r\n', depsname)
         unlink(depsname)
 
     def build_done(self, exitcode):
         """Call this when you're done building this target."""
-        assert self.dolock.owned == self.dolock.exclusive
         depsname = self.tmpfilename('deps2')
         debug3('build ending: %r\n', depsname)
         self._add(self.read_stamp(runid=vars.RUNID))
@@ -281,6 +284,10 @@ class File(object):
         assert('\t' not in file.stamp)
         assert('\r' not in file.stamp)
         self._add('%s %s' % (file.csum or file.stamp, relname))
+
+    def copy_deps_from(self, other):
+        for dep in other.deps:
+            self._add('%s %s' % (dep[0], dep[1]))
 
     def read_stamp(self, runid=None, st=None, st_deps=None):
         # FIXME: make this formula more well-defined
@@ -309,6 +316,11 @@ class File(object):
             return join('-', (st.st_ctime, st.st_mtime,
                               st.st_size, st.st_ino)) + runid_suffix
 
+    def __eq__(self, other):
+        try:
+            return os.path.realpath(self.name) == os.path.realpath(other.name)
+        except:
+            return False
 
 def is_missing(stamp):
     if not stamp:

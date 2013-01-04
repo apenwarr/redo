@@ -4,6 +4,20 @@ def main_redo(redo_flavour, targets):
     targets = state.fix_chdir(targets)
     return builder.main(targets)
 
+def main_redo_delegate(redo_flavour, targets):
+    import builder, state, vars
+    from log import debug2
+
+    if vars.TARGET:
+        f = state.File(name=vars.TARGET)
+        debug2('TARGET: %r %r %r\n', vars.STARTDIR, vars.PWD, vars.TARGET)
+    else:
+        f = None
+        debug2('%S: no target - not delegating.\n', redo_flavour)
+
+    targets = state.fix_chdir(targets)
+    return builder.main(targets, delegate=f)
+
 def main_redo_ifchange(redo_flavour, targets):
     import ifchange, state, vars, builder
     from log import debug2
@@ -12,8 +26,8 @@ def main_redo_ifchange(redo_flavour, targets):
         f = state.File(name=vars.TARGET)
         debug2('TARGET: %r %r %r\n', vars.STARTDIR, vars.PWD, vars.TARGET)
     else:
-        f = me = None
-        debug2('redo-ifchange: no target - not adding depends.\n')
+        f = None
+        debug2('%s: no target - not adding depends.\n', redo_flavour)
 
     targets = state.fix_chdir(targets)
     return builder.main(targets, ifchange.should_build, f)
@@ -125,4 +139,5 @@ mains = {
     'redo-always':   main_redo_always,
     'redo-ifcreate': main_redo_ifcreate,
     'redo-ifchange': main_redo_ifchange,
+    'redo-delegate': main_redo_delegate,
     'redo':          main_redo}
