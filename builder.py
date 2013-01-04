@@ -113,22 +113,22 @@ class BuildJob:
                 target.forget()
                 debug2('-- forget (%r)\n', target.name)
                 return 0  # no longer a generated target, but exists, so ok
+
+        self.tmpname_sout = target.tmpfilename('redo1.tmp')  # name connected to stdout
+        self.tmpname_arg3 = target.tmpfilename('redo2.tmp')  # name provided as $3
+        unlink(self.tmpname_sout)
+        unlink(self.tmpname_arg3)
+        self.tmp_sout_fd = os.open(self.tmpname_sout, os.O_CREAT|os.O_RDWR|os.O_EXCL, 0666)
+        close_on_exec(self.tmp_sout_fd, True)
+        self.tmp_sout_f = os.fdopen(self.tmp_sout_fd, 'w+')
+
         return None
 
     def build(self):
-        target = self.target
-        debug3('running build job for %r\n', target.name)
+        debug3('running build job for %r\n', self.target.name)
 
         (dodir, dofile, basedir, basename, ext) = (
             self.dodir, self.dofile, self.dobasedir, self.dobasename, self.doext)
-
-        tmpname1 = target.tmpfilename('redo1.tmp')  # name connected to stdout
-        tmpname2 = target.tmpfilename('redo2.tmp')  # name provided as $3
-        unlink(tmpname1)
-        unlink(tmpname2)
-        tmp1_fd = os.open(tmpname1, os.O_CREAT|os.O_RDWR|os.O_EXCL, 0666)
-        close_on_exec(tmp1_fd, True)
-        tmp1_f = os.fdopen(tmp1_fd, 'w+')
 
         # this will run in the dofile's directory, so use only basenames here
         if vars.OLD_ARGS:
@@ -142,7 +142,7 @@ class BuildJob:
                 arg1,
                 arg2,
                 # temp output file name
-                os.path.relpath(tmpname2, dodir),
+                os.path.relpath(self.tmpname_arg3, dodir),
                 ]
         if vars.VERBOSE: argv[1] += 'v'
         if vars.XTRACE: argv[1] += 'x'
@@ -150,89 +150,82 @@ class BuildJob:
         firstline = open(os.path.join(dodir, dofile)).readline().strip()
         if firstline.startswith('#!/'):
             argv[0:2] = firstline[2:].split(' ')
-        log('%s\n', target.printable_name())
+        log('%s\n', self.target.printable_name())
 
-        pid = os.fork()
-        if pid == 0:  # child
-            try:
-                dn = dodir
-                os.environ['REDO_PWD'] = os.path.join(vars.PWD, dn)
-                os.environ['REDO_TARGET'] = basename + ext
-                os.environ['REDO_DEPTH'] = vars.DEPTH + '  '
-                if dn:
-                    os.chdir(dn)
-                os.dup2(tmp1_f.fileno(), 1)
-                os.close(tmp1_f.fileno())
-                close_on_exec(1, False)
-                if vars.VERBOSE or vars.XTRACE: log_('* %s\n' % ' '.join(argv))
-                os.execvp(argv[0], argv)
-            except:
-                import traceback
-                sys.stderr.write(traceback.format_exc())
-                err('internal exception - see above\n')
-                raise
-            finally:
-                # returns only if there's an exception
-                os._exit(127)
-
-        # otherwise, we're the parent
-        outpid, status = 0, -42
-        while outpid != pid:
-            outpid, status = os.waitpid(pid, 0)
-        if os.WIFEXITED(status):
-            rv = os.WEXITSTATUS(status)
-        else:
-            rv = -os.WSTOPSIG(status)
-
-        after_t = _try_stat(target.name)
-        st1 = os.fstat(tmp1_f.fileno())
-        st2 = _try_stat(tmpname2)
-        if (after_t and 
-            (not self.before_t or self.before_t.st_ctime != after_t.st_ctime) and
-            not stat.S_ISDIR(after_t.st_mode)):
-                err('%s modified %s directly!\n', argv[2], target.name)
-                err('...you should update $3 (a temp file) or stdout, not $1.\n')
-                rv = 206
-        elif st2 and st1.st_size > 0:
-            err('%s wrote to stdout *and* created $3.\n', argv[2])
-            err('...you should write status messages to stderr, not stdout.\n')
-            rv = 207
-        if rv==0:
-            if st2:
-                os.rename(tmpname2, target.name)
-                os.unlink(tmpname1)
-            elif st1.st_size > 0:
-                try:
-                    os.rename(tmpname1, target.name)
-                except OSError, e:
-                    if e.errno == errno.ENOENT:
-                        unlink(target.name)
-                    else:
-                        raise
-            else: # no output generated at all; that's ok
-                unlink(tmpname1)
-                unlink(target.name)
-            if vars.VERBOSE or vars.XTRACE or vars.DEBUG:
-                log('%s (done)\n\n', target.printable_name())
-        else:
-            unlink(tmpname1)
-            unlink(tmpname2)
-        tmp1_f.close()
-        if rv != 0:
-            err('%s: exit code %d\n', target.printable_name(), rv)
-        return rv
+        try:
+            dn = dodir
+            os.environ['REDO_PWD'] = os.path.join(vars.PWD, dn)
+            os.environ['REDO_TARGET'] = basename + ext
+            os.environ['REDO_DEPTH'] = vars.DEPTH + '  '
+            if dn:
+                os.chdir(dn)
+            os.dup2(self.tmp_sout_f.fileno(), 1)
+            os.close(self.tmp_sout_f.fileno())
+            close_on_exec(1, False)
+            if vars.VERBOSE or vars.XTRACE: log_('* %s\n' % ' '.join(argv))
+            os.execvp(argv[0], argv)
+        except:
+            import traceback
+            sys.stderr.write(traceback.format_exc())
+            err('internal exception - see above\n')
+            raise
+        finally:
+            # returns only if there's an exception
+            os._exit(127)
 
     def done(self, t, rv):
         assert self.target.dolock.owned == state.LOCK_EX
         try:
+            after_t = _try_stat(self.target.name)
+            st1 = os.fstat(self.tmp_sout_f.fileno())
+            st2 = _try_stat(self.tmpname_arg3)
+            
+            if (after_t and 
+                (not self.before_t or self.before_t.st_ctime != after_t.st_ctime) and
+                not stat.S_ISDIR(after_t.st_mode)):
+                    err('%s modified %s directly!\n', self.dofile, self.target.name)
+                    err('...you should update $3 (a temp file) or stdout, not $1.\n')
+                    rv = 206
+            
+            elif st2 and st1.st_size > 0:
+                err('%s wrote to stdout *and* created $3.\n', self.dofile)
+                err('...you should write status messages to stderr, not stdout.\n')
+                rv = 207
+            
+            if rv==0:
+                if st2:
+                    os.rename(self.tmpname_arg3, self.target.name)
+                    os.unlink(self.tmpname_sout)
+                elif st1.st_size > 0:
+                    try:
+                        os.rename(self.tmpname_sout, self.target.name)
+                    except OSError, e:
+                        if e.errno == errno.ENOENT:
+                            unlink(self.target.name)
+                        else:
+                            raise
+                else: # no output generated at all; that's ok
+                    unlink(self.tmpname_sout)
+                    unlink(self.target.name)
+                if vars.VERBOSE or vars.XTRACE or vars.DEBUG:
+                    log('%s (done)\n\n', self.target.printable_name())
+            else:
+                unlink(self.tmpname_sout)
+                unlink(self.tmpname_arg3)
+
+            if rv != 0:
+                err('%s: exit code %d\n', self.target.printable_name(), rv)
             self.target.build_done(exitcode=rv)
+
             self.result[0] += rv
             self.result[1] += 1
+            if self.parent:
+                self.target.refresh()
+                self.parent.add_dep(self.target)
+
         finally:
+            self.tmp_sout_f.close()
             self.target.dolock.unlock()
-        if self.parent:
-            self.target.refresh()
-            self.parent.add_dep(self.target)
     
     def schedule_job(self):
         assert self.target.dolock.owned == state.LOCK_EX
