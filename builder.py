@@ -71,15 +71,6 @@ class BuildJob:
         self.parent   = add_dep_to
         self.delegate = delegate
 
-    def _mkoutdir(self):
-        outdir1 = self.target.tmpfilename("out")
-        outdir2 = os.path.join(outdir1, self.dobasedir)
-        if os.path.exists(outdir1):
-            import shutil
-            shutil.rmtree(outdir1)
-        os.makedirs(outdir2)
-        return outdir1, outdir2
-
     def prepare(self):
         assert self.target.dolock.owned == state.LOCK_EX
         target = self.target
@@ -124,11 +115,11 @@ class BuildJob:
                 debug2('-- forget (%r)\n', target.name)
                 return 0  # no longer a generated target, but exists, so ok
 
-        self.outdir1, self.outdir2 = self._mkoutdir()
+        self.outdir = self._mkoutdir()
         # name connected to stdout
         self.tmpname_sout = target.tmpfilename('out.tmp')
         # name provided as $3
-        self.tmpname_arg3 = os.path.join(self.outdir2, target.basename())
+        self.tmpname_arg3 = os.path.join(self.outdir, target.basename())
         unlink(self.tmpname_sout)
         unlink(self.tmpname_arg3)
         self.tmp_sout_fd = os.open(self.tmpname_sout, os.O_CREAT|os.O_RDWR|os.O_EXCL, 0666)
@@ -136,6 +127,14 @@ class BuildJob:
         self.tmp_sout_f = os.fdopen(self.tmp_sout_fd, 'w+')
 
         return None
+
+    def _mkoutdir(self):
+        outdir = self.target.tmpfilename("out")
+        if os.path.exists(outdir):
+            import shutil
+            shutil.rmtree(outdir)
+        os.makedirs(outdir)
+        return outdir
 
     def build(self):
         debug3('running build job for %r\n', self.target.name)
@@ -233,7 +232,7 @@ class BuildJob:
             self.target.build_done(exitcode=rv)
             self.target.refresh()
 
-            self._move_extra_results(self.outdir1, self.dodir, rv)
+            self._move_extra_results(self.outdir, self.target.dirname() or ".", rv)
 
             self.result[0] += rv
             self.result[1] += 1
@@ -244,36 +243,36 @@ class BuildJob:
             self.tmp_sout_f.close()
             self.target.dolock.unlock()
 
-    def _move_extra_results(self, srcdir, destdir, rv):
-        for f in os.listdir(srcdir):
-            sp = os.path.join(srcdir, f)
-            dp = os.path.join(destdir, f)
-            if os.path.isdir(sp) and os.path.isdir(dp):
+    def _move_extra_results(self, src, dest, rv):
+        assert src
+        assert dest
+        if os.path.isdir(src) and os.path.isdir(dest):
+            for f in os.listdir(src):
+                sp = os.path.join(src, f)
+                dp = os.path.join(dest, f)
                 self._move_extra_results(sp, dp, rv)
+            os.rmdir(src)
+        else:
+            sf = state.File(name=dest)
+            if sf == self.delegate:
+                dest = os.path.join(sf.tmpfilename("out"), sf.basename())
+                debug("rename %r %r\n", src, dest)
+                os.rename(src, dest)
+                sf.copy_deps_from(self.target)
             else:
-                sf = state.File(name=dp)
-                if sf == self.delegate:
-                    locked = True
-                    dp = os.path.join(
-                        sf.tmpfilename("out"),
-                        os.environ.get('REDO_DOBASEDIR', ''),
-                        sf.basename())
-                else:
-                    sf.dolock.trylock()
-                    locked = (sf.dolock.owned == state.LOCK_EX)
-                if locked:
-                    sf.build_starting()
-                    unlink(dp)
-                    os.rename(sp, dp)
-                    debug("rename %r %r\n", sp, dp)
-                    sf.copy_deps_from(self.target)
-                    sf.build_done(rv)
-                    if sf.dolock.owned:
+                sf.dolock.trylock()
+                if sf.dolock.owned == state.LOCK_EX:
+                    try:
+                        sf.build_starting()
+                        debug("rename %r %r\n", src, dest)
+                        os.rename(src, dest)
+                        sf.copy_deps_from(self.target)
+                        sf.build_done(rv)
+                    finally:
                         sf.dolock.unlock()
                 else:
-                    warn("%s: discarding (parallel build)\n", dp)
-                    unlink(sp)
-        os.rmdir(srcdir)
+                    warn("%s: discarding (parallel build)\n", dest)
+                    unlink(src)
 
     def schedule_job(self):
         assert self.target.dolock.owned == state.LOCK_EX
