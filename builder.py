@@ -16,6 +16,7 @@ def _default_do_files(filename):
 def _possible_do_files(t):
     dirname,filename = os.path.split(t)
     yield (dirname, "%s.do" % filename, '', filename, '')
+    yield (dirname, "%s.do" % filename, '', filename, '')
 
     # It's important to try every possibility in a directory before resorting
     # to a parent directory.  Think about nested projects: I don't want
@@ -23,7 +24,6 @@ def _possible_do_files(t):
     # the former one might just be an artifact of someone embedding my project
     # into theirs as a subdir.  When they do, my rules should still be used
     # for building my project in *all* cases.
-    dirname,filename = os.path.split(t)
     dirbits = os.path.abspath(dirname).split('/')
     for i in range(len(dirbits), -1, -1):
         basedir = os.path.join(dirname,
@@ -32,10 +32,14 @@ def _possible_do_files(t):
         for dofile,basename,ext in _default_do_files(filename):
             yield (basedir, dofile,
                    subdir, os.path.join(subdir, basename), ext)
-        
+
+def _possible_do_files_in_do_dir(t):
+    for dodir,dofile,basedir,basename,ext in _possible_do_files(t):
+        yield (dodir,dofile,basedir,basename,ext)
+        yield (dodir+"/do", dofile, "../"+basedir, basename, ext)
 
 def _find_do_file(f):
-    for dodir,dofile,basedir,basename,ext in _possible_do_files(f.name):
+    for dodir,dofile,basedir,basename,ext in _possible_do_files_in_do_dir(f.name):
         if dodir and not os.path.isdir(dodir):
             # we don't want to normpath() unless we have no other choice.
             # otherwise we could have odd behaviour with symlinks (ie.

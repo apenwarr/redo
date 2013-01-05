@@ -291,6 +291,11 @@ To activate it, you can add a line like this to your .bashrc:
 	eval `dircolors $HOME/.dircolors.conf`
 
 
+# Do I have to put all my .do files in the same directories as he files I want to build ?
+
+It is possible to put the `.do` files in a `do/` subdirectory. They will be searched and found just like other `.do` files. This way, you can avoid having tons of `.do` files cluttering your directories.
+
+
 # What are the three parameters ($1, $2, $3) to a .do file?
 
 NOTE: These definitions have changed since the earliest
@@ -771,7 +776,7 @@ And your `default.h.do` can look like:
 If you have a builder that generates many files, but you don't
 know them all, you can have them be put in the `$(dirname $3)`
 directory. You won't be able to redo any generated file (because
-there is no associated .do file) but that makes sense. You don't
+there is no associated `.do` file) but that makes sense. You don't
 know these files.
 
 For example, with an autoconf script:
