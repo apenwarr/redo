@@ -68,6 +68,26 @@ def _try_stat(filename):
         else:
             raise
 
+def _interpreter_locations(dodir):
+    dodir = os.path.realpath(dodir)
+    dirbits = dodir.split('/')
+    for i in range(len(dirbits), -1, -1):
+        d = join('/', dirbits[:i])
+        yield(d)
+        yield(d + "/do")
+    
+
+def _find_interpreter(dodir, name):
+    for d in _interpreter_locations(dodir):
+        interp = os.path.join(d, name)
+        if (os.path.exists(interp) and
+            not os.path.isdir(interp) and
+            os.access(interp, os.X_OK)):
+            debug("interpreter found: %s\n", interp)
+            return interp
+        else:
+            debug("interpreter not found: %s\n", interp)
+
 class BuildJob:
     def __init__(self, target, result, add_dep_to=None, delegate=None):
         self.target   = target
@@ -163,8 +183,17 @@ class BuildJob:
         if vars.VERBOSE: argv[1] += 'v'
         if vars.XTRACE: argv[1] += 'x'
         if vars.VERBOSE or vars.XTRACE: log_('\n')
+
         firstline = open(os.path.join(dodir, dofile)).readline().strip()
-        if firstline.startswith('#!/'):
+        if firstline.startswith('#!.../'):
+            _, _, interp_argv = firstline.partition("/")
+            interp_argv = interp_argv.split(' ')
+            interpreter = _find_interpreter(self.dodir, interp_argv[0])
+            if not interpreter:
+                err('%s unable to find interpreter %s.\n', self.dofile, interp_argv[0])
+                os._exit(208)
+            argv[0:2] = [interpreter] + interp_argv[1:]
+        elif firstline.startswith('#!/'):
             argv[0:2] = firstline[2:].split(' ')
         log('%s\n', self.target.printable_name())
 
