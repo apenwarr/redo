@@ -173,7 +173,6 @@ class BuildJob:
             os.environ['REDO_PWD'] = os.path.join(vars.PWD, dn)
             os.environ['REDO_TARGET'] = basename + ext
             os.environ['REDO_DEPTH'] = vars.DEPTH + '  '
-            os.environ['REDO_DOBASEDIR'] = self.dobasedir
             if dn:
                 os.chdir(dn)
             os.dup2(1, 3)
