@@ -12,7 +12,8 @@ redo-ifchange _all
 echo "Installing to: $DESTDIR$PREFIX"
 
 # make dirs
-$INSTALL -d $MANDIR/man1 $DOCDIR $BINDIR $LIBDIR $LIBDIR/version
+$INSTALL -d $DOCDIR $BINDIR $LIBDIR $LIBDIR/version
+test -e Documentation/redo.1 && $INSTALL -d $MANDIR/man1
 
 # docs
 for d in Documentation/*.1; do

@@ -90,27 +90,26 @@ def init(targets, redo_binaries=[]):
         os.environ['REDO_RUNID_FILE'] = '.redo/runid'
         runid.change('.redo/runid')
 
-if __name__ == '__main__':
-    try:
-        from main import mains
-        jobs, redo_flavour, targets = read_opts()
-        init(targets, mains.keys())
-        from log import err, debug
-        import jwack
+try:
+    from main import mains
+    jobs, redo_flavour, targets = read_opts()
+    init(targets, mains.keys())
+    from log import err, debug
+    import jwack
 
-        if not redo_flavour.startswith("redo"):
-            redo_flavour = "redo-%s" % redo_flavour
-        if redo_flavour not in mains:
-            err("invalid redo: %s\n", redo_flavour)
-            sys.exit(1)
+    if not redo_flavour.startswith("redo"):
+        redo_flavour = "redo-%s" % redo_flavour
+    if redo_flavour not in mains:
+        err("invalid redo: %s\n", redo_flavour)
+        sys.exit(1)
 
-        set_main(redo_flavour)
-        
-        if jobs < 1 or jobs > 1000:
-            err('invalid --jobs value: %r\n', opt.jobs)
-        jwack.setup(jobs)
-        
-        debug("%s %r\n", redo_flavour, targets)
-        sys.exit(mains[redo_flavour](redo_flavour, targets) or 0)
-    except KeyboardInterrupt:
-        sys.exit(200)
+    set_main(redo_flavour)
+    
+    if jobs < 1 or jobs > 1000:
+        err('invalid --jobs value: %r\n', opt.jobs)
+    jwack.setup(jobs)
+    
+    debug("%s %r\n", redo_flavour, targets)
+    sys.exit(mains[redo_flavour](redo_flavour, targets) or 0)
+except KeyboardInterrupt:
+    sys.exit(200)
