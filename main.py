@@ -30,7 +30,7 @@ def main_redo_ifchange(redo_flavour, targets):
         debug2('%s: no target - not adding depends.\n', redo_flavour)
 
     targets = state.fix_chdir(targets)
-    return builder.main(targets, ifchange.should_build, f)
+    return builder.main(targets, ifchange.should_build, f, re_do=False)
 
 def main_redo_ifcreate(redo_flavour, targets):
     import os

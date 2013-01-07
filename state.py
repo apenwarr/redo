@@ -51,6 +51,11 @@ def files():
         for i in _files(depfile[:-10], seen):
             yield i
 
+def _extract_runid(stamp):
+    _, _, runid = stamp.rpartition('+')
+    try: return int(runid)
+    except: return None
+
 # FIXME: I really want to use fcntl F_SETLK, F_SETLKW, etc here.  But python
 # doesn't do the lockdata structure in a portable way, so we have to use
 # fcntl.lockf() instead.  Usually this is just a wrapper for fcntl, so it's
@@ -208,6 +213,7 @@ class File(object):
                 self.exitcode = 0
                 self.deps = []
                 self.stamp = STAMP_MISSING
+                self.runid = None
                 self.csum = None
                 self.is_generated = True
             else:
@@ -218,6 +224,7 @@ class File(object):
                 self.is_generated = False
                 self.csum = None
                 self.stamp = self.read_stamp(st=st)
+                self.runid = _extract_runid(self.stamp)
         else:
             # it's a target (with a .deps file)
             st = os.fstat(f.fileno())
@@ -227,6 +234,7 @@ class File(object):
             self.is_generated = True
             self.csum = None
             self.stamp = lines.pop(-1)
+            self.runid = _extract_runid(self.stamp)
             self.deps = [line.split(' ', 1) for line in lines]
             # if the next line fails, it means that the .dep file is not
             # correctly formatted
