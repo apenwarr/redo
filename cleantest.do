@@ -1,2 +1,2 @@
-git clean -fdx t >/dev/null
+redo t/clean
 redo test
