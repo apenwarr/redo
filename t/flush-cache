@@ -4,7 +4,7 @@ import sys, os
 if "DO_BUILT" in os.environ:
     sys.exit(0)
 
-sys.path.insert(0, os.path.dirname(os.environ['REDO']))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 import vars, runid
 rid = runid.change(os.path.join(vars.STARTDIR, vars.RUNID_FILE))
 sys.stderr.write("Flushing redo cache (new runid=%d)...\n" % rid)

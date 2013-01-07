@@ -97,9 +97,9 @@ _run_dofile()
 	read line1 <"$PWD/$dofile" || true
 	cmd=${line1#"#!/"}
 	if [ "$cmd" != "$line1" ]; then
-		/$cmd "$PWD/$dofile" "$@" >"$tmp.tmp2"
+		/$cmd "$PWD/$dofile" "$@" 3>&1 >"$tmp.tmp2"
 	else
-		:; . "$PWD/$dofile" >"$tmp.tmp2"
+		:; . "$PWD/$dofile" 3>&1 >"$tmp.tmp2"
 	fi
 }
 

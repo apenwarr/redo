@@ -26,11 +26,17 @@ TARGET = os.environ.get('REDO_TARGET', '')
 # The deeper we go, the more space characters we append.
 DEPTH = os.environ.get('REDO_DEPTH', '')
 
+# The value of the --overwrite flag.
+OVERWRITE = os.environ.get('REDO_OVERWRITE', '') and 1 or 0
+
 # The value of the -d flag.
 DEBUG = atoi(os.environ.get('REDO_DEBUG', ''))
 
 # The value of the --debug-pids flag.
 DEBUG_PIDS = os.environ.get('REDO_DEBUG_PIDS', '') and 1 or 0
+
+# The value of the --debug-locks flag.
+DEBUG_LOCKS = os.environ.get('REDO_DEBUG_LOCKS', '') and 1 or 0
 
 # The value of the --old-args flag.
 OLD_ARGS = os.environ.get('REDO_OLD_ARGS', '') and 1 or 0

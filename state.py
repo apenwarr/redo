@@ -1,15 +1,11 @@
-import sys, os, errno, glob, stat
+import sys, os, errno, glob, stat, fcntl
 import vars
-from helpers import unlink, join
-from log import warn, err, debug2, debug3
+from helpers import unlink, join, close_on_exec
+from log import warn, err, debug, debug2, debug3
 
 ALWAYS = '//ALWAYS'   # an invalid filename that is always marked as dirty
 STAMP_DIR = 'dir'     # the stamp of a directory; mtime is unhelpful
 STAMP_MISSING = '0'   # the stamp of a nonexistent file
-
-
-def warn_override(name):
-    warn('%s - you modified it; skipping\n', name)
 
 
 def fix_chdir(targets):
@@ -28,9 +24,6 @@ def fix_chdir(targets):
     Returns:
       targets, but relative to the (newly changed) os.getcwd().
     """
-    if vars.SHUFFLE:
-        import random
-        random.shuffle(targets)
     abs_pwd = os.path.join(vars.STARTDIR, vars.PWD)
     if os.path.samefile('.', abs_pwd):
         return targets  # nothing to change
@@ -58,21 +51,122 @@ def files():
         for i in _files(depfile[:-10], seen):
             yield i
 
+def _extract_runid(stamp):
+    _, _, runid = stamp.rpartition('+')
+    try: return int(runid)
+    except: return None
+
+# FIXME: I really want to use fcntl F_SETLK, F_SETLKW, etc here.  But python
+# doesn't do the lockdata structure in a portable way, so we have to use
+# fcntl.lockf() instead.  Usually this is just a wrapper for fcntl, so it's
+# ok, but it doesn't have F_GETLK, so we can't report which pid owns the lock.
+# The makes debugging a bit harder.  When we someday port to C, we can do that.
+class LockHelper:
+    def __init__(self, lock, kind):
+        self.lock = lock
+        self.kind = kind
+
+    def __enter__(self):
+        self.oldkind = self.lock.owned
+        if self.kind != self.oldkind:
+            self.lock.waitlock(self.kind)
+
+    def __exit__(self, type, value, traceback):
+        if self.kind == self.oldkind:
+            pass
+        elif self.oldkind:
+            self.lock.waitlock(self.oldkind)
+        else:
+            self.lock.unlock()
+
+LOCK_EX = fcntl.LOCK_EX
+LOCK_SH = fcntl.LOCK_SH
+
+class Lock:
+    def __init__(self, name):
+        self.owned = False
+        self.name  = name
+        self.lockfile = os.open(self.name, os.O_RDWR | os.O_CREAT, 0666)
+        close_on_exec(self.lockfile, True)
+        self.shared = fcntl.LOCK_SH
+        self.exclusive = fcntl.LOCK_EX
+
+    def __del__(self):
+        if self.owned:
+            self.unlock()
+        os.close(self.lockfile)
+
+    def read(self):
+        return LockHelper(self, fcntl.LOCK_SH)
+
+    def write(self):
+        return LockHelper(self, fcntl.LOCK_EX)
+
+    def trylock(self, kind=fcntl.LOCK_EX):
+        assert(self.owned != kind)
+        try:
+            fcntl.lockf(self.lockfile, kind|fcntl.LOCK_NB, 0, 0)
+        except IOError, e:
+            if e.errno in (errno.EAGAIN, errno.EACCES):
+                if vars.DEBUG_LOCKS: debug("%s lock failed\n", self.name)
+                pass  # someone else has it locked
+            else:
+                raise
+        else:
+            if vars.DEBUG_LOCKS: debug("%s lock (try)\n", self.name)
+            self.owned = kind
+
+    def waitlock(self, kind=fcntl.LOCK_EX):
+        assert(self.owned != kind)
+        if vars.DEBUG_LOCKS: debug("%s lock (wait)\n", self.name)
+        fcntl.lockf(self.lockfile, kind, 0, 0)
+        self.owned = kind
+
+    def unlock(self):
+        if not self.owned:
+            raise Exception("can't unlock %r - we don't own it" % self.name)
+        fcntl.lockf(self.lockfile, fcntl.LOCK_UN, 0, 0)
+        if vars.DEBUG_LOCKS: debug("%s unlock\n", self.name)
+        self.owned = False
 
 class File(object):
-    def __init__(self, name):
+    def __init__(self, name, context=None):
+        if name != ALWAYS and context:
+            name = os.path.join(context, name)
         if name != ALWAYS and name.startswith('/'):
             name = os.path.relpath(name, os.getcwd())
         self.name = name
         self.dir = os.path.split(self.name)[0]
-        self._file_prefix = None
+        if name != ALWAYS:
+            self.redo_dir = self._get_redodir(name)
+            try: os.makedirs(self.redo_dir)
+            except: pass
+            self.read_only = not os.path.isdir(self.redo_dir)
+            if not self.read_only:
+                self.dolock = Lock(self.tmpfilename("do.lock"))
         self.refresh()
 
     def __repr__(self):
         return 'state.File(%s)' % self.name
 
+    def _get_redodir(self, name):
+        d = os.path.dirname(name)
+        #r = [".redo"]
+        #while not os.path.isdir(d):
+        #    d, sep, base = d.rpartition.split('/')
+        #    if not sep: break
+        #    r.append("%s.redo" % base)
+        #return os.path.join(d, *r)
+        return os.path.join(d, ".redo")
+
     def tmpfilename(self, filetype):
-        return '%s.%s.redo' % (self._file_prefix or self.name, filetype)
+        return '%s.%s' % (os.path.join(self.redo_dir, self.basename()), filetype)
+
+    def basename(self):
+        return os.path.basename(self.name)
+
+    def dirname(self):
+        return os.path.dirname(self.name)
 
     def printable_name(self):
         """Return the name relative to vars.STARTDIR, normalized.
@@ -119,6 +213,7 @@ class File(object):
                 self.exitcode = 0
                 self.deps = []
                 self.stamp = STAMP_MISSING
+                self.runid = None
                 self.csum = None
                 self.is_generated = True
             else:
@@ -128,7 +223,8 @@ class File(object):
                 self.deps = []
                 self.is_generated = False
                 self.csum = None
-                self.stamp = self.read_stamp()
+                self.stamp = self.read_stamp(st=st)
+                self.runid = _extract_runid(self.stamp)
         else:
             # it's a target (with a .deps file)
             st = os.fstat(f.fileno())
@@ -138,13 +234,19 @@ class File(object):
             self.is_generated = True
             self.csum = None
             self.stamp = lines.pop(-1)
+            self.runid = _extract_runid(self.stamp)
             self.deps = [line.split(' ', 1) for line in lines]
+            # if the next line fails, it means that the .dep file is not
+            # correctly formatted
             while self.deps and self.deps[-1][1] == '.':
                 # a line added by redo-stamp
                 self.csum = self.deps.pop(-1)[0]
 
     def exists(self):
         return os.path.exists(self.name)
+
+    def exists_not_dir(self):
+        return os.path.exists(self.name) and not os.path.isdir(self.name)
 
     def forget(self):
         """Turn a 'target' file back into a 'source' file."""
@@ -162,14 +264,7 @@ class File(object):
 
     def build_starting(self):
         """Call this when you're about to start building this target."""
-        self._file_prefix = self.name
-        while 1:
-            depsname = self.tmpfilename('deps2')
-            if os.path.isdir(os.path.join(os.path.dirname(depsname), '.')):
-                break
-            parts = self._file_prefix.split('/')
-            parts = parts[:-2] + [parts[-2] + '__' + parts[-1]]
-            self._file_prefix = os.path.join(*parts)
+        depsname = self.tmpfilename('deps2')
         debug3('build starting: %r\n', depsname)
         unlink(depsname)
 
@@ -198,20 +293,29 @@ class File(object):
         assert('\r' not in file.stamp)
         self._add('%s %s' % (file.csum or file.stamp, relname))
 
-    def read_stamp(self, runid=None):
+    def copy_deps_from(self, other):
+        for dep in other.deps:
+            self._add('%s %s' % (dep[0], dep[1]))
+
+    def read_stamp(self, runid=None, st=None, st_deps=None):
         # FIXME: make this formula more well-defined
         if runid is None:
-            try:
-                st_deps = os.stat(self.tmpfilename('deps'))
-            except OSError:
+            if st_deps == None:
+                try: st_deps = os.stat(self.tmpfilename('deps'))
+                except OSError: st_deps = False
+
+            if st_deps == False:
                 runid_suffix = ''
             else:
                 runid_suffix = '+' + str(int(st_deps.st_mtime))
         else:
             runid_suffix = '+' + str(int(runid))
-        try:
-            st = os.stat(self.name)
-        except OSError:
+
+        if st == None:
+            try: st = os.stat(self.name)
+            except OSError: st = False
+
+        if st == False:
             return STAMP_MISSING + runid_suffix
         if stat.S_ISDIR(st.st_mode):
             return STAMP_DIR + runid_suffix
@@ -220,18 +324,11 @@ class File(object):
             return join('-', (st.st_ctime, st.st_mtime,
                               st.st_size, st.st_ino)) + runid_suffix
 
-    # FIXME: this function is confusing.  Various parts of the code need to
-    #  know whether they want the csum or the stamp, when in theory, the csum
-    #  should just override the stamp.
-    def csum_or_read_stamp(self):
-        newstamp = self.read_stamp()
-        if newstamp == self.stamp:
-            return self.csum or newstamp
-        else:
-            # old csum is meaningless because file changed after it was
-            # recorded.
-            return newstamp
-
+    def __eq__(self, other):
+        try:
+            return os.path.realpath(self.name) == os.path.realpath(other.name)
+        except:
+            return False
 
 def is_missing(stamp):
     if not stamp:

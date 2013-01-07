@@ -291,6 +291,11 @@ To activate it, you can add a line like this to your .bashrc:
 	eval `dircolors $HOME/.dircolors.conf`
 
 
+# Do I have to put all my .do files in the same directories as he files I want to build ?
+
+It is possible to put the `.do` files in a `do/` subdirectory. They will be searched and found just like other `.do` files. This way, you can avoid having tons of `.do` files cluttering your directories.
+
+
 # What are the three parameters ($1, $2, $3) to a .do file?
 
 NOTE: These definitions have changed since the earliest
@@ -420,6 +425,16 @@ the top of your .do script:
 	
 That will redirect your stdout to stderr, so it works more
 like you expect.
+
+If you **really** want to use stdout, then you can use the `&3`
+file descriptor. To restore the stdout you can do:
+
+        exec >&3
+
+Or a more fancy version of this code that swaps `&1` and `&3`,
+allowing you to use `&3` instead of `$3` to generate the output:
+
+        exec 4>&1 >&3 3>&4 4>&-
 
 
 # Can a *.do file itself be generated as part of the build process?
@@ -735,35 +750,41 @@ portability.
 
 # Can a single .do script generate multiple outputs?
 
-FIXME: Yes, but this is a bit imperfect.
+The multiple outputs must be managed with a master target and
+delegated targets.
 
-For example, compiling a .java file produces a bunch of .class
-files, but exactly which files?  It depends on the content
-of the .java file.  Ideally, we would like to allow our .do
-file to compile the .java file, note which .class files
-were generated, and tell redo about it for dependency
-checking.
+The master target must generate the delegated targets in
+`$(dirname $3)`. Redo will detect the new files in this directory
+and will put them back in the tree structure, with the same
+basename. Note that the master target does not necessarily need
+to generate a file.
 
-However, this ends up being confusing; if myprog depends
-on foo.class, we know that foo.class was generated from
-bar.java only *after* bar.java has been compiled.  But how
-do you know, the first time someone asks to build myprog,
-where foo.class is supposed to come from?
+The delegated targets must call the master target using
+`redo-delegate`. The master target will be invoked and update the
+delegated target.
 
-So we haven't thought about this enough yet.
+If you want to generate .c and .h file from a single template
+.tmpl file, your `default.c.do` can look like:
 
-Note that it's *okay* for a .do file to produce targets
-other than the advertised one; you just have to be careful. 
-You could have a default.javac.do that runs 'javac
-$2.java', and then have your program depend on a bunch of .javac
-files.  Just be careful not to depend on the .class files
-themselves, since redo won't know how to regenerate them.
+    redo-ifchange "$2.tmpl"
+    run-template --c-file="$3" --h-file="${3%.c}.h" <"$2.tmpl"
 
-This feature would also be useful, again, with ./configure:
-typically running the configure script produces several
-output files, and it would be nice to declare dependencies
-on all of them.
+And your `default.h.do` can look like:
 
+    redo-delegate "$2.c"
+
+If you have a builder that generates many files, but you don't
+know them all, you can have them be put in the `$(dirname $3)`
+directory. You won't be able to redo any generated file (because
+there is no associated `.do` file) but that makes sense. You don't
+know these files.
+
+For example, with an autoconf script:
+
+    redo-ifchange configure
+    dir="$PWD"
+    cd "$(dirname "$3")"
+    "$dir/configure"
 
 # Recursive make is considered harmful.  Isn't redo even *more* recursive?
 
@@ -1402,21 +1423,20 @@ use of them.)
 
 # The output of 'ps ax' is ugly because of the python interpreter!
 
-FIXME:
-Yes, this is a general problem with python.  All the lines
-in 'ps' end up looking like
+If the [setproctitle](http://code.google.com/p/py-setproctitle/) module is
+installed, redo will use it in its script to clean up the displayed title. The
+module is also available in many distributions. A `ps afx` output would look
+like:
 
-	28460 pts/2 Sl 0:00 /usr/bin/python /path/to/redo-ifchange stuff...
+	...
+	23461 pts/21   T      0:00      \_ make test
+	23462 pts/21   T      0:00      |   \_ redo test
+	23463 pts/21   T      0:00      |       \_ sh -e test.do test test test.redo2.tmp
+	23464 pts/21   T      0:00      |           \_ redo-ifchange _all
+	23465 pts/21   T      0:00      |               \_ sh -e _all.do _all _all _all.redo2.tmp
+	...
 
-...which means that the "stuff..." part is often cut off on
-the right hand side.  There are gross workarounds to fix
-this in python, but the easiest fix will be to just rewrite
-redo in C.  Then it'll look like this:
 
-	28460 pts/2 Sl 0:00 redo-ifchange stuff...
-
-...the way it should.
-	
 
 # Are there examples?
 
