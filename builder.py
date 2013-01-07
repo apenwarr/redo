@@ -308,6 +308,7 @@ class BuildJob:
 
     def schedule_job(self):
         assert self.target.dolock.owned == state.LOCK_EX
+        self.target.refresh()
         rv = self.prepare()
         if rv != None:
             self.result[0] += rv
