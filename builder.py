@@ -1,4 +1,4 @@
-import sys, os, errno, stat
+import sys, os, errno, stat, signal
 import vars, jwack, state
 from helpers import unlink, close_on_exec, join
 from log import log, log_, debug, debug2, err, warn
@@ -190,6 +190,7 @@ class BuildJob:
         def run():
             os.chdir(vars.BASE)
             os.environ['REDO_DEPTH'] = vars.DEPTH + '  '
+            signal.signal(signal.SIGPIPE, signal.SIG_DFL)  # python ignores SIGPIPE
             os.execvp(argv[0], argv)
             assert(0)
             # returns only if there's an exception
@@ -214,6 +215,7 @@ class BuildJob:
         os.dup2(self.f.fileno(), 1)
         os.close(self.f.fileno())
         close_on_exec(1, False)
+        signal.signal(signal.SIGPIPE, signal.SIG_DFL)  # python ignores SIGPIPE
         if vars.VERBOSE or vars.XTRACE: log_('* %s\n' % ' '.join(self.argv))
         os.execvp(self.argv[0], self.argv)
         assert(0)
