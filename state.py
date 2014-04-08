@@ -292,8 +292,16 @@ class File(object):
         if stat.S_ISDIR(st.st_mode):
             return STAMP_DIR
         else:
-            # a "unique identifier" stamp for a regular file
-            return str((st.st_ctime, st.st_mtime, st.st_size, st.st_ino))
+            # a "unique identifier" stamp for a regular file.
+
+            # NOTE: We omit ctime because it is problematic on some
+            # remote filesystems. The value in the cache right ater a
+            # target is generated may not match after the cache is
+            # flushed and the server writes the changes. Due to the
+            # historical dependance on mtime (Make) most remote
+            # filesystems are much more careful with mtime.
+            return str((st.st_mode, st.st_uid, st.st_gid,
+                        st.st_mtime, st.st_size, st.st_ino))
 
     def nicename(self):
         return relpath(os.path.join(vars.BASE, self.name), vars.STARTDIR)
