@@ -246,7 +246,12 @@ class BuildJob:
             rv = 207
         if rv==0:
             if st2:
-                os.rename(self.tmpname2, t)
+                try:
+                    os.rename(self.tmpname2, t)
+                except OSError, e:
+                    err('%s: can\'t rename $3 to %r: %s\n' %
+                        (self.argv[2], t, e.strerror))
+                    rv = 1000
                 os.unlink(self.tmpname1)
             elif st1.st_size > 0:
                 try:
@@ -255,7 +260,9 @@ class BuildJob:
                     if e.errno == errno.ENOENT:
                         unlink(t)
                     else:
-                        raise
+                        err('%s: can\'t save stdout to %r: %s\n' %
+                            (self.argv[2], t, e.strerror))
+                        rv = 1000
                 if st2:
                     os.unlink(self.tmpname2)
             else: # no output generated at all; that's ok
@@ -282,7 +289,7 @@ class BuildJob:
         sf.save()
         f.close()
         if rv != 0:
-            err('%s: exit code %d\n' % (_nice(t),rv))
+            err('%s: exit code %r\n' % (_nice(t),rv))
         else:
             if vars.VERBOSE or vars.XTRACE or vars.DEBUG:
                 log('%s (done)\n\n' % _nice(t))
