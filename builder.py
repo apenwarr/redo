@@ -344,6 +344,7 @@ def main(targets, shouldbuildfunc):
             locked.append((f.id,t))
         else:
             BuildJob(t, f, lock, shouldbuildfunc, done).start()
+        lock = None
 
     del lock
 
@@ -391,5 +392,6 @@ def main(targets, shouldbuildfunc):
             else:
                 BuildJob(t, state.File(id=fid), lock,
                          shouldbuildfunc, done).start()
+            lock = None
     state.commit()
     return retcode[0]
