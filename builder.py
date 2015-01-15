@@ -348,6 +348,7 @@ def main(targets, shouldbuildfunc):
             BuildJob(t, f, lock, shouldbuildfunc, done).start()
         state.commit()
         assert(state.is_flushed())
+        lock = None
 
     del lock
 
@@ -401,5 +402,6 @@ def main(targets, shouldbuildfunc):
             else:
                 BuildJob(t, state.File(id=fid), lock,
                          shouldbuildfunc, done).start()
+            lock = None
     state.commit()
     return retcode[0]
