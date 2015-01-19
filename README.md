@@ -114,6 +114,7 @@ In b.h:
 	extern char *bstr;
 	
 In b.c:
+
 	char *bstr = "hello, world!\n";
 
 Now you simply run:
