@@ -70,3 +70,16 @@ redo-ifchange usestamp usestamp2
 rm -f stampy
 redo-ifchange stampy
 [ "$(wc -l <stampy.log)" -eq 6 ] || exit 74
+
+# check that a target that depends on two stamped targets (that are marked as
+# always built) won't be redone if neither stamped targets changes
+../flush-cache
+redo-ifchange abc
+rm -f doing_ab doing_abc
+redo-ifchange abc
+[ ! -f doing_ab ] || exit 92
+[ ! -f doing_abc ] || exit 93
+../flush-cache
+redo-ifchange abc
+[ ! -f doing_ab ] || exit 94
+[ ! -f doing_abc ] || exit 95

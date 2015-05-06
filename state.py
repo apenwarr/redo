@@ -200,6 +200,9 @@ class File(object):
         else:
             return self._init_from_idname(id, name)
 
+    def __repr__(self):
+        return "File(%r)" % (self.nicename(),)
+
     def refresh(self):
         self._init_from_idname(self.id, None)
 

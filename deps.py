@@ -58,10 +58,15 @@ def isdirty(f, depth, max_changed,
             assert(mode in ('c','m'))
         if not f.csum:
             # f is a "normal" target: dirty f2 means f is instantly dirty
-            if dirty:
-                # if dirty==DIRTY, this means f is definitely dirty.
-                # if dirty==[...], it's a list of the uncertain children.
-                return dirty
+            if dirty == DIRTY:
+                # f2 is definitely dirty, so f definitely needs to
+                # redo.
+                return DIRTY
+            elif isinstance(dirty,list):
+                # our child f2 might be dirty, but it's not sure yet.  It's
+                # given us a list of targets we have to redo in order to
+                # be sure.
+                must_build += dirty
         else:
             # f is "checksummable": dirty f2 means f needs to redo,
             # but f might turn out to be clean after that (ie. our parent
@@ -83,6 +88,7 @@ def isdirty(f, depth, max_changed,
         # objects in the tree.  If we build all those, we can then
         # redo-ifchange f and it won't have any uncertainty next time.
         return must_build
+    debug('%s-- CLEAN\n' % (depth,))
 
     # if we get here, it's because the target is clean
     if f.is_override:
