@@ -147,7 +147,7 @@ class BuildJob:
         else:
             arg1 = basename + ext  # target name (including extension)
             arg2 = basename        # target name (without extension)
-        argv = ['sh', '-e',
+        argv = ['/bin/bash', '-e',
                 dofile,
                 arg1,
                 arg2,
