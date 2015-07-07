@@ -93,12 +93,12 @@ class BuildJob:
         except ImmediateReturn, e:
             return self._after2(e.rv)
 
-        if vars.NO_OOB or dirty == True:
-            self._start_do()
+        if dirty.must_build and not vars.NO_OOB:
+            self._start_unlocked(dirty.must_build)
         else:
-            self._start_unlocked(dirty)
+            self._start_do(str(dirty))
 
-    def _start_do(self):
+    def _start_do(self, reason):
         assert(self.lock.owned)
         t = self.t
         sf = self.sf
@@ -160,7 +160,7 @@ class BuildJob:
         firstline = open(os.path.join(dodir, dofile)).readline().strip()
         if firstline.startswith('#!/'):
             argv[0:2] = firstline[2:].split(' ')
-        log('%s\n' % _nice(t))
+        log('%s => %s\n' % (_nice(t), reason))
         self.dodir = dodir
         self.basename = basename
         self.ext = ext

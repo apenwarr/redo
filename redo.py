@@ -46,7 +46,7 @@ if opt.old_args:
 import vars_init
 vars_init.init(targets)
 
-import vars, state, builder, jwack
+import vars, state, builder, jwack, deps
 from log import warn, err
 
 try:
@@ -62,7 +62,7 @@ try:
         err('invalid --jobs value: %r\n' % opt.jobs)
     jwack.setup(j)
     try:
-        retcode = builder.main(targets, lambda t: True)
+        retcode = builder.main(targets, lambda t: deps.DIRTY_forced)
     finally:
         jwack.force_return_tokens()
     sys.exit(retcode)
