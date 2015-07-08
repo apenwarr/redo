@@ -94,7 +94,7 @@ class BuildJob:
             return self._after2(e.rv)
 
         if dirty.must_build and not vars.NO_OOB:
-            self._start_unlocked(dirty.must_build)
+            self._start_unlocked(dirty)
         else:
             self._start_do(str(dirty))
 
@@ -184,8 +184,8 @@ class BuildJob:
         # hold onto the lock because otherwise we would introduce a race
         # condition; that's why it's called redo-unlocked, because it doesn't
         # grab a lock.
-        argv = ['redo-unlocked', self.sf.name] + [d.name for d in dirty]
-        log('(%s)\n' % _nice(self.t))
+        argv = ['redo-unlocked', self.sf.name] + [d.name for d in dirty.must_build]
+        log('(%s) => %s\n' % (_nice(self.t), dirty))
         state.commit()
         def run():
             os.chdir(vars.BASE)

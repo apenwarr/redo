@@ -18,7 +18,7 @@ class _Dirty:
     def __nonzero__(self):
         return True
     def __str__(self):
-        return "DIRTY(%s)" % (self.reason,)
+        return "%s(%s)" % (["DIRTY", "CHECKING"][vars.NO_OOB], self.reason,)
     def should_build(self, f):
         return self
 
@@ -35,15 +35,16 @@ class DirtyDep:
         return self
 
 class Maybe:
-    def __init__(self, must_build):
+    def __init__(self, must_build, alt):
         self.must_build = tuple(must_build)
+        self.alt = alt
     def __nonzero__(self):
         return True
     def __str__(self):
         return "MAYBE(must check: %s)" % (", ".join(f.name for f in self.must_build),)
     def should_build(self, f):
         if (f,) == self.must_build:
-            return DIRTY_changed
+            return self.alt
         return self
 
 CLEAN             = _Clean()
@@ -53,6 +54,7 @@ DIRTY_built       = _Dirty("newer")
 DIRTY_no_stamp    = _Dirty("no stamp")
 DIRTY_missing     = _Dirty("missing")
 DIRTY_changed     = _Dirty("changed")
+DIRTY_always      = _Dirty("always")
 DIRTY_created     = _Dirty("created")
 DIRTY_forced      = _Dirty("forced")
 
@@ -83,14 +85,14 @@ def isdirty(f, depth, max_changed,
     if f.stamp != newstamp:
         if newstamp == state.STAMP_MISSING:
             debug('%s-- DIRTY (missing)\n' % depth)
+            reason = DIRTY_missing
         else:
             debug('%s-- DIRTY (mtime)\n' % depth)
+            reason = DIRTY_changed
         if f.csum:
-            return Maybe((f,))
-        elif newstamp == state.STAMP_MISSING:
-            return DIRTY_missing
+            return Maybe((f,), reason)
         else:
-            return DIRTY_changed
+            return reason
 
     st = CLEAN
     for mode,f2 in f.deps():
@@ -112,17 +114,18 @@ def isdirty(f, depth, max_changed,
             # our child f2 might be dirty, but it's not sure yet.
             # It's given us a list of targets we have to redo in order
             # to be sure.
-           st = Maybe(st.must_build + sub.must_build)
+           st = Maybe(st.must_build + sub.must_build, sub.should_build(f2))
         elif sub:
+            reason = DIRTY_always if f2.name == state.ALWAYS else DirtyDep(f2, sub)
             if not f.csum:
                 # f is a "normal" target: dirty f2 means f is
                 # instantly dirty
-                return DirtyDep(f2, sub)
+                return reason
             else:
                 # f is "checksummable": dirty f2 means f needs to
                 # redo, but f might turn out to be clean after that
                 # (ie. our parent might not be dirty).
-                return Maybe((f,))
+                return Maybe((f,), reason)
 
     if st:
         # f is *maybe* dirty because at least one of its children is maybe
