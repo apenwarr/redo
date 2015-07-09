@@ -41,7 +41,7 @@ class Maybe:
     def __nonzero__(self):
         return True
     def __str__(self):
-        return "MAYBE(must check: %s)" % (", ".join(f.name for f in self.must_build),)
+        return "MAYBE(must check: %s)" % (", ".join(sorted(set(f.name for f in self.must_build))),)
     def should_build(self, f):
         if (f,) == self.must_build:
             return self.alt
