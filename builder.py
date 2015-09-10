@@ -320,9 +320,10 @@ def main(targets, shouldbuildfunc):
     seen = {}
     lock = None
     for t in targets:
-        if t in seen:
+        f = state.File(name=t)
+        if f.id in seen:
             continue
-        seen[t] = 1
+        seen[f.id] = 1
         if not jwack.has_token():
             state.commit()
         jwack.get_token(t)
@@ -332,7 +333,6 @@ def main(targets, shouldbuildfunc):
             err('.redo directory disappeared; cannot continue.\n')
             retcode[0] = 205
             break
-        f = state.File(name=t)
         lock = state.Lock(f.id)
         if vars.UNLOCKED:
             lock.owned = True
