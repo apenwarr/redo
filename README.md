@@ -49,6 +49,17 @@ directory of this repository.
 information about our mailing list.)
 
 
+# Install
+
+Install to /usr:
+
+    ./redo test && sudo ./redo install
+    
+Install to $HOME:
+
+     ./redo test && PREFIX=$HOME ./redo install
+
+
 # License
 
 My version of redo was written without ever seeing redo code by Bernstein or
