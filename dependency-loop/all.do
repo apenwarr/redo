@@ -1,6 +1,13 @@
 #!/bin/sh
-if timeout 1 redo-ifchange a; then
+set +e
+timeout 1 redo-ifchange a
+STATUS=$?
+case $STATUS in
+ 1)
   echo 'PASS: limited recursion' >&2
-else
+ ;;
+ 124)
   echo 'FAIL: unlimited recursion' >&2
-fi
+ ;;
+esac
+set -e
