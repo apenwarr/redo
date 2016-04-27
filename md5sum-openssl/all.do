@@ -1,19 +1,19 @@
 #!/bin/sh
 export REDO_MD5SUM="openssl md5 -r"
 
-echo 1 > b
-redo-ifchange a
-read a1 < a
+echo 1 > 'b b'
+redo-ifchange 'a a'
+read a1 < 'a a'
 
-echo 2 > b
-redo-ifchange a
-read a2 < a
+echo 2 > 'b b'
+redo-ifchange 'a a'
+read a2 < 'a a'
 
-: >> b
-redo-ifchange a
-read a3 < a
+: >> 'b b'
+redo-ifchange 'a a'
+read a3 < 'a a'
 
-echo 3 > b
+echo 3 > 'b b'
 
 if [ $a1 -ge $a2 ]; then
   echo 'FAIL: a1 >= a2' >&2
