@@ -1,6 +1,6 @@
 #!/bin/sh
 set +e
-timeout 1 redo-ifchange a
+timeout 10 redo-ifchange a
 STATUS=$?
 case $STATUS in
  1)
