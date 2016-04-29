@@ -7,8 +7,8 @@ echo 2 > b
 redo-ifchange a
 read a2 <a
 
-echo 1 > b
-redo-ifchange b
+echo 2 > b
+redo-ifchange a
 read a3 <a
 
 if [ $a1 -lt $a2 ]; then
