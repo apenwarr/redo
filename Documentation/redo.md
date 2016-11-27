@@ -104,14 +104,6 @@ dependencies.
     output message.  This makes it easier to figure out
     which sub-instance of redo is doing what.
 
---old-args
-:   old versions of redo provided different definitions of
-    the $1 and $2 parameters to .do scripts.  The new
-    version is compatible with djb's original
-    specification.  This option goes back to the old
-    definitions so you can use .do scripts you haven't yet
-    converted to the new style.
-
 
 # DISCUSSION
 
