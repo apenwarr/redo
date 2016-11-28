@@ -35,8 +35,13 @@ def _possible_do_files(t):
                    subdir, os.path.join(subdir, basename), ext)
         
 
+def _possible_do_files_ext(t):
+    for dodir,dofile,basedir,basename,ext in _possible_do_files(t):
+        yield (dodir,dofile,basedir,basename,ext)
+        yield (dodir,os.path.join('do',dofile),basedir,basename,ext)
+
 def _find_do_file(f):
-    for dodir,dofile,basedir,basename,ext in _possible_do_files(f.name):
+    for dodir,dofile,basedir,basename,ext in _possible_do_files_ext(f.name):
         dopath = os.path.join(dodir, dofile)
         debug2('%s: %s:%s ?\n' % (f.name, dodir, dofile))
         if os.path.exists(dopath):
