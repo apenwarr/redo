@@ -11,6 +11,9 @@ STAMP_DIR='dir'     # the stamp of a directory; mtime is unhelpful
 STAMP_MISSING='0'   # the stamp of a nonexistent file
 
 
+class CyclicDependencyError(Exception): pass
+
+
 def _connect(dbfile):
     _db = sqlite3.connect(dbfile, timeout=TIMEOUT)
     _db.execute("pragma synchronous = off")
@@ -347,6 +350,9 @@ class Lock:
 
     def waitlock(self):
         assert(not self.owned)
+        if str(self.fid) in vars.get_locks():
+            # Lock already held by parent: cyclic dependence
+            raise CyclicDependencyError
         fcntl.lockf(self.lockfile, fcntl.LOCK_EX, 0, 0)
         self.owned = True
             
