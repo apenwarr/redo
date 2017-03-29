@@ -23,7 +23,7 @@ else
   echo 'FAIL: a2 != a3' >&2
 fi
 
-echo 'date +%s | redo-stamp; sleep 1; date +%s' >c.do
+echo 'redo-always; date +%s | redo-stamp; sleep 1; date +%s' >c.do
 
 redo-ifchange c
 read c1 <c
