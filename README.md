@@ -783,8 +783,8 @@ partial picture of what's going on; moreover, each one has to
 stat() a lot of the same files over again, leading to slowness.  That's
 the thesis of the "considered harmful" paper.
 
-Nobody has written a paper about it, but *non-recursive*
-make should also be considered harmful!  The problem is Makefiles aren't
+It turns out that [non-recursive make should also be considered harmful](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/03/hadrian.pdf).
+The problem is Makefiles aren't
 very "hygienic" or "modular"; if you're not running make recursively, then
 your one copy of make has to know *everything* about *everything* in your
 entire project.  Every variable in make is global, so every variable defined
