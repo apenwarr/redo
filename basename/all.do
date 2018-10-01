@@ -2,7 +2,7 @@
 TARGETS="directory/target directory/target.xyz"
 
 for TARGET in ${TARGETS}; do
- mv "${TARGET}" "${TARGET}.old"
+ ( mv "${TARGET}" "${TARGET}.old" || : ) 2>/dev/null
  redo-ifchange "${TARGET}"
  REAL_BASENAME=$(basename "${TARGET}" .xyz)
  read -r REDO_ABSPATH REDO_BASENAME REDO_TMPFILE <"${TARGET}"
