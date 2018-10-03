@@ -77,8 +77,13 @@ def setup(maxjobs):
         return  # already set up
     _debug('setup(%d)\n' % maxjobs)
     flags = ' ' + os.getenv('MAKEFLAGS', '') + ' '
-    FIND = ' --jobserver-fds='
-    ofs = flags.find(FIND)
+    FIND1 = ' --jobserver-auth='  # renamed in GNU make 4.2
+    FIND2 = ' --jobserver-fds='   # fallback syntax
+    FIND = FIND1
+    ofs = flags.find(FIND1)
+    if ofs < 0:
+      FIND = FIND2
+      ofs = flags.find(FIND2)
     if ofs >= 0:
         s = flags[ofs+len(FIND):]
         (arg,junk) = s.split(' ', 1)
@@ -86,13 +91,13 @@ def setup(maxjobs):
         a = atoi(a)
         b = atoi(b)
         if a <= 0 or b <= 0:
-            raise ValueError('invalid --jobserver-fds: %r' % arg)
+            raise ValueError('invalid --jobserver-auth: %r' % arg)
         try:
             fcntl.fcntl(a, fcntl.F_GETFL)
             fcntl.fcntl(b, fcntl.F_GETFL)
         except IOError, e:
             if e.errno == errno.EBADF:
-                raise ValueError('broken --jobserver-fds from make; prefix your Makefile rule with a "+"')
+                raise ValueError('broken --jobserver-auth from make; prefix your Makefile rule with a "+"')
             else:
                 raise
         _fds = (a,b)
@@ -102,8 +107,10 @@ def setup(maxjobs):
         _fds = _make_pipe(100)
         _release(maxjobs-1)
         os.putenv('MAKEFLAGS',
-                  '%s --jobserver-fds=%d,%d -j' % (os.getenv('MAKEFLAGS'),
-                                                    _fds[0], _fds[1]))
+                  '%s -j --jobserver-auth=%d,%d --jobserver-fds=%d,%d' %
+                  (os.getenv('MAKEFLAGS', ''),
+                   _fds[0], _fds[1],
+                   _fds[0], _fds[1]))
 
 
 def wait(want_token):
