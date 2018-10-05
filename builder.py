@@ -13,7 +13,7 @@ def _default_do_files(filename):
         yield ("default%s.do" % ext), basename, ext
     
 
-def _possible_do_files(t):
+def possible_do_files(t):
     dirname,filename = os.path.split(t)
     yield (os.path.join(vars.BASE, dirname), "%s.do" % filename,
            '', filename, '')
@@ -35,8 +35,8 @@ def _possible_do_files(t):
                    subdir, os.path.join(subdir, basename), ext)
         
 
-def _find_do_file(f):
-    for dodir,dofile,basedir,basename,ext in _possible_do_files(f.name):
+def find_do_file(f):
+    for dodir,dofile,basedir,basename,ext in possible_do_files(f.name):
         dopath = os.path.join(dodir, dofile)
         debug2('%s: %s:%s ?\n' % (f.name, dodir, dofile))
         if os.path.exists(dopath):
@@ -126,7 +126,7 @@ class BuildJob:
             sf.save()
             return self._after2(0)
         sf.zap_deps1()
-        (dodir, dofile, basedir, basename, ext) = _find_do_file(sf)
+        (dodir, dofile, basedir, basename, ext) = find_do_file(sf)
         if not dofile:
             if os.path.exists(t):
                 sf.set_static()
