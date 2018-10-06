@@ -3,6 +3,7 @@
 #
 import sys, os, errno, select, fcntl, signal
 from helpers import atoi, close_on_exec
+import state
 
 _toplevel = 0
 _mytokens = 1
@@ -54,6 +55,7 @@ def _try_read(fd, n):
         return ''  # try again
     # ok, the socket is readable - but some other process might get there
     # first.  We have to set an alarm() in case our read() gets stuck.
+    assert(state.is_flushed())
     oldh = signal.signal(signal.SIGALRM, _timeout)
     try:
         signal.alarm(1)  # emergency fallback
@@ -118,6 +120,7 @@ def wait(want_token):
     if _fds and want_token:
         rfds.append(_fds[0])
     assert(rfds)
+    assert(state.is_flushed())
     r,w,x = select.select(rfds, [], [])
     _debug('_fds=%r; wfds=%r; readable: %r\n' % (_fds, _waitfds, r))
     for fd in r:
@@ -147,6 +150,7 @@ def has_token():
 
 
 def get_token(reason):
+    assert(state.is_flushed())
     global _mytokens
     assert(_mytokens <= 1)
     setup(1)
@@ -179,6 +183,7 @@ def running():
 
 def wait_all():
     _debug("wait_all\n")
+    assert(state.is_flushed())
     while running():
         while _mytokens >= 1:
             release_mine()
@@ -207,6 +212,7 @@ def force_return_tokens():
         del _waitfds[k]
     if _fds:
         _release(n)
+    assert(state.is_flushed())
 
 
 def _pre_job(r, w, pfn):
@@ -227,6 +233,7 @@ class Job:
 
             
 def start_job(reason, jobfunc, donefunc):
+    assert(state.is_flushed())
     global _mytokens
     assert(_mytokens <= 1)
     get_token(reason)

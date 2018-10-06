@@ -62,9 +62,14 @@ try:
         err('invalid --jobs value: %r\n' % opt.jobs)
     jwack.setup(j)
     try:
+        assert(state.is_flushed())
         retcode = builder.main(targets, lambda t: True)
+        assert(state.is_flushed())
     finally:
-        jwack.force_return_tokens()
+        try:
+            state.rollback()
+        finally:
+            jwack.force_return_tokens()
     sys.exit(retcode)
 except KeyboardInterrupt:
     sys.exit(200)

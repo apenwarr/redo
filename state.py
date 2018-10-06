@@ -108,6 +108,19 @@ def commit():
         _wrote = 0
 
 
+def rollback():
+    if _insane:
+        return
+    global _wrote
+    if _wrote:
+        db().rollback()
+        _wrote = 0
+
+
+def is_flushed():
+    return not _wrote
+
+
 _insane = None
 def check_sane():
     global _insane, _writable

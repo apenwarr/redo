@@ -32,9 +32,13 @@ try:
             for t in targets:
                 f.add_dep('m', t)
             f.save()
+            state.commit()
         rv = builder.main(targets, should_build)
     finally:
-        jwack.force_return_tokens()
+        try:
+            state.rollback()
+        finally:
+            jwack.force_return_tokens()
 except KeyboardInterrupt:
     sys.exit(200)
 state.commit()

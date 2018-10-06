@@ -203,6 +203,7 @@ class BuildJob:
         # redo-ifchange, and it might have done it from a different directory
         # than we started it in.  So os.getcwd() might be != REDO_PWD right
         # now.
+        assert(state.is_flushed())
         dn = self.dodir
         newp = os.path.realpath(dn)
         os.environ['REDO_PWD'] = state.relpath(newp, vars.STARTDIR)
@@ -319,6 +320,7 @@ def main(targets, shouldbuildfunc):
     seen = {}
     lock = None
     for t in targets:
+        assert(state.is_flushed())
         if t in seen:
             continue
         seen[t] = 1
@@ -343,6 +345,8 @@ def main(targets, shouldbuildfunc):
             locked.append((f.id,t))
         else:
             BuildJob(t, f, lock, shouldbuildfunc, done).start()
+        state.commit()
+        assert(state.is_flushed())
 
     del lock
 
