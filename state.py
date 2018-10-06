@@ -275,7 +275,7 @@ class File(object):
 
     def read_stamp(self):
         try:
-            st = os.stat(os.path.join(vars.BASE, self.name))
+            st = os.lstat(os.path.join(vars.BASE, self.name))
         except OSError:
             return STAMP_MISSING
         if stat.S_ISDIR(st.st_mode):

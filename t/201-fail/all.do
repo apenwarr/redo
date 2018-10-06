@@ -10,4 +10,5 @@ rm -f fail
 
 touch fail
 ../flush-cache
+# since we created this file by hand, fail.do won't run, so it won't fail.
 redo-ifchange fail >&/dev/null || exit 55  # expected to pass

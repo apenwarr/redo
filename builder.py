@@ -53,7 +53,7 @@ def _nice(t):
 
 def _try_stat(filename):
     try:
-        return os.stat(filename)
+        return os.lstat(filename)
     except OSError, e:
         if e.errno == errno.ENOENT:
             return None
