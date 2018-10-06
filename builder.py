@@ -244,7 +244,15 @@ class BuildJob:
             rv = 207
         if rv==0:
             if st2:
-                os.rename(self.tmpname2, t)
+                try:
+                    os.rename(self.tmpname2, t)
+                except OSError, e:
+                    dnt = os.path.dirname(t)
+                    if not os.path.exists(dnt):
+                        err('%s: target dir %r does not exist!\n' % (t, dnt))
+                    else:
+                        err('%s: rename %s: %s\n' % (t, self.tmpname2, e))
+                        raise
                 os.unlink(self.tmpname1)
             elif st1.st_size > 0:
                 try:
