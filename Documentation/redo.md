@@ -198,32 +198,51 @@ redo is really the only kind of redo.
 When writing a .do script, it will probably need to run
 one or more of the following commands:
 
-`redo`
+`redo [targets...]`
 :   to build a sub-target unconditionally.
 
-`redo-ifchange` 
-:   to build a sub-target only if the sub-target's
-    dependencies have changed.
+`redo-ifchange [targets...]`
+:   to declare dependencies on the given files, and build them if
+    they don't yet exist or are outdated.
 
-`redo-ifcreate`
+`redo-ifcreate [sources...]`
 :   to tell redo that the current target must be rebuilt if
-    a particular file gets created.
+    the given source files (which must not yet exist) get created.
 
 `redo-always`
 :   to tell redo that the current target must always be
-    rebuilt, even if someone calls it using `redo-ifchange`.
-    (This might happen if the current target has
-    dependencies other than the contents of files.)
+    rebuilt, even if none of its dependencies have changed.
+    (You might need this for targets that depend on more than just
+    file contents. For example, the output of `ls *.c`
+    changes when files are created or deleted, but there is no way
+    for redo to know that without re-running the command.)
 
-`redo-stamp`
+`echo "stamp contents..." | redo-stamp`
 :   to tell redo that even though the current target has
     been rebuilt, it may not actually be any different from
     the previous version, so targets that depend on it
     might not need to be rebuilt.  Often used in
     conjunction with `redo-always` to reduce the impact of
     always rebuilding a target.
-    
-    
+
+
+There are also some less common ones:
+
+`redo-ood`
+:   Get a list of all known targets that have been built before, but
+    are currently out of date.
+
+`redo-targets`
+:   Get a list of all known targets that have been built before.
+
+`redo-sources`
+:   Get a list of all known redo source files that still exist.
+
+`redo-whichdo <target>`
+:   Explain the search path used to find a .do file for the given
+    target.
+
+
 # CREDITS
 
 The original concept for `redo` was created by D. J.
@@ -237,4 +256,5 @@ code at http://github.com/apenwarr/redo.
 
 `sh`(1), `make`(1),
 `redo-ifchange`(1), `redo-ifcreate`(1), `redo-always`(1),
-`redo-stamp`(1)
+`redo-stamp`(1), `redo-ood`(1), `redo-targets`(1), `redo-sources`(1),
+`redo-whichdo`(1)
