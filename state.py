@@ -3,6 +3,17 @@ import vars
 from helpers import unlink, close_on_exec, join
 from log import warn, err, debug2, debug3
 
+# When the module is imported, change the process title.
+# We do it here because this module is imported by all the scripts.
+try:
+    from setproctitle import setproctitle
+except ImportError:
+    pass
+else:
+    cmdline = sys.argv[:]
+    cmdline[0] = os.path.splitext(os.path.basename(cmdline[0]))[0]
+    setproctitle(" ".join(cmdline))
+
 SCHEMA_VER=1
 TIMEOUT=60
 
