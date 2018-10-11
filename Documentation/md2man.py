@@ -132,7 +132,7 @@ def _text(bitlist):
         elif typ in ['strong', 'code']:
             out += '\\fB%s\\fR' % text
         else:
-            raise ValueError('unexpected tag %r inside %r' % (typ, tag.name))
+            raise ValueError('unexpected tag %r inside text' % (typ,))
     out = out.strip()
     out = re.sub(re.compile(r'^\s+', re.M), '', out)
     return out
@@ -175,6 +175,7 @@ def do_definition(tag):
             pre.append((typ,text))
     _boldline(pre)
     w.write(_text(post))
+    w.started = False
 
 
 def do_list(tag):
@@ -187,8 +188,9 @@ def do_list(tag):
         else:
             w.start_bullet()
             for xi in i:
-                do(xi)
-                w.end_para()
+                if str(xi).strip():
+                    do(xi)
+                    w.end_para()
             w.end_bullet()
 
 
@@ -215,7 +217,7 @@ def do(tag):
             macro('.RE')
             w.end_para()
     elif name == 'p' or name == 'br':
-        g = re.match(re.compile(r'([^\n]*)\n +: +(.*)', re.S), str(tag))
+        g = re.match(re.compile(r'([^\n]*)\n *: +(.*)', re.S), str(tag))
         if g:
             # it's a definition list (which some versions of python-markdown
             # don't support, including the one in Debian-lenny, so we can't
@@ -238,11 +240,13 @@ DATE=''
 AUTHOR=''
 
 lines = []
-if len(sys.argv) > 1:
-    for n in sys.argv[1:]:
-        lines += open(n).read().decode('utf8').split('\n')
-else:
-    lines += sys.stdin.read().decode('utf8').split('\n')
+if len(sys.argv) != 3:
+    sys.stderr.write('usage: %s <infile.md> <outfile.html> >outfile.1\n')
+    sys.exit(99)
+
+infile = sys.argv[1]
+htmlfile = sys.argv[2]
+lines += open(infile).read().decode('utf8').split('\n')
 
 # parse pandoc-style document headers (not part of markdown)
 g = re.match(r'^%\s+(.*?)\((.*?)\)\s+(.*)$', lines[0])
@@ -266,9 +270,10 @@ if g:
 
 inp = '\n'.join(lines)
 if AUTHOR:
-    inp += ('\n# AUTHOR\n\n%s\n' % AUTHOR).replace('<', '\\<')
+    inp += ('\n# AUTHOR\n\n%s\n' % AUTHOR).replace('<', '&lt;')
 
 html = markdown.markdown(inp)
+open(htmlfile, 'w').write(html)
 soup = BeautifulSoup(html, convertEntities=BeautifulSoup.HTML_ENTITIES)
 
 macro('.TH', PROD.upper(), SECTION, DATE, VENDOR, GROUPNAME)

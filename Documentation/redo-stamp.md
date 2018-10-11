@@ -8,7 +8,7 @@ redo-stamp - detect if the current target has meaningfully changed
 
 # SYNOPSIS
 
-redo-stamp <\$3
+redo-stamp <$3
 
 
 # DESCRIPTION
@@ -33,7 +33,7 @@ are:
 
 - the actual target file contents:
 
-        redo-stamp <\$3
+        redo-stamp <$3
         
 - a list of filenames:
 

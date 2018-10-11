@@ -33,8 +33,8 @@ The list is not filtered in any way; it contains *all* the
 target filenames from the entire project.  Remember that
 the redo database may span more than just your project, so
 you might need to filter the list before using it.  (A
-useful heuristic might be to remove any line starting with
-'../' since it often refers to a target you don't care
+useful heuristic might be to remove any line starting
+with '../' since it often refers to a target you don't care
 about.)
 
 If you want a list of all targets, not just out-of-date
