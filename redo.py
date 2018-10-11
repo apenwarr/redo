@@ -53,6 +53,7 @@ try:
             if not f.is_generated:
                 warn('%s: exists and not marked as generated; not redoing.\n'
                      % f.nicename())
+    state.rollback()
     
     j = atoi(opt.jobs or 1)
     if j < 1 or j > 1000:
