@@ -3,3 +3,4 @@ sed 's/\.do$//' |
 xargs redo
 
 rm -f broken shellfile *~ .*~
+rm -rf 'space home dir'
