@@ -134,7 +134,7 @@ directories.  For example, if given a target named
 `../a/b/xtarget.y`, redo will look for a .do file in the
 following order:
 
-- $PWD/../a/b/xtarget.y
+- $PWD/../a/b/xtarget.y.do
 - $PWD/../a/b/default.y.do
 - $PWD/../a/b/default.do
 - $PWD/../a/default.y.do
