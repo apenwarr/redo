@@ -1,4 +1,4 @@
-rm -f *.n[012]
+rm -f *.n[012] countall
 
 . ./check-1.sh
 redo-ifchange 1.n0 2.n0 3.n0

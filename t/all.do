@@ -29,3 +29,6 @@ sed 's/\.do$//' | {
         redo "$d"
     done
 }
+
+# if all that worked run a repeated stress test to look for races
+redo stress
