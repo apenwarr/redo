@@ -15,4 +15,4 @@ xargs redo
 # builds the rest
 /bin/ls [2-9][0-9][0-9]*/all.do |
 sed 's/\.do$//' |
-xargs redo-ifchange
+xargs redo
