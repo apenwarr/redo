@@ -107,7 +107,10 @@ class BuildJob:
             newstamp != state.STAMP_MISSING and 
             (sf.stamp != newstamp or sf.is_override)):
                 state.warn_override(_nice(t))
-                sf.set_override()
+                if not sf.is_override:
+                    warn('%s - old: %r\n' % (_nice(t), sf.stamp))
+                    warn('%s - new: %r\n' % (_nice(t), newstamp))
+                    sf.set_override()
                 sf.set_checked()
                 sf.save()
                 return self._after2(0)
