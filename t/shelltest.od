@@ -111,7 +111,10 @@ f3=$(quiet_stderr eval ': ${f3:=
 g3="
 	a
 	b"
-[ "$f3" = "$g3" ] || fail 18
+# This is kind of a major problem, but rejecting dash and busybox sh because
+# of this may cause more trouble than it's worth: people end up writing .do
+# scripts with bashisms unnecessarily :(
+[ "$f3" = "$g3" ] || warn 18
 
 
 # Note: assignment of $@ in this context is unspecified (what do you even expect
@@ -371,11 +374,20 @@ false
 . ./nothing.od || warn 114
 
 # this is actually a bash/kshism, but is allowed by POSIX: the parameters to
-# '.' should be passed to the sub-script.  Because it's so useful, let's
-# require it, even though it's not strictly required by POSIX.
+# '.' should be passed to the sub-script.
+#
+# We used to require this, because it's so useful despite being optional in POSIX.
+# But unfortunately, too many shells (including dash) can't do it, so we ended up
+# always using bash, which leads people to write .do scripts with bashisms.
 set x y z
-. ./dotparams.od a b || fail 115
+# dotparams.od might warn 115
+. ./dotparams.od a b || fail 117
 [ "$1-$2-$3" = "x-y-z" ] || fail 116
+
+# Warn about the way bash allows '==' in its test command.
+# This is the #1 bashism I've observed, and totally unnecessary, so let's
+# dock it some points so it doesn't always end up as the primary shell.
+[ 1 == 1 ] 2>/dev/null && warn 118
 
 [ -n "$FAIL" ] || exit 40
 exit $FAIL

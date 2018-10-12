@@ -11,8 +11,8 @@ WARN=
 # powerful ones.  We want weaker shells to take precedence, as long as they
 # pass the tests, because weaker shells are more likely to point out when you
 # use some non-portable feature.
-for sh in dash sh /usr/xpg4/bin/sh ash posh mksh ksh ksh88 ksh93 pdksh \
-		bash zsh busybox; do
+for sh in dash /usr/xpg4/bin/sh ash posh mksh ksh ksh88 ksh93 pdksh \
+		zsh bash busybox sh; do
 	printf "%-30s" "Testing $sh..."
 	FOUND=`which $sh 2>/dev/null` || { echo "missing"; continue; }
 	
