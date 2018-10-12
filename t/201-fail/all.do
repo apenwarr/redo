@@ -12,3 +12,7 @@ touch fail
 ../flush-cache
 # since we created this file by hand, fail.do won't run, so it won't fail.
 redo-ifchange fail >/dev/null 2>&1 || exit 55  # expected to pass
+
+# Make sure we don't leave this lying around for future runs, or redo
+# might mark it as "manually modified" (since we did!)
+rm -f fail

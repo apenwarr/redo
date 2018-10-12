@@ -1,3 +1,7 @@
+# This may have been leftover from a previous run, when switching
+# between "real" redo and minimal/do, so clean it up.
+rm -f silence
+
 echo 'echo hello' >silence.do
 redo silence
 [ -e silence ] || exit 55

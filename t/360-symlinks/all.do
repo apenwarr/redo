@@ -11,6 +11,8 @@ redo-ifchange b
 d2=$(cat b.did)
 [ "$d1" = "$d2" ] || exit 12
 
+. ../skip-if-minimal-do.sh
+
 # forcibly changing a should rebuild b.
 # a is already symlink to a.extra, but redo shouldn't care about the
 # target of symlinks, so it shouldn't freak out that a.extra has changed.
