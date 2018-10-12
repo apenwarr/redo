@@ -91,7 +91,7 @@ _find_dofile()
 _run_dofile()
 {
 	export DO_DEPTH="$DO_DEPTH  "
-	export REDO_TARGET=$PWD/$target
+	export REDO_TARGET="$PWD/$target"
 	local line1
 	set -e
 	read line1 <"$PWD/$dofile" || true
@@ -106,7 +106,7 @@ _run_dofile()
 
 _do()
 {
-	local dir=$1 target=$2 tmp=$3
+	local dir="$1" target="$2" tmp="$3"
 	if [ ! -e "$target" ] || [ -d "$target" -a ! -e "$target.did" ]; then
 		printf '%sdo  %s%s%s%s\n' \
 			"$green" "$DO_DEPTH" "$bold" "$dir$target" "$plain" >&2
