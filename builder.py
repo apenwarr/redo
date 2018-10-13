@@ -121,9 +121,6 @@ class BuildJob:
             # For example, a rule called default.c.do could be used to try
             # to produce hello.c, but we don't want that to happen if
             # hello.c was created by the end user.
-            # FIXME: always refuse to redo any file that was modified outside
-            # of redo?  That would make it easy for someone to override a
-            # file temporarily, and could be undone by deleting the file.
             debug2("-- static (%r)\n" % t)
             sf.set_static()
             sf.save()
@@ -348,6 +345,12 @@ def main(targets, shouldbuildfunc):
                 log('%s (locked...)\n' % _nice(t))
             locked.append((f.id,t))
         else:
+            # We had to create f before we had a lock, because we need f.id
+            # to make the lock.  But someone may have updated the state
+            # between then and now.
+            # FIXME: separate obtaining the fid from creating the File.
+            # FIXME: maybe integrate locking into the File object?
+            f.refresh()
             BuildJob(t, f, lock, shouldbuildfunc, done).start()
         state.commit()
         assert(state.is_flushed())
