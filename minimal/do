@@ -33,6 +33,7 @@ dirname()
 
 _dirsplit "$0"
 export REDO=$(cd "${dir:-.}" && echo "$PWD/$base")
+if [ "$base" = "redo-ifchange" ]; then ifchange=1; else ifchange=; fi
 
 DO_TOP=
 if [ -z "$DO_BUILT" ]; then
@@ -107,7 +108,7 @@ _run_dofile()
 _do()
 {
 	local dir="$1" target="$2" tmp="$3"
-	if [ ! -e "$target" ] || [ -d "$target" -a ! -e "$target.did" ]; then
+	if [ -z "$ifchange" ] || ( [ ! -e "$target" -o -d "$target" ] && [ ! -e "$target.did" ] ); then
 		printf '%sdo  %s%s%s%s\n' \
 			"$green" "$DO_DEPTH" "$bold" "$dir$target" "$plain" >&2
 		echo "$PWD/$target" >>"$DO_BUILT"
