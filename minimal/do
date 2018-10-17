@@ -37,27 +37,53 @@ if [ "$base" = "redo-ifchange" ]; then ifchange=1; else ifchange=; fi
 
 DO_TOP=
 if [ -z "$DO_BUILT" ]; then
+	export _do_opt_debug=
+	export _do_opt_exec=
+	export _do_opt_verbose=
+	export _do_opt_continuable=
+fi
+while getopts dxvc _opt; do
+	case $_opt in
+		d) _do_opt_debug=1 ;;
+		x) _do_opt_exec=x ;;
+		v) _do_opt_verbose=v ;;
+		c) _do_opt_continuable=1 ;;
+		*) printf "\nusage: $0 [-d] [-x] [-v] [-c] <targets...>\n" >&2
+		   exit 99
+		   ;;
+	esac
+done
+shift "$((OPTIND - 1))"
+_debug() {
+	[ -z "$_do_opt_debug" ] || echo "$@" >&2
+}
+
+if [ -z "$DO_BUILT" ]; then
 	DO_TOP=1
-	[ -n "$*" ] || set all  # only toplevel redo has a default target
+	[ "$#" -gt 0 ] || set all  # only toplevel redo has a default target
 	export DO_BUILT=$PWD/.do_built
 	: >>"$DO_BUILT"
-	echo "Removing previously built files..." >&2
-	sort -u "$DO_BUILT" | tee "$DO_BUILT.new" |
-	while read f; do printf "%s\0%s.did\0" "$f" "$f"; done |
-	xargs -0 rm -f 2>/dev/null
+	sort -u "$DO_BUILT" >"$DO_BUILT.new"
+	if [ -z "$_do_opt_continuable" ]; then
+		echo "Removing previously built files..." >&2
+		while read f; do printf "%s\0%s.did\0" "$f" "$f"; done <"$DO_BUILT.new" |
+		xargs -0 rm -f 2>/dev/null
+	fi
 	mv "$DO_BUILT.new" "$DO_BUILT"
 	DO_PATH=$DO_BUILT.dir
 	export PATH=$DO_PATH:$PATH
 	rm -rf "$DO_PATH"
 	mkdir "$DO_PATH"
 	for d in redo redo-ifchange; do
-		ln -s "$REDO" "$DO_PATH/$d";
+		ln -s "$REDO" "$DO_PATH/$d"
 	done
 	[ -e /bin/true ] && TRUE=/bin/true || TRUE=/usr/bin/true
 	for d in redo-ifcreate redo-stamp redo-always; do 
-		ln -s $TRUE "$DO_PATH/$d";
+		ln -s $TRUE "$DO_PATH/$d"
 	done
 fi
+
+
 
 
 _find_dofile_pwd()
@@ -98,8 +124,10 @@ _run_dofile()
 	read line1 <"$PWD/$dofile" || true
 	cmd=${line1#"#!/"}
 	if [ "$cmd" != "$line1" ]; then
+		set -$_do_opt_verbose$_do_opt_exec
 		/$cmd "$PWD/$dofile" "$@" >"$tmp.tmp2"
 	else
+		set -$_do_opt_verbose$_do_opt_exec
 		:; . "$PWD/$dofile" >"$tmp.tmp2"
 	fi
 }
@@ -108,7 +136,9 @@ _run_dofile()
 _do()
 {
 	local dir="$1" target="$2" tmp="$3"
-	if [ -z "$ifchange" ] || ( [ ! -e "$target" -o -d "$target" ] && [ ! -e "$target.did" ] ); then
+	if [ -z "$ifchange" ] ||
+	    ( [ ! -e "$target" -o -d "$target" ] &&
+	      [ ! -e "$target.did" ] ); then
 		printf '%sdo  %s%s%s%s\n' \
 			"$green" "$DO_DEPTH" "$bold" "$dir$target" "$plain" >&2
 		echo "$PWD/$target" >>"$DO_BUILT"
@@ -135,7 +165,7 @@ _do()
 		mv "$tmp.tmp2" "$target" 2>/dev/null
 		rm -f "$tmp.tmp2"
 	else
-		echo "do  $DO_DEPTH$target exists." >&2
+		_debug "do  $DO_DEPTH$target exists." >&2
 	fi
 }
 
@@ -149,7 +179,7 @@ _dir_shovel()
 		_dirsplit "${xdir%/}"
 		xbasetmp=${base}__$xbase
 		xdir=$dir xbase=$base/$xbase
-		echo "xbasetmp='$xbasetmp'" >&2
+		_debug "xbasetmp='$xbasetmp'" >&2
 	done
 }
 
@@ -171,8 +201,10 @@ _redo "$@"
 [ "$?" = 0 ] || exit 1
 
 if [ -n "$DO_TOP" ]; then
-	echo "Removing stamp files..." >&2
-	[ ! -e "$DO_BUILT" ] ||
-	while read f; do printf "%s.did\0" "$f"; done <"$DO_BUILT" |
-	xargs -0 rm -f 2>/dev/null
+	if [ -z "$_do_opt_continuable" ]; then
+		echo "Removing stamp files..." >&2
+		[ ! -e "$DO_BUILT" ] ||
+		while read f; do printf "%s.did\0" "$f"; done <"$DO_BUILT" |
+		xargs -0 rm -f 2>/dev/null
+	fi
 fi
