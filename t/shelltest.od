@@ -136,7 +136,7 @@ EOF
 [ "$t1" = "b c" ] || fail 21
 [ "$t2" = "b  c" ] || fail 22
 [ "$t3" = "b  c" ] || fail 23
-[ "$t4" = "b  c" ] || fail 24
+[ "$t4" = "b  c" ] || fail 24  # freebsd 11.2 sh fails this
 [ "$t5" = "b  c" ] || fail 25
 
 
@@ -205,7 +205,7 @@ g=1 h=1 i=1
 g=2 f
 h=2 :
 i=2 ls >/dev/null
-[ "$g" = "2" ] || fail 48
+[ "$g" = "2" ] || warn 48   # freebsd dash 0.5.10.2 fails this
 [ "$h" = "2" ] || fail 49
 [ "$i" = "1" ] || fail 50
 
