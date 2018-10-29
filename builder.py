@@ -1,4 +1,4 @@
-import sys, os, errno, stat, signal
+import sys, os, errno, random, stat, signal, time
 import vars, jwack, state
 from helpers import unlink, close_on_exec, join
 from log import log, log_, debug, debug2, err, warn
@@ -379,8 +379,13 @@ def main(targets, shouldbuildfunc):
                 break
             fid,t = locked.pop(0)
             lock = state.Lock(fid)
+            backoff = 0.01
             lock.trylock()
             while not lock.owned:
+                # Don't spin with 100% CPU while we fight for the lock.
+                import random
+                time.sleep(random.random() * min(backoff, 1.0))
+                backoff *= 2
                 if vars.DEBUG_LOCKS:
                     warn('%s (WAITING)\n' % _nice(t))
                 # this sequence looks a little silly, but the idea is to
