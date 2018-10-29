@@ -3,7 +3,7 @@ redo-ifchange config.sh
 exec >$3
 cat <<-EOF
 	redo-ifchange \$2.c
-	gcc $CFLAGS -MD -MF \$3.deps -o \$3 -c \$2.c
+	cc $CFLAGS -MD -MF \$3.deps -o \$3 -c \$2.c
 	read DEPS <\$3.deps
 	rm -f \$3.deps
 	redo-ifchange \${DEPS#*:}
