@@ -2,5 +2,5 @@
 from subprocess import run
 from datetime import datetime
 
-run(['redo-ifchange', 'source'])
+run(['redo-ifchange', 'source'], close_fds=False)
 print(datetime.now().timestamp())

@@ -5,7 +5,7 @@ from time import sleep
 with open('source', 'w') as f:
     f.write('foo')
 
-run(['redo-ifchange', 'target'])
+run(['redo-ifchange', 'target'], close_fds=False)
 
 with open('target', 'r') as f:
     target_contents_1 = f.read()
@@ -15,7 +15,7 @@ sleep(1)
 with open('source', 'w') as f:
     f.write('bar')
 
-run(['redo-ifchange', 'target'])
+run(['redo-ifchange', 'target'], close_fds=False)
 
 with open('target', 'r') as f:
     target_contents_2 = f.read()
