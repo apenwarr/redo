@@ -335,6 +335,7 @@ class Lock:
     def __init__(self, fid):
         self.owned = False
         self.fid = fid
+        self.lockfile = None
         self.lockfile = os.open(os.path.join(vars.BASE, '.redo/lock.%d' % fid),
                                 os.O_RDWR | os.O_CREAT, 0666)
         close_on_exec(self.lockfile, True)
@@ -345,7 +346,8 @@ class Lock:
         _locks[self.fid] = 0
         if self.owned:
             self.unlock()
-        os.close(self.lockfile)
+        if self.lockfile is not None:
+            os.close(self.lockfile)
 
     def trylock(self):
         assert(not self.owned)
