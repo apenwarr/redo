@@ -12,18 +12,13 @@ if len(sys.argv[1:]) != 1:
     sys.exit(1)
 
 want = sys.argv[1]
-for dodir,dofile,basedir,basename,ext in builder.possible_do_files(os.path.abspath(want)):
+abswant = os.path.abspath(want)
+for dodir,dofile,basedir,basename,ext in builder.possible_do_files(abswant):
     dopath = os.path.join('/', dodir, dofile)
     relpath = os.path.relpath(dopath, '.')
     exists = os.path.exists(dopath)
     assert('\n' not in relpath)
+    print relpath
     if exists:
-      print '+', relpath
-      assert('\n' not in basename)
-      assert('\n' not in ext)
-      print '1', basename+ext
-      print '2', basename
-      sys.exit(0)
-    else:
-      print '-', relpath
+        sys.exit(0)
 sys.exit(1)   # no appropriate dofile found

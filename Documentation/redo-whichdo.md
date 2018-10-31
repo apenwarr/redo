@@ -20,25 +20,14 @@ directory tree until a match is found.
 
 To help debugging your scripts when redo is using an unexpected .do file, or
 to write advanced scripts that "proxy" from one .do file to another, you
-can use `redo-whichdo` to see the exact search path that `redo` uses,
-and the arguments it would use to run the .do file once found.
+can use `redo-whichdo` to see the exact search path that `redo` uses.
 
-The output format contains lines in exactly the following order, which is
-intended to be easy to parse in `sh`(1) scripts:
+The output format lists potential .do files, one per line, in order of
+preference, separated by newline characters, and stopping once a
+matching .do file has been found.  If the return code is zero,
+the last line is a .do file that actually exists; otherwise the entire
+search path has been exhausted (and printed).
 
-- Zero or more lines starting with "-", indicating .do files that were
-  checked, but did not exist.  If one of these files is created, the .do
-  script for your target would change.  You might
-  want to call `redo-ifcreate`(1) for each of these files.
-
-- Exactly one line starting with "+", indicating the .do file that was the
-  closest match.
-
-- Exactly one line starting with "1", indicating the first argument to the
-  matching .do file.
-
-- Exactly one line starting with "2", indicating the second argument to the
-  matching .do file.
 
 # EXAMPLE
 
@@ -46,49 +35,56 @@ Here's a typical search path for a source file (`x/y/a.b.o`).  Because the
 filename contains two dots (.), at each level of the hierarchy, `redo` needs
 to search `default.b.o.do`, `default.o.do`, and `default.do`.
 
-        $ redo-whichdo x/y/a.b.o
+        $ redo-whichdo x/y/a.b.o; echo $?
 
-        - x/y/a.b.o.do
-        - x/y/default.b.o.do
-        - x/y/default.o.do
-        - x/y/default.do
-        - x/default.b.o.do
-        - x/default.o.do
-        - x/default.do
-        - default.b.o.do
-        + default.o.do
-        1 x/y/a.b.o
-        2 x/y/a.b
+        x/y/a.b.o.do
+        x/y/default.b.o.do
+        x/y/default.o.do
+        x/y/default.do
+        x/default.b.o.do
+        x/default.o.do
+        x/default.do
+        default.b.o.do
+        default.o.do
+        0
 
 You might use `redo-whichdo` to delegate from one .do script to another, 
-using code like this:
+using code like the following.  This gets a little tricky because not only
+are you finding a new .do file, but you have `cd` to the .do file
+directory and adjust `$1` and `$2` appropriately.
 
-        out=$3
-        redo-whichdo "$SRCDIR/$1" | {
-            x1= x2= dofile=
+        ofile=$PWD/$3
+        x1=$1
+        cd "$SRCDIR"
+        redo-whichdo "$x1" | {
             ifcreate=
-            while read a b; do
-                case $a in
-                  -)
-                    ifcreate="$ifcreate $b"
-                    ;;
-                  +)
-                    redo-ifcreate $ifcreate &&
-                    redo-ifchange "$b" || exit
-                    dopath="$b"
-                    dodir=$(dirname "$dopath")
-                    dofile=$(basename "$dopath")
-                    ;;
-                  1)
-                    x1="$b"
-                    ;;
-                  2)
-                    x2="$b"
-                    out="$PWD/$3"
-                    cd "$dodir" && . "./$dofile" "$x1" "$x2" "$out"
+            while read dopath; do
+                if [ ! -e "$dopath" ]; then
+                    ifcreate="$ifcreate $dopath"
+                else
+                    redo-ifcreate $ifcreate
+                    redo-ifchange "$dopath"
+
+                    dofile=${dopath##*/}
+                    dodir=${dopath%$dofile}
+
+                    # Create updated $1 and $2 for the new .do file
+                    x1_rel=${x1#$dodir}
+                    ext=${dofile##*default}
+                    if [ "$ext" != "$dofile" ]; then
+                        ext=${ext%.do}
+                    else
+                        ext=''
+                    fi
+                    x2_rel=${x1#$dodir}
+                    x2_rel=${x2_rel%$ext}
+
+                    cd "$dodir"
+
+                    set -- "$x1_rel" "$x2_rel" "$ofile"
+                    . "./$dofile"
                     exit
-                    ;;
-                esac
+                fi
             done
             exit 3
         }
