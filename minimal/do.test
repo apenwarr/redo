@@ -1,0 +1,164 @@
+#!/bin/sh
+. ./do
+
+set -e
+
+NAME=$(basename "$0")
+TESTNUM=0
+SECT=root
+
+
+SECTION()
+{
+	SECT=$1
+	TESTNUM=0
+	printf "\nTesting \"$1\" in $0:\n"
+}
+
+
+no_nl()
+{
+	echo "$1" | {
+		out=
+		while read -r line; do
+			out="$out$line "
+		done
+		printf "%s" "${out% }"
+	}
+}
+
+
+check_s()
+{
+	local want="$1" got="$2" cmd="$3"
+	want_s=$(no_nl "$want")
+	got_s=$(no_nl "$got")
+	[ -z "$cmd" ] && cmd=$got
+	TESTNUM=$((TESTNUM + 1))
+	if [ "$want" != "$got" ]; then
+		printf "\n<<< expected:\n%s\n=== got:\n%s\n>>>\n" "$want" "$got"
+		printf "! %s:%d  '%.40s' = %s  FAILED\n" "$SECT" "$TESTNUM" "$want_s" "$cmd"
+		exit 1
+	else
+		printf "! %s:%d  '%.40s' = %s  ok\n" "$SECT" "$TESTNUM" "$want_s" "$cmd"
+	fi
+}
+
+
+check()
+{
+	local want="$1" got= rv=
+	shift
+	rv=0
+	got=$("$@") || rv=$?
+	if [ "$rv" -ne 0 ]; then
+		check_s "<returned 0>" "<returned $rv>"
+	else
+		check_s "$want" "$got" "$*"
+	fi
+}
+
+
+retval()
+{
+	set +e
+	"$@" >&2
+	local rv=$?
+	set -e
+	echo "$rv"
+	return 0
+}
+
+
+SECTION _starts_ends_with
+check "0"  retval true
+check "1"  retval false
+check "0"  retval _startswith "x.test" "x."
+check "1"  retval _startswith "x.test" "y."
+check "1"  retval _startswith "" " "
+check "1"  retval _startswith "x.test" "x*"
+check "1"  retval _startswith "do.test" "do*"
+
+check "0"  retval _endswith "x.test" ".test"
+check "1"  retval _endswith "x.test" ".best"
+check "1"  retval _endswith "" " "
+check "1"  retval _endswith "x.test" "*.test"
+check "1"  retval _endswith "do.test" "*.test"
+
+
+
+SECTION _dirsplit
+_dirsplit "/a/b/c"
+check_s "/a/b/" "$_dirsplit_dir"
+check_s "c" "$_dirsplit_base"
+
+_dirsplit "/a/b/c/"
+check_s "/a/b/c/" "$_dirsplit_dir"
+check_s "" "$_dirsplit_base"
+
+_dirsplit "/"
+check_s "/" "$_dirsplit_dir"
+check_s "" "$_dirsplit_base"
+
+
+SECTION _relpath
+check "a/b/c"  _relpath $PWD/a/b/c
+check "../a/b/c"  _relpath $PWD/../a/b/c
+check ""  _relpath "$PWD"
+(cd / && check "a/b/c"  _relpath a/b/c)
+(cd / && check "a/b/c"  _relpath /a/b/c)
+(cd / && check ""  _relpath /)
+(cd /usr/bin && check "../lib"  _relpath /usr/lib)
+(cd /usr/bin && check "../lib/"  _relpath /usr/lib/)
+(cd /usr/bin && check "../.."  _relpath /)
+(cd fakedir && check ".."  _relpath ..)
+(cd fakedir && check "../"  _relpath ../)
+(cd fakedir && check "../fakedir"  _relpath ../fakedir)
+
+
+SECTION _normpath
+check "/usr/lib"  _normpath /usr/../usr/bin/../lib
+check "/"  _normpath /a/b/c/../../..
+check "/"  _normpath /
+check "../a" _normpath ../a
+(cd fakedir && check "../a/b"  _normpath ../a/b)
+(cd fakedir && check ".." _normpath ..)
+(cd / && check "tuv"  _normpath a/b/../../tuv)
+(cd / && check ""  _normpath a/b/../..)
+check ".." _normpath ../
+check ".." _normpath ..
+
+
+SECTION _find_dofile
+check "test.do"  _find_dofiles test
+check "test.do"  _find_dofile test
+
+want="x.y.zz.do
+default.y.zz.do
+default.zz.do"
+check "$want"  _find_dofiles x.y.zz
+
+want="x.y.zz.do
+default.y.zz.do
+default.zz.do
+default.do
+../default.y.zz.do
+../default.zz.do"
+(cd fakedir && check "$want"  _find_dofiles x.y.zz)
+(cd fakedir && check "../default.zz.do"  _find_dofile x.y.zz)
+
+set +e
+got=$(_find_dofiles x.y.z)
+rv=$?
+set -e
+check_s "1" "$rv"
+top_want="x.y.z.do
+default.y.z.do
+default.z.do
+default.do
+../default.y.z.do
+../default.z.do
+../default.do"
+check_s "$top_want" "$(echo "$got" | head -n 7)" "_find_dofiles x.y.z"
+
+exit 0
