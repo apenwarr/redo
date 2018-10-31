@@ -86,7 +86,11 @@ class BuildJob:
     def start(self):
         assert(self.lock.owned)
         try:
-            dirty = self.shouldbuildfunc(self.t)
+            try:
+                dirty = self.shouldbuildfunc(self.t)
+            except state.CyclicDependencyError:
+                err('cyclic dependency while checking %s\n' % _nice(self.t))
+                raise ImmediateReturn(208)
             if not dirty:
                 # target doesn't need to be built; skip the whole task
                 return self._after2(0)

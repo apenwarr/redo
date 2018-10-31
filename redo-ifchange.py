@@ -12,7 +12,8 @@ def should_build(t):
     f = state.File(name=t)
     if f.is_failed():
         raise builder.ImmediateReturn(32)
-    dirty = deps.isdirty(f, depth = '', max_changed = vars.RUNID)
+    dirty = deps.isdirty(f, depth = '', max_changed = vars.RUNID,
+                         already_checked=[])
     return dirty==[f] and deps.DIRTY or dirty
 
 

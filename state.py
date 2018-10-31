@@ -365,7 +365,7 @@ class Lock:
         assert(not self.owned)
         if str(self.fid) in vars.get_locks():
             # Lock already held by parent: cyclic dependence
-            raise CyclicDependencyError
+            raise CyclicDependencyError()
         fcntl.lockf(self.lockfile, fcntl.LOCK_EX, 0, 0)
         self.owned = True
             

@@ -6,8 +6,15 @@ CLEAN = 0
 DIRTY = 1
 
 def isdirty(f, depth, max_changed,
+            already_checked,
             is_checked=state.File.is_checked,
             set_checked=state.File.set_checked_save):
+    if f.id in already_checked:
+        raise state.CyclicDependencyError()
+    # make a copy of the list, so upon returning, our parent's copy
+    # is unaffected
+    already_checked = list(already_checked) + [f.id]
+
     if vars.DEBUG >= 1:
         debug('%s?%s\n' % (depth, f.nicename()))
 
@@ -50,6 +57,7 @@ def isdirty(f, depth, max_changed,
             sub = isdirty(f2, depth = depth + '  ',
                           max_changed = max(f.changed_runid,
                                             f.checked_runid),
+                          already_checked=already_checked,
                           is_checked=is_checked, set_checked=set_checked)
             if sub:
                 debug('%s-- DIRTY (sub)\n' % depth)
