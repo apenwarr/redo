@@ -1,50 +1,7 @@
 import sys, os, errno, random, stat, signal, time
-import vars, jwack, state
+import vars, jwack, state, paths
 from helpers import unlink, close_on_exec, join
 from log import log, log_, debug, debug2, err, warn
-
-
-def _default_do_files(filename):
-    l = filename.split('.')
-    for i in range(1,len(l)+1):
-        basename = join('.', l[:i])
-        ext = join('.', l[i:])
-        if ext: ext = '.' + ext
-        yield ("default%s.do" % ext), basename, ext
-    
-
-def possible_do_files(t):
-    dirname,filename = os.path.split(t)
-    yield (os.path.join(vars.BASE, dirname), "%s.do" % filename,
-           '', filename, '')
-
-    # It's important to try every possibility in a directory before resorting
-    # to a parent directory.  Think about nested projects: I don't want
-    # ../../default.o.do to take precedence over ../default.do, because
-    # the former one might just be an artifact of someone embedding my project
-    # into theirs as a subdir.  When they do, my rules should still be used
-    # for building my project in *all* cases.
-    t = os.path.normpath(os.path.join(vars.BASE, t))
-    dirname,filename = os.path.split(t)
-    dirbits = dirname.split('/')
-    for i in range(len(dirbits), -1, -1):
-        basedir = join('/', dirbits[:i])
-        subdir = join('/', dirbits[i:])
-        for dofile,basename,ext in _default_do_files(filename):
-            yield (basedir, dofile,
-                   subdir, os.path.join(subdir, basename), ext)
-        
-
-def find_do_file(f):
-    for dodir,dofile,basedir,basename,ext in possible_do_files(f.name):
-        dopath = os.path.join(dodir, dofile)
-        debug2('%s: %s:%s ?\n' % (f.name, dodir, dofile))
-        if os.path.exists(dopath):
-            f.add_dep('m', dopath)
-            return dodir,dofile,basedir,basename,ext
-        else:
-            f.add_dep('c', dopath)
-    return None,None,None,None,None
 
 
 def _nice(t):
@@ -130,7 +87,7 @@ class BuildJob:
             sf.save()
             return self._after2(0)
         sf.zap_deps1()
-        (dodir, dofile, basedir, basename, ext) = find_do_file(sf)
+        (dodir, dofile, basedir, basename, ext) = paths.find_do_file(sf)
         if not dofile:
             if os.path.exists(t):
                 sf.set_static()

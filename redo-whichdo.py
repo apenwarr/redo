@@ -2,9 +2,9 @@
 import sys, os
 
 import vars_init
-vars_init.init([])
+vars_init.init_no_state()
 
-import builder
+import paths
 from log import err
 
 if len(sys.argv[1:]) != 1:
@@ -13,7 +13,7 @@ if len(sys.argv[1:]) != 1:
 
 want = sys.argv[1]
 abswant = os.path.abspath(want)
-for dodir,dofile,basedir,basename,ext in builder.possible_do_files(abswant):
+for dodir,dofile,basedir,basename,ext in paths.possible_do_files(abswant):
     dopath = os.path.join('/', dodir, dofile)
     relpath = os.path.relpath(dopath, '.')
     exists = os.path.exists(dopath)

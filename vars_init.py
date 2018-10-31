@@ -1,5 +1,13 @@
 import sys, os
 
+
+def init_no_state():
+    if not os.environ.get('REDO'):
+        os.environ['REDO'] = 'NOT_DEFINED'
+    if not os.environ.get('REDO_BASE'):
+        os.environ['REDO_BASE'] = 'NOT_DEFINED'
+
+
 def init(targets):
     if not os.environ.get('REDO'):
         # toplevel call to redo

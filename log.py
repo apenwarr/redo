@@ -45,5 +45,3 @@ def debug2(s):
 def debug3(s):
     if vars.DEBUG >= 3:
         log_('redo: %s%s' % (vars.DEPTH, s))
-
-
