@@ -322,10 +322,10 @@ _dir_shovel()
 	xdir=$1 xbase=$2 xbasetmp=$2
 	while [ ! -d "$xdir" -a -n "$xdir" ]; do
 		_dirsplit "${xdir%/}"
-		xbasetmp=${_dirsplit_base}__$xbase
+		xbasetmp=${_dirsplit_base}__$xbasetmp
 		xdir=$_dirsplit_dir xbase=$_dirsplit_base/$xbase
-		_debug "xbasetmp='$xbasetmp'" >&2
 	done
+	_debug "xbasetmp='$xbasetmp'" >&2
 }
 
 

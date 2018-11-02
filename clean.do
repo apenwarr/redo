@@ -1,3 +1,4 @@
+exec >&2
 rm -rf t/.redo redo-sh
 if [ -e .do_built ]; then
 	while read x; do
