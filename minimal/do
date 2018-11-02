@@ -72,7 +72,9 @@ _debug() {
 
 if [ -z "$DO_BUILT" -a "$_cmd" != "redo-whichdo" ]; then
 	DO_TOP=1
-	[ "$#" -gt 0 ] || set all  # only toplevel redo has a default target
+	if [ "$#" -eq 0 ] && [ "$_cmd" = "do" -o "$_cmd" = "redo" ]; then
+		set all  # only toplevel redo has a default target
+	fi
 	export DO_BUILT=$PWD/.do_built
 	: >>"$DO_BUILT"
 	sort -u "$DO_BUILT" >"$DO_BUILT.new"
@@ -90,7 +92,8 @@ if [ -z "$DO_BUILT" -a "$_cmd" != "redo-whichdo" ]; then
 		ln -s "$REDO" "$DO_PATH/$d"
 	done
 	[ -e /bin/true ] && TRUE=/bin/true || TRUE=/usr/bin/true
-	for d in redo-ifcreate redo-stamp redo-always; do 
+	for d in redo-ifcreate redo-stamp redo-always redo-ood \
+	    redo-targets redo-sources; do
 		ln -s $TRUE "$DO_PATH/$d"
 	done
 fi
