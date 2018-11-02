@@ -208,10 +208,11 @@ _find_dofiles()
 	_dirsplit "$dofile"
 	dodir=$_dirsplit_dir
 	dofile=$_dirsplit_base
+	[ -n "$dodir" ] && dodir=${dodir%/}/
+	[ -e "$dodir$dofile" ] && return 0
 	for i in $(seq 100); do
 		[ -n "$dodir" ] && dodir=${dodir%/}/
 		#echo "_find_dofiles: '$dodir' '$dofile'" >&2
-		[ -e "$dodir$dofile" ] && return 0
 		_find_dofiles_pwd "$dodir" "$dofile" && return 0
 		newdir=$(_normpath "${dodir}..")
 		[ "$newdir" = "$dodir" ] && break
