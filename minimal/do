@@ -78,11 +78,12 @@ if [ -z "$DO_BUILT" -a "$_cmd" != "redo-whichdo" ]; then
 	export DO_BUILT=$PWD/.do_built
 	: >>"$DO_BUILT"
 	sort -u "$DO_BUILT" >"$DO_BUILT.new"
-	if [ -n "$_do_opt_clean" ]; then
-		echo "Removing previously built files..." >&2
-		while read f; do printf "%s\0%s.did\0" "$f" "$f"; done <"$DO_BUILT.new" |
-		xargs -0 rm -f 2>/dev/null
-	fi
+	echo "Cleaning up from previous run..." >&2
+	while read f; do
+		[ -n "$_do_opt_clean" ] && printf "%s\0%s.did\0" "$f" "$f"
+		printf "%s.did.tmp\0" "$f"
+	done <"$DO_BUILT.new" |
+	xargs -0 rm -f 2>/dev/null
 	mv "$DO_BUILT.new" "$DO_BUILT"
 	DO_PATH=$DO_BUILT.dir
 	export PATH=$DO_PATH:$PATH
@@ -276,7 +277,6 @@ _do()
 			echo "do: $target: no .do file ($PWD)" >&2
 			return 1
 		fi
-		echo "$PWD/$target" >>"$DO_BUILT"
 		_dirsplit "$dopath"
 		dodir=$_dirsplit_dir dofile=$_dirsplit_base
 		if _startswith "$dofile" "default."; then
@@ -292,18 +292,22 @@ _do()
 		tmp=$(_relpath "$tmp") || return 97
 		base=${target%$ext}
 		[ ! -e "$DO_BUILT" ] || [ ! -d "$(dirname "$target")" ] ||
-		: >>"$target.did"
+		: >>"$target.did.tmp"
 		( _run_dofile "$target" "$base" "$tmp.tmp" )
 		rv=$?
 		if [ $rv != 0 ]; then
 			printf "do: %s%s\n" "$DO_DEPTH" \
 				"$dir$target: got exit code $rv" >&2
-			rm -f "$tmp.tmp" "$tmp.tmp2"
+			rm -f "$tmp.tmp" "$tmp.tmp2" "$target.did"
 			return $rv
 		fi
+		echo "$PWD/$target" >>"$DO_BUILT"
 		mv "$tmp.tmp" "$target" 2>/dev/null ||
 		! test -s "$tmp.tmp2" ||
 		mv "$tmp.tmp2" "$target" 2>/dev/null
+		[ -e "$target.did.tmp" ] &&
+		mv "$target.did.tmp" "$target.did" ||
+		: >>"$target.did"
 		rm -f "$tmp.tmp2"
 	else
 		_debug "do  $DO_DEPTH$target exists." >&2

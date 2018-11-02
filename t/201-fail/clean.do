@@ -1,1 +1,1 @@
-rm -f fail *~ .*~
+rm -f fail maybe-fail want-fail *~ .*~

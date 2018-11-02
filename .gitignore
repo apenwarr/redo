@@ -1,8 +1,8 @@
 /.redo
+/.do_built
+/.do_built.dir
 *~
 *.pyc
 *.tmp
 /redo-sh
 *.did
-.do_built
-.do_built.dir

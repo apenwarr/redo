@@ -1,1 +1,1 @@
-rm -f *~ .*~ a b *.extra *.did
+rm -f *~ .*~ a b *.extra *.ran
