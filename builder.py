@@ -282,6 +282,10 @@ def main(targets, shouldbuildfunc):
     seen = {}
     lock = None
     for t in targets:
+        if not t:
+            err('cannot build the empty target ("").\n')
+            retcode[0] = 204
+            break
         assert(state.is_flushed())
         if t in seen:
             continue

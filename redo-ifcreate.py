@@ -9,6 +9,9 @@ try:
                       os.path.join(vars.PWD, vars.TARGET))
     f = state.File(name=me)
     for t in sys.argv[1:]:
+        if not t:
+            err('cannot build the empty target ("").\n')
+            sys.exit(204)
         if os.path.exists(t):
             err('redo-ifcreate: error: %r already exists\n' % t)
             sys.exit(1)

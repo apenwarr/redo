@@ -189,8 +189,7 @@ class File(object):
         row = d.execute(q, l).fetchone()
         if not row:
             if not name:
-                raise Exception('File with id=%r not found and '
-                                'name not given' % id)
+                raise Exception('No file with id=%r name=%r' % (id, name))
             try:
                 _write('insert into Files (name) values (?)', [name])
             except sqlite3.IntegrityError:

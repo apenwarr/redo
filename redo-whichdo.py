@@ -12,6 +12,10 @@ if len(sys.argv[1:]) != 1:
     sys.exit(1)
 
 want = sys.argv[1]
+if not want:
+    err('cannot build the empty target ("").\n')
+    sys.exit(204)
+
 abswant = os.path.abspath(want)
 for dodir,dofile,basedir,basename,ext in paths.possible_do_files(abswant):
     dopath = os.path.join('/', dodir, dofile)
