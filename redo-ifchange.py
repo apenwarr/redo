@@ -14,11 +14,13 @@ def should_build(t):
         raise builder.ImmediateReturn(32)
     dirty = deps.isdirty(f, depth = '', max_changed = vars.RUNID,
                          already_checked=[])
-    return dirty==[f] and deps.DIRTY or dirty
+    return f.is_generated, dirty==[f] and deps.DIRTY or dirty
 
 
 rv = 202
 try:
+    if vars_init.is_toplevel:
+        builder.start_stdin_log_reader(status=True, details=True)
     if vars.TARGET and not vars.UNLOCKED:
         me = os.path.join(vars.STARTDIR, 
                           os.path.join(vars.PWD, vars.TARGET))
@@ -41,6 +43,10 @@ try:
         finally:
             jwack.force_return_tokens()
 except KeyboardInterrupt:
+    if vars_init.is_toplevel:
+        builder.await_log_reader()
     sys.exit(200)
 state.commit()
+if vars_init.is_toplevel:
+    builder.await_log_reader()
 sys.exit(rv)

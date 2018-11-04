@@ -16,6 +16,7 @@ DEBUG_PIDS = os.environ.get('REDO_DEBUG_PIDS', '') and 1 or 0
 VERBOSE = os.environ.get('REDO_VERBOSE', '') and 1 or 0
 XTRACE = os.environ.get('REDO_XTRACE', '') and 1 or 0
 KEEP_GOING = os.environ.get('REDO_KEEP_GOING', '') and 1 or 0
+RAW_LOGS = os.environ.get('REDO_RAW_LOGS', '') and 1 or 0
 SHUFFLE = os.environ.get('REDO_SHUFFLE', '') and 1 or 0
 STARTDIR = os.environ.get('REDO_STARTDIR', '')
 RUNID = atoi(os.environ.get('REDO_RUNID')) or None

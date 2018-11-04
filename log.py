@@ -1,20 +1,24 @@
 import sys, os
 import vars
 
-# By default, no output colouring.
-RED    = ""
-GREEN  = ""
-YELLOW = ""
-BOLD   = ""
-PLAIN  = ""
 
-if sys.stderr.isatty() and (os.environ.get('TERM') or 'dumb') != 'dumb':
-    # ...use ANSI formatting codes.
-    RED    = "\x1b[31m"
-    GREEN  = "\x1b[32m"
-    YELLOW = "\x1b[33m"
-    BOLD   = "\x1b[1m"
-    PLAIN  = "\x1b[m"
+def check_tty():
+    global RED, GREEN, YELLOW, BOLD, PLAIN
+    if sys.stderr.isatty() and (os.environ.get('TERM') or 'dumb') != 'dumb':
+        # ...use ANSI formatting codes.
+        RED    = "\x1b[31m"
+        GREEN  = "\x1b[32m"
+        YELLOW = "\x1b[33m"
+        BOLD   = "\x1b[1m"
+        PLAIN  = "\x1b[m"
+    else:
+        RED    = ""
+        GREEN  = ""
+        YELLOW = ""
+        BOLD   = ""
+        PLAIN  = ""
+
+check_tty()
 
 
 def log_(s):

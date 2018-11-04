@@ -1,7 +1,7 @@
 import sys, os, errno, random, stat, signal, time
 import vars, jwack, state, paths
 from helpers import unlink, close_on_exec, join
-from log import log, log_, debug, debug2, err, warn
+from log import log, log_, debug, debug2, err, warn, check_tty
 
 
 def _nice(t):
@@ -16,6 +16,72 @@ def _try_stat(filename):
             return None
         else:
             raise
+
+
+log_reader_pid = None
+
+
+def start_stdin_log_reader(status, details):
+    if vars.RAW_LOGS: return
+    global log_reader_pid
+    r, w = os.pipe()    # main pipe to redo-log
+    ar, aw = os.pipe()  # ack pipe from redo-log --ack-fd
+    sys.stdout.flush()
+    sys.stderr.flush()
+    pid = os.fork()
+    if pid:
+        # parent
+        log_reader_pid = pid
+        os.close(r)
+        os.close(aw)
+        b = os.read(ar, 8)
+        if not b:
+            # subprocess died without sending us anything: that's bad.
+            err('failed to start redo-log subprocess; cannot continue.\n')
+            os._exit(99)
+        assert b == 'REDO-OK\n'
+        # now we know the subproc is running and will report our errors
+        # to stderr, so it's okay to lose our own stderr.
+        os.close(ar)
+        os.dup2(w, 1)
+        os.dup2(w, 2)
+        os.close(w)
+        check_tty()
+    else:
+        # child
+        try:
+            os.close(ar)
+            os.close(w)
+            os.dup2(r, 0)
+            os.close(r)
+            argv = [
+                'redo-log',
+                '--recursive', '--follow',
+                '--ack-fd', str(aw),
+                ('--status' if status else '--no-status'),
+                ('--details' if details else '--no-details'),
+                '-'
+            ]
+            os.execvp(argv[0], argv)
+        except Exception, e:
+            sys.stderr.write('redo-log: exec: %s\n' % e)
+        finally:
+            os._exit(99)
+
+
+def await_log_reader():
+    if vars.RAW_LOGS: return
+    global log_reader_pid
+    if log_reader_pid > 0:
+        # never actually close fd#1 or fd#2; insanity awaits.
+        # replace it with something else instead.
+        # Since our stdout/stderr are attached to redo-log's stdin,
+        # this will notify redo-log that it's time to die (after it finishes
+        # reading the logs)
+        out = open('/dev/tty', 'w')
+        os.dup2(out.fileno(), 1)
+        os.dup2(out.fileno(), 2)
+        os.waitpid(log_reader_pid, 0)
 
 
 class ImmediateReturn(Exception):
@@ -44,12 +110,14 @@ class BuildJob:
         assert(self.lock.owned)
         try:
             try:
-                dirty = self.shouldbuildfunc(self.t)
+                is_target, dirty = self.shouldbuildfunc(self.t)
             except state.CyclicDependencyError:
                 err('cyclic dependency while checking %s\n' % _nice(self.t))
                 raise ImmediateReturn(208)
             if not dirty:
                 # target doesn't need to be built; skip the whole task
+                if is_target and vars.DEBUG_LOCKS:
+                    log('[unchanged] %s\n' % _nice(self.t))
                 return self._after2(0)
         except ImmediateReturn, e:
             return self._after2(e.rv)
@@ -117,6 +185,9 @@ class BuildJob:
         firstline = open(os.path.join(dodir, dofile)).readline().strip()
         if firstline.startswith('#!/'):
             argv[0:2] = firstline[2:].split(' ')
+        # make sure to create the logfile *before* writing the log about it.
+        # that way redo-log won't trace into an obsolete logfile.
+        if not vars.RAW_LOGS: open(state.logname(self.sf.id), 'w')
         log('%s\n' % _nice(t))
         self.dodir = dodir
         self.basename = basename
@@ -173,6 +244,11 @@ class BuildJob:
         os.dup2(self.f.fileno(), 1)
         os.close(self.f.fileno())
         close_on_exec(1, False)
+        if not vars.RAW_LOGS:
+            logf = open(state.logname(self.sf.id), 'w')
+            os.dup2(logf.fileno(), 2)
+            close_on_exec(2, False)
+            logf.close()
         signal.signal(signal.SIGPIPE, signal.SIG_DFL)  # python ignores SIGPIPE
         if vars.VERBOSE or vars.XTRACE: log_('* %s\n' % ' '.join(self.argv))
         os.execvp(self.argv[0], self.argv)
