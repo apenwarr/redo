@@ -1431,16 +1431,17 @@ like:
 
 # Are there examples?
 
-FIXME: There are some limited ones in the `t/example/` subdir of
-the redo project.  The best example is a real, live program
-using redo as a build process.  If you switch your
-program's build process to use redo, please let us know and
+* [Liberation Circuit](https://github.com/linleyh/liberation-circuit)
+* [WvStreams](https://github.com/apenwarr/wvstreams)
+* limited examples in the [`t/111-example/`](t/111-example) subdir of the redo project
+
+If you switch your program's build process to use redo, please let us know and
 we can link to it here.
 
-Please don't take the other tests in `t/` as serious
+(Please don't take the other tests in `t/` as serious
 examples.  Many of them are doing things in deliberately
 psychotic ways in order to stress redo's code and find
-bugs.
+bugs.)
 
 
 # What's missing?  How can I help?
