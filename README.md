@@ -853,7 +853,7 @@ create a file called `compile.do`:
 	
 	redo-ifchange config.sh
 	. ./config.sh
-	echo "gcc -c -o \$3 $2.c $CFLAGS" >$3
+	echo "gcc -c -o \$3 \$2.c $CFLAGS" >$3
 	chmod a+x $3
 
 Then, your `default.o.do` can simply look like this:
