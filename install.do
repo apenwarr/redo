@@ -39,7 +39,7 @@ for dd in redo*.py; do
 	cat >install.wrapper <<-EOF
 		#!/usr/bin/python
 		import sys, os;
-		exedir = os.path.dirname(os.path.abspath(sys.argv[0]))
+		exedir = os.path.dirname(os.path.realpath(os.path.abspath(sys.argv[0])))
 		sys.path.insert(0, os.path.join(exedir, '../lib/redo'))
 		import $fix
 	EOF
