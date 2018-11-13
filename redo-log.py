@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import errno, os, re, sys, time
+import errno, fcntl, os, re, struct, sys, termios, time
 import options
 
 optspec = """
@@ -40,6 +40,17 @@ status = None
 REDO_LINE_RE = re.compile(r'^redo\s+(\[\w+\] )?([^(:]+)( \([^)]+\))?\n$')
 
 
+def _tty_width():
+    s = struct.pack("HHHH", 0, 0, 0, 0)
+    try:
+        import fcntl, termios
+        s = fcntl.ioctl(sys.stderr.fileno(), termios.TIOCGWINSZ, s)
+    except (IOError, ImportError):
+        return _atoi(os.environ.get('WIDTH')) or 70
+    (ysize,xsize,ypix,xpix) = struct.unpack('HHHH', s)
+    return xsize or 70
+
+
 def is_locked(fid):
     return (fid is not None) and not state.Lock(fid=fid).trylock()
 
@@ -68,6 +79,7 @@ def catlog(t):
     delay = 0.01
     was_locked = is_locked(fid)
     line_head = ''
+    width = _tty_width()
     while 1:
         if not f:
             try:
@@ -93,19 +105,28 @@ def catlog(t):
             was_locked = is_locked(fid)
             if opt.follow:
                 if opt.status:
-                    # FIXME use actual terminal width here
-                    head = '[redo] %s ' % ('{:,}'.format(total_lines))
+                    width = _tty_width()
+                    head = 'redo %s ' % ('{:,}'.format(total_lines))
                     tail = ''
-                    for i in reversed(depth):
-                        n = os.path.basename(i)
-                        if 65 - len(head) - len(tail) < len(n) + 1:
-                            tail = '... ' + tail
+                    for n in reversed(depth):
+                        remain = width - len(head) - len(tail)
+                        # always leave room for a final '... ' prefix
+                        if remain < len(n) + 4 + 1 or remain <= 4:
+                            if len(n) < 6 or remain < 6 + 1 + 4:
+                                tail = '... %s' % tail
+                            else:
+                                start = len(n) - (remain - 3 - 1)
+                                tail = '...%s %s' % (n[start:], tail)
                             break
-                        else:
+                        elif n != '-':
                             tail = n + ' ' + tail
                     status = head + tail
+                    if len(status) > width:
+                        sys.stderr.write('\nOVERSIZE STATUS (%d):\n%r\n' %
+                            (len(status), status))
+                    assert(len(status) <= width)
                     sys.stdout.flush()
-                    sys.stderr.write('\r%-70.70s\r' % status)
+                    sys.stderr.write('\r%-*.*s\r' % (width, width, status))
                 time.sleep(min(delay, 1.0))
                 delay += 0.01
             continue
@@ -119,7 +140,7 @@ def catlog(t):
             line_head = ''
         if status:
             sys.stdout.flush()
-            sys.stderr.write('\r%-70.70s\r' % '')
+            sys.stderr.write('\r%-*.*s\r' % (width, width, ''))
             status = None
         g = re.match(REDO_LINE_RE, line)
         if g:
@@ -140,7 +161,7 @@ def catlog(t):
                 sys.stdout.write(line)
     if status:
         sys.stdout.flush()
-        sys.stderr.write('\r%-70.70s\r' % '')
+        sys.stderr.write('\r%-*.*s\r' % (width, width, ''))
         status = None
     if line_head:
         # partial line never got terminated
