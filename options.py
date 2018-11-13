@@ -64,7 +64,7 @@ import sys, os, textwrap, getopt, re, struct
 class OptDict:
     """Dictionary that exposes keys as attributes.
 
-    Keys can bet set or accessed with a "no-" or "no_" prefix to negate the
+    Keys can be set or accessed with a "no-" or "no_" prefix to negate the
     value.
     """
     def __init__(self):
