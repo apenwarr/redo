@@ -5,7 +5,7 @@ import vars_init
 vars_init.init_no_state()
 
 import paths
-from log import err
+from logs import err
 
 if len(sys.argv[1:]) != 1:
     err('%s: exactly one argument expected.\n' % sys.argv[0])

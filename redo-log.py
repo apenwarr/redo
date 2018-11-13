@@ -11,6 +11,7 @@ f,follow        keep watching for more lines to be appended (like tail -f)
 no-details      only show 'redo' recursion trace, not build output
 no-colorize     don't colorize 'redo' log messages
 no-status       don't display build summary line in --follow
+raw-logs        don't format logs, just send raw output straight to stdout
 ack-fd=         (internal use only) print REDO-OK to this fd upon starting
 """
 o = options.Options(optspec)
@@ -20,7 +21,7 @@ targets = extra
 import vars_init
 vars_init.init(list(targets))
 
-import vars, state
+import vars, logs, state
 
 already = set()
 queue = []
@@ -34,10 +35,14 @@ status = None
 #            redo  path/to/target which might have spaces
 #            redo  [unchanged] path/to/target which might have spaces
 #            redo  path/to/target which might have spaces (comment)
-# FIXME: use a more structured format when writing the logs.
-# That will prevent false positives and negatives.  Then transform the
-# structured format into a user-friendly format when printing in redo-log.
-REDO_LINE_RE = re.compile(r'^redo\s+(\[\w+\] )?([^(:]+)( \([^)]+\))?\n$')
+REDO_LINE_RE = re.compile(r'^@@REDO:([^@]+)@@ (.*)\n$')
+
+
+def _atoi(s):
+    try:
+        return int(s)
+    except TypeError:
+        return 0
 
 
 def _tty_width():
@@ -55,11 +60,16 @@ def is_locked(fid):
     return (fid is not None) and not state.Lock(fid=fid).trylock()
 
 
+def _fix_depth():
+    vars.DEPTH = (len(depth) - 1) * '  '
+
+
 def catlog(t):
     global total_lines, status
     if t in already:
         return
     depth.append(t)
+    _fix_depth()
     already.add(t)
     if t == '-':
         f = sys.stdin
@@ -144,21 +154,26 @@ def catlog(t):
             status = None
         g = re.match(REDO_LINE_RE, line)
         if g:
-            attr, name, comment = g.groups()
-            if attr == '[unchanged] ':
+            # FIXME: print prefix if @@REDO is not at start of line.
+            #   logs.PrettyLog does it, but only if we actually call .write().
+            words, text = g.groups()
+            kind, pid, when = words.split(':')[0:3]
+            if kind == 'unchanged':
                 if opt.unchanged:
-                    if name not in already:
-                        sys.stdout.write(line)
+                    if text not in already:
+                        logs.write(line.rstrip())
                     if opt.recursive:
-                        catlog(name)
+                        catlog(text)
+            elif kind in ('do', 'waiting'):
+                logs.write(line.rstrip())
+                if opt.recursive:
+                    assert text
+                    catlog(text)
             else:
-                sys.stdout.write(line)
-                if opt.recursive and (not comment or comment == ' (WAITING)'):
-                    assert name
-                    catlog(name)
+                logs.write(line.rstrip())
         else:
             if opt.details:
-                sys.stdout.write(line)
+                logs.write(line.rstrip())
     if status:
         sys.stdout.flush()
         sys.stderr.write('\r%-*.*s\r' % (width, width, ''))
@@ -168,6 +183,7 @@ def catlog(t):
         print line_head
     assert(depth[-1] == t)
     depth.pop(-1)
+    _fix_depth()
 
 try:
     if not targets:
@@ -175,7 +191,14 @@ try:
         sys.exit(1)
     if opt.status < 2 and not os.isatty(2):
         opt.status = False
+    if opt.raw_logs:
+        logs.setup(file=sys.stdout, pretty=False)
+    else:
+        logs.setup(file=sys.stdout, pretty=True)
     if opt.ack_fd:
+        # Write back to owner, to let them know we started up okay and
+        # will be able to see their error output, so it's okay to close
+        # their old stderr.
         ack_fd = int(opt.ack_fd)
         assert(ack_fd > 2)
         if os.write(ack_fd, 'REDO-OK\n') != 8:
@@ -185,7 +208,7 @@ try:
     while queue:
         t = queue.pop(0)
         if t != '-':
-            print 'redo  %s' % t
+            logs.meta('do', t)
         catlog(t)
 except KeyboardInterrupt:
     sys.exit(200)

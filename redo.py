@@ -50,7 +50,7 @@ import vars_init
 vars_init.init(targets)
 
 import vars, state, builder, jwack
-from log import warn, err
+from logs import warn, err
 
 try:
     if vars_init.is_toplevel:

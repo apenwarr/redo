@@ -1,7 +1,7 @@
 import sys, os, errno, glob, stat, fcntl, sqlite3
 import vars
 from helpers import unlink, close_on_exec, join
-from log import warn, err, debug2, debug3
+from logs import warn, err, debug2, debug3
 
 # When the module is imported, change the process title.
 # We do it here because this module is imported by all the scripts.

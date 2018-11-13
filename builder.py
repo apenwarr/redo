@@ -1,7 +1,8 @@
 import sys, os, errno, random, stat, signal, time
 import vars, jwack, state, paths
 from helpers import unlink, close_on_exec, join
-from log import log, log_, debug, debug2, err, warn, check_tty
+import logs
+from logs import debug, debug2, err, warn, meta, check_tty
 
 
 def _nice(t):
@@ -58,7 +59,7 @@ def start_stdin_log_reader(status, details):
                 'redo-log',
                 '--recursive', '--follow',
                 '--ack-fd', str(aw),
-                ('--status' if status else '--no-status'),
+                ('--status' if status and os.isatty(2) else '--no-status'),
                 ('--details' if details else '--no-details'),
                 '-'
             ]
@@ -116,8 +117,8 @@ class BuildJob:
                 raise ImmediateReturn(208)
             if not dirty:
                 # target doesn't need to be built; skip the whole task
-                if is_target and vars.DEBUG_LOCKS:
-                    log('[unchanged] %s\n' % _nice(self.t))
+                if is_target:
+                    meta('unchanged', _nice(self.t))
                 return self._after2(0)
         except ImmediateReturn, e:
             return self._after2(e.rv)
@@ -162,7 +163,7 @@ class BuildJob:
                 sf.save()
                 return self._after2(0)
             else:
-                err('no rule to make %r\n' % t)
+                err('no rule to redo %r\n' % t)
                 return self._after2(1)
         unlink(self.tmpname1)
         unlink(self.tmpname2)
@@ -181,14 +182,14 @@ class BuildJob:
                 ]
         if vars.VERBOSE: argv[1] += 'v'
         if vars.XTRACE: argv[1] += 'x'
-        if vars.VERBOSE or vars.XTRACE: log_('\n')
+        if vars.VERBOSE or vars.XTRACE: logs.write('\n')
         firstline = open(os.path.join(dodir, dofile)).readline().strip()
         if firstline.startswith('#!/'):
             argv[0:2] = firstline[2:].split(' ')
         # make sure to create the logfile *before* writing the log about it.
         # that way redo-log won't trace into an obsolete logfile.
         if not vars.RAW_LOGS: open(state.logname(self.sf.id), 'w')
-        log('%s\n' % _nice(t))
+        meta('do', _nice(t))
         self.dodir = dodir
         self.basename = basename
         self.ext = ext
@@ -213,7 +214,7 @@ class BuildJob:
         # condition; that's why it's called redo-unlocked, because it doesn't
         # grab a lock.
         argv = ['redo-unlocked', self.sf.name] + [d.name for d in dirty]
-        log('(%s)\n' % _nice(self.t))
+        meta('check', _nice(self.t))
         state.commit()
         def run():
             os.chdir(vars.BASE)
@@ -250,8 +251,12 @@ class BuildJob:
             close_on_exec(2, False)
             logf.close()
         signal.signal(signal.SIGPIPE, signal.SIG_DFL)  # python ignores SIGPIPE
-        if vars.VERBOSE or vars.XTRACE: log_('* %s\n' % ' '.join(self.argv))
+        if vars.VERBOSE or vars.XTRACE:
+            logs.write('* %s\n' % ' '.join(self.argv).replace('\n', ' '))
         os.execvp(self.argv[0], self.argv)
+        # FIXME: it would be nice to log the exit code to logf.
+        #  But that would have to happen in the parent process, which doesn't
+        #  have logf open.
         assert(0)
         # returns only if there's an exception
 
@@ -326,11 +331,7 @@ class BuildJob:
         sf.zap_deps2()
         sf.save()
         f.close()
-        if rv != 0:
-            err('%s: exit code %r\n' % (_nice(t),rv))
-        else:
-            if vars.VERBOSE or vars.XTRACE or vars.DEBUG:
-                log('%s (done)\n\n' % _nice(t))
+        meta('done', '%d %s' % (rv, self.t))
         return rv
 
     def _after2(self, rv):
@@ -382,8 +383,7 @@ def main(targets, shouldbuildfunc):
         else:
             lock.trylock()
         if not lock.owned:
-            if vars.DEBUG_LOCKS:
-                log('%s (locked...)\n' % _nice(t))
+            meta('locked', _nice(t))
             locked.append((f.id,t))
         else:
             # We had to create f before we had a lock, because we need f.id
@@ -427,8 +427,7 @@ def main(targets, shouldbuildfunc):
                 import random
                 time.sleep(random.random() * min(backoff, 1.0))
                 backoff *= 2
-                if vars.DEBUG_LOCKS:
-                    warn('%s (WAITING)\n' % _nice(t))
+                meta('waiting', _nice(t))
                 try:
                     lock.check()
                 except state.CyclicDependencyError:
@@ -445,8 +444,7 @@ def main(targets, shouldbuildfunc):
                 jwack.get_token(t)
                 lock.trylock()
             assert(lock.owned)
-            if vars.DEBUG_LOCKS:
-                log('%s (...unlocked!)\n' % _nice(t))
+            meta('unlocked', _nice(t))
             if state.File(name=t).is_failed():
                 err('%s: failed in another thread\n' % _nice(t))
                 retcode[0] = 2

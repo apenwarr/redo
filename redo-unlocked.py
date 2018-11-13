@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 import sys, os
 import state
-from log import err
+from logs import err
 
 if len(sys.argv[1:]) < 2:
     err('%s: at least 2 arguments expected.\n' % sys.argv[0])

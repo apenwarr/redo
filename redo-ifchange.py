@@ -6,7 +6,7 @@ vars_init.init(sys.argv[1:])
 
 import vars, state, builder, jwack, deps
 from helpers import unlink
-from log import debug, debug2, err
+from logs import debug, debug2, err
 
 def should_build(t):
     f = state.File(name=t)

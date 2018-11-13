@@ -1,6 +1,6 @@
 import os
 import vars
-from log import err, debug2
+from logs import err, debug2
 
 
 def _default_do_files(filename):

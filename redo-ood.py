@@ -5,7 +5,7 @@ import vars_init
 vars_init.init([])
 
 import vars, state, deps
-from log import err
+from logs import err
 
 if len(sys.argv[1:]) != 0:
     err('%s: no arguments expected.\n' % sys.argv[0])
