@@ -353,18 +353,18 @@ def main(targets, shouldbuildfunc):
                 backoff *= 2
                 if vars.DEBUG_LOCKS:
                     warn('%s (WAITING)\n' % _nice(t))
+                try:
+                    lock.check()
+                except state.CyclicDependencyError:
+                    err('cyclic dependency while building %s\n' % _nice(t))
+                    retcode[0] = 208
+                    return retcode[0]
                 # this sequence looks a little silly, but the idea is to
                 # give up our personal token while we wait for the lock to
                 # be released; but we should never run get_token() while
                 # holding a lock, or we could cause deadlocks.
                 jwack.release_mine()
-                try:
-                    lock.waitlock()
-                except state.CyclicDependencyError:
-                    err('cyclic dependency while building %s\n' % _nice(t))
-                    jwack.get_token(t)
-                    retcode[0] = 208
-                    return retcode[0]
+                lock.waitlock()
                 lock.unlock()
                 jwack.get_token(t)
                 lock.trylock()

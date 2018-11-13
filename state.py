@@ -348,8 +348,14 @@ class Lock:
         if self.lockfile is not None:
             os.close(self.lockfile)
 
-    def trylock(self):
+    def check(self):
         assert(not self.owned)
+        if str(self.fid) in vars.get_locks():
+            # Lock already held by parent: cyclic dependence
+            raise CyclicDependencyError()
+
+    def trylock(self):
+        self.check()
         try:
             fcntl.lockf(self.lockfile, fcntl.LOCK_EX|fcntl.LOCK_NB, 0, 0)
         except IOError, e:
@@ -361,10 +367,7 @@ class Lock:
             self.owned = True
 
     def waitlock(self):
-        assert(not self.owned)
-        if str(self.fid) in vars.get_locks():
-            # Lock already held by parent: cyclic dependence
-            raise CyclicDependencyError()
+        self.check()
         fcntl.lockf(self.lockfile, fcntl.LOCK_EX, 0, 0)
         self.owned = True
             

@@ -18,8 +18,8 @@ def _debug(s):
 
 def _release(n):
     global _mytokens
-    _debug('release(%d)\n' % n)
     _mytokens += n
+    _debug('release(%d) -> %d\n' % (n, _mytokens))
     if _mytokens > 1:
         os.write(_fds[1], 't' * (_mytokens-1))
         _mytokens = 1
@@ -28,8 +28,9 @@ def _release(n):
 def release_mine():
     global _mytokens
     assert(_mytokens >= 1)
-    os.write(_fds[1], 't')
     _mytokens -= 1
+    _debug('release_mine() -> %d\n' % _mytokens)
+    os.write(_fds[1], 't')
 
 
 def _timeout(sig, frame):
@@ -198,7 +199,7 @@ def wait_all():
             bb += b
             if not b: break
         if len(bb) != _toplevel-1:
-            raise Exception('on exit: expected %d tokens; found only %r' 
+            raise Exception('on exit: expected %d tokens; found %r'
                             % (_toplevel-1, len(bb)))
         os.write(_fds[1], bb)
 
