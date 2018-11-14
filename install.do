@@ -26,7 +26,7 @@ for d in *.py version/*.py; do
 	fix=$(echo $d | sed 's,-,_,g')
 	$INSTALL -m 0644 $d $LIBDIR/$fix
 done
-python -mcompileall $LIBDIR
+python2 -mcompileall $LIBDIR
 
 # It's important for the file to actually be named 'sh'.  Some shells (like
 # bash and zsh) only go into POSIX-compatible mode if they have that name.
@@ -37,7 +37,7 @@ for dd in redo*.py; do
 	d=$(basename $dd .py)
 	fix=$(echo $d | sed -e 's,-,_,g')
 	cat >install.wrapper <<-EOF
-		#!/usr/bin/python
+		#!/usr/bin/python2
 		import sys, os;
 		exedir = os.path.dirname(os.path.realpath(os.path.abspath(sys.argv[0])))
 		sys.path.insert(0, os.path.join(exedir, '../lib/redo'))

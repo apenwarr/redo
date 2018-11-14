@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 import sys, os, markdown, re
 from BeautifulSoup import BeautifulSoup
 
