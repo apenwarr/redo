@@ -1,5 +1,3 @@
-/bin/ls *.md t/*.md |
-sed 's/\.md/.1/' |
-xargs redo-ifchange
-
-redo-always
+redo-ifchange doc.list
+sed 's/\.md/.1/' <doc.list |
+xargs redo-ifchange mkdocs

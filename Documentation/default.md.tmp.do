@@ -1,3 +1,7 @@
 redo-ifchange ../version/vars $2.md
 . ../version/vars
-sed -e "s/%VERSION%/$TAG/" -e "s/%DATE%/$DATE/" $2.md
+cat - $2.md <<-EOF
+	% $2(1) Redo $TAG
+	% Avery Pennarun <apenwarr@gmail.com>
+	% $DATE
+EOF

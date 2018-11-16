@@ -1,7 +1,3 @@
-% redo-ifchange(1) Redo %VERSION%
-% Avery Pennarun <apenwarr@gmail.com>
-% %DATE%
-
 # NAME
 
 redo-ifchange - rebuild target files when source files have changed

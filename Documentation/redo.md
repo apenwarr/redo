@@ -1,7 +1,3 @@
-% redo(1) Redo %VERSION%
-% Avery Pennarun <apenwarr@gmail.com>
-% %DATE%
-
 # NAME
 
 redo - rebuild target files when source files have changed

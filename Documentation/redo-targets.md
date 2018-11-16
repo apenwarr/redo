@@ -1,7 +1,3 @@
-% redo-targets(1) Redo %VERSION%
-% Avery Pennarun <apenwarr@gmail.com>
-% %DATE%
-
 # NAME
 
 redo-targets - print the list of all known redo targets

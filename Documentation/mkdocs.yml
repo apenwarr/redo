@@ -1,0 +1,18 @@
+site_name: redo build system
+theme: readthedocs
+docs_dir: .
+site_dir: ../website
+strict: true
+
+pages:
+  - Introduction: index.md
+  - Man Pages:
+    - redo: redo.md
+    - redo-ifchange: redo-ifchange.md
+    - redo-ifcreate: redo-ifcreate.md
+    - redo-always: redo-always.md
+    - redo-stamp: redo-stamp.md
+    - redo-sources: redo-sources.md
+    - redo-targets: redo-targets.md
+    - redo-ood: redo-ood.md
+    - redo-whichdo: redo-whichdo.md

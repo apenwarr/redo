@@ -1,7 +1,3 @@
-% redo-sources(1) Redo %VERSION%
-% Avery Pennarun <apenwarr@gmail.com>
-% %DATE%
-
 # NAME
 
 redo-sources - print the list of all known redo sources

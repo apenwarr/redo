@@ -1,7 +1,3 @@
-% redo-always(1) Redo %VERSION%
-% Avery Pennarun <apenwarr@gmail.com>
-% %DATE%
-
 # NAME
 
 redo-always - mark the current target as always needing to be rebuilt

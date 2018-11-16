@@ -1,7 +1,3 @@
-% redo-ood(1) Redo %VERSION%
-% Avery Pennarun <apenwarr@gmail.com>
-% %DATE%
-
 # NAME
 
 redo-ood - print the list of out-of-date redo targets

@@ -1,7 +1,3 @@
-% redo-ifcreate(1) Redo %VERSION%
-% Avery Pennarun <apenwarr@gmail.com>
-% %DATE%
-
 # NAME
 
 redo-ifcreate - rebuild the current target if source files are created

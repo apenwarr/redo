@@ -1,7 +1,3 @@
-% redo-stamp(1) Redo %VERSION%
-% Avery Pennarun <apenwarr@gmail.com>
-% %DATE%
-
 # NAME
 
 redo-stamp - detect if the current target has meaningfully changed

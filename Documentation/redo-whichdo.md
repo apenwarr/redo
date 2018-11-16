@@ -1,7 +1,3 @@
-% redo-ifchange(1) Redo %VERSION%
-% Avery Pennarun <apenwarr@gmail.com>
-% %DATE%
-
 # NAME
 
 redo-whichdo - show redo's search path for a .do file
@@ -34,7 +30,7 @@ search path has been exhausted (and printed).
 Here's a typical search path for a source file (`x/y/a.b.o`).  Because the
 filename contains two dots (.), at each level of the hierarchy, `redo` needs
 to search `default.b.o.do`, `default.o.do`, and `default.do`.
-
+```sh
         $ redo-whichdo x/y/a.b.o; echo $?
 
         x/y/a.b.o.do
@@ -47,7 +43,7 @@ to search `default.b.o.do`, `default.o.do`, and `default.do`.
         default.b.o.do
         default.o.do
         0
-
+```
 You might use `redo-whichdo` to delegate from one .do script to another, 
 using code like the following.  This gets a little tricky because not only
 are you finding a new .do file, but you have `cd` to the .do file
