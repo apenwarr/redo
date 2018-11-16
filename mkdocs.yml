@@ -1,4 +1,4 @@
-site_name: redo build system
+site_name: the _redo_ build system
 theme: readthedocs
 docs_dir: Documentation
 site_dir: website
@@ -6,7 +6,16 @@ strict: true
 
 pages:
   - Introduction: index.md
-  - Man Pages:
+  - Getting Started: GettingStarted.md
+  - Cookbook.md
+  - FAQ:
+    - Basics: FAQBasics.md
+    - Semantics: FAQSemantics.md
+    - Interop with make: FAQInterop.md
+    - Parallel Builds: FAQParallel.md
+    - Implementation Details: FAQImpl.md
+  - Contributing.md
+  - Command Reference (man pages):
     - redo: redo.md
     - redo-ifchange: redo-ifchange.md
     - redo-ifcreate: redo-ifcreate.md
