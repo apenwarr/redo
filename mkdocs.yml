@@ -1,7 +1,7 @@
 site_name: redo build system
 theme: readthedocs
-docs_dir: .
-site_dir: ../website
+docs_dir: Documentation
+site_dir: website
 strict: true
 
 pages:
