@@ -12,6 +12,8 @@ no-details      only show 'redo' recursion trace, not build output
 no-colorize     don't colorize 'redo' log messages
 no-status       don't display build summary line in --follow
 raw-logs        don't format logs, just send raw output straight to stdout
+debug-locks     print messages about file locking (useful for debugging)
+debug-pids      print process ids in log messages (useful for debugging)
 ack-fd=         (internal use only) print REDO-OK to this fd upon starting
 """
 o = options.Options(optspec)
@@ -75,6 +77,7 @@ def catlog(t):
     if t == '-':
         f = sys.stdin
         fid = None
+        loglock = None
         logname = None
     else:
         try:
@@ -86,6 +89,8 @@ def catlog(t):
         del sf
         state.rollback()
         logname = state.logname(fid)
+        loglock = state.Lock(fid + state.LOG_LOCK_MAGIC)
+        loglock.waitlock(shared=True)
         f = None
     delay = 0.01
     was_locked = is_locked(fid)
@@ -161,20 +166,31 @@ def catlog(t):
             kind, pid, when = words.split(':')[0:3]
             if kind == 'unchanged':
                 if opt.unchanged:
-                    if text not in already:
+                    if opt.debug_locks:
                         logs.write(line.rstrip())
+                    elif text not in already:
+                        logs.meta('do', text)
                     if opt.recursive:
+                        if loglock: loglock.unlock()
                         catlog(text)
-            elif kind in ('do', 'waiting'):
-                logs.write(line.rstrip())
+                        if loglock: loglock.waitlock(shared=True)
+            elif kind in ('do', 'waiting', 'locked', 'unlocked'):
+                if opt.debug_locks:
+                    logs.write(line.rstrip())
+                elif text not in already:
+                    logs.meta('do', text)
                 if opt.recursive:
                     assert text
+                    if loglock: loglock.unlock()
                     catlog(text)
+                    if loglock: loglock.waitlock(shared=True)
             else:
                 logs.write(line.rstrip())
         else:
             if opt.details:
                 logs.write(line.rstrip())
+    if loglock:
+        loglock.unlock()
     if status:
         sys.stdout.flush()
         sys.stderr.write('\r%-*.*s\r' % (width, width, ''))
@@ -197,6 +213,10 @@ try:
         logs.setup(file=sys.stdout, pretty=False)
     else:
         logs.setup(file=sys.stdout, pretty=True)
+    if opt.debug_locks:
+        vars.DEBUG_LOCKS = 1
+    if opt.debug_pids:
+        vars.DEBUG_PIDS = 1
     if opt.ack_fd:
         # Write back to owner, to let them know we started up okay and
         # will be able to see their error output, so it's okay to close

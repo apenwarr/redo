@@ -22,7 +22,7 @@ def _try_stat(filename):
 log_reader_pid = None
 
 
-def start_stdin_log_reader(status, details):
+def start_stdin_log_reader(status, details, debug_locks, debug_pids):
     if vars.RAW_LOGS: return
     global log_reader_pid
     r, w = os.pipe()    # main pipe to redo-log
@@ -47,7 +47,7 @@ def start_stdin_log_reader(status, details):
         os.dup2(w, 1)
         os.dup2(w, 2)
         os.close(w)
-        check_tty()
+        check_tty(sys.stderr)
     else:
         # child
         try:
@@ -61,6 +61,8 @@ def start_stdin_log_reader(status, details):
                 '--ack-fd', str(aw),
                 ('--status' if status and os.isatty(2) else '--no-status'),
                 ('--details' if details else '--no-details'),
+                ('--debug-locks' if debug_locks else '--no-debug-locks'),
+                ('--debug-pids' if debug_pids else '--no-debug-pids'),
                 '-'
             ]
             os.execvp(argv[0], argv)
@@ -182,7 +184,6 @@ class BuildJob:
                 ]
         if vars.VERBOSE: argv[1] += 'v'
         if vars.XTRACE: argv[1] += 'x'
-        if vars.VERBOSE or vars.XTRACE: logs.write('\n')
         firstline = open(os.path.join(dodir, dofile)).readline().strip()
         if firstline.startswith('#!/'):
             argv[0:2] = firstline[2:].split(' ')
@@ -252,7 +253,7 @@ class BuildJob:
             logf.close()
         signal.signal(signal.SIGPIPE, signal.SIG_DFL)  # python ignores SIGPIPE
         if vars.VERBOSE or vars.XTRACE:
-            logs.write('* %s\n' % ' '.join(self.argv).replace('\n', ' '))
+            logs.write('* %s' % ' '.join(self.argv).replace('\n', ' '))
         os.execvp(self.argv[0], self.argv)
         # FIXME: it would be nice to log the exit code to logf.
         #  But that would have to happen in the parent process, which doesn't
@@ -353,6 +354,27 @@ def main(targets, shouldbuildfunc):
     def done(t, rv):
         if rv:
             retcode[0] = 1
+    
+    if vars.TARGET and not vars.UNLOCKED:
+        me = os.path.join(vars.STARTDIR, 
+                          os.path.join(vars.PWD, vars.TARGET))
+        myfile = state.File(name=me)
+        selflock = state.Lock(state.LOG_LOCK_MAGIC + myfile.id)
+    else:
+        selflock = myfile = me = None
+    
+    def cheat():
+        if not selflock: return 0
+        selflock.trylock()
+        if not selflock.owned:
+            # redo-log already owns it: let's cheat.
+            # Give ourselves one extra token so that the "foreground" log
+            # can always make progress.
+            return 1
+        else:
+            # redo-log isn't watching us (yet)
+            selflock.unlock()
+            return 0
 
     # In the first cycle, we just build as much as we can without worrying
     # about any lock contention.  If someone else has it locked, we move on.
@@ -369,7 +391,7 @@ def main(targets, shouldbuildfunc):
         seen[t] = 1
         if not jwack.has_token():
             state.commit()
-        jwack.get_token(t)
+        jwack.ensure_token_or_cheat(t, cheat)
         if retcode[0] and not vars.KEEP_GOING:
             break
         if not state.check_sane():
@@ -409,6 +431,8 @@ def main(targets, shouldbuildfunc):
     while locked or jwack.running():
         state.commit()
         jwack.wait_all()
+        assert jwack._mytokens == 0
+        jwack.ensure_token_or_cheat('self', cheat)
         # at this point, we don't have any children holding any tokens, so
         # it's okay to block below.
         if retcode[0] and not vars.KEEP_GOING:
@@ -427,6 +451,8 @@ def main(targets, shouldbuildfunc):
                 import random
                 time.sleep(random.random() * min(backoff, 1.0))
                 backoff *= 2
+                # after printing this line, redo-log will recurse into t,
+                # whether it's us building it, or someone else.
                 meta('waiting', _nice(t))
                 try:
                     lock.check()
@@ -436,12 +462,14 @@ def main(targets, shouldbuildfunc):
                     return retcode[0]
                 # this sequence looks a little silly, but the idea is to
                 # give up our personal token while we wait for the lock to
-                # be released; but we should never run get_token() while
+                # be released; but we should never run ensure_token() while
                 # holding a lock, or we could cause deadlocks.
                 jwack.release_mine()
                 lock.waitlock()
+                # now t is definitely free, so we get to decide whether
+                # to build it.
                 lock.unlock()
-                jwack.get_token(t)
+                jwack.ensure_token_or_cheat(t, cheat)
                 lock.trylock()
             assert(lock.owned)
             meta('unlocked', _nice(t))

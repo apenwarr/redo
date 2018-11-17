@@ -21,6 +21,8 @@ ALWAYS='//ALWAYS'   # an invalid filename that is always marked as dirty
 STAMP_DIR='dir'     # the stamp of a directory; mtime is unhelpful
 STAMP_MISSING='0'   # the stamp of a nonexistent file
 
+LOG_LOCK_MAGIC=0x10000000  # fid offset for "log locks"
+
 
 class CyclicDependencyError(Exception): pass
 
@@ -374,9 +376,11 @@ class Lock:
             self.owned = True
         return self.owned
 
-    def waitlock(self):
+    def waitlock(self, shared=False):
         self.check()
-        fcntl.lockf(self.lockfile, fcntl.LOCK_EX, 0, 0)
+        fcntl.lockf(self.lockfile,
+            fcntl.LOCK_SH if shared else fcntl.LOCK_EX,
+            0, 0)
         self.owned = True
             
     def unlock(self):

@@ -1,5 +1,5 @@
 #!/usr/bin/env python2
-import sys, os
+import sys, os, traceback
 import options
 from helpers import atoi
 
@@ -54,7 +54,8 @@ from logs import warn, err
 
 try:
     if vars_init.is_toplevel:
-        builder.start_stdin_log_reader(status=opt.status, details=opt.details)
+        builder.start_stdin_log_reader(status=opt.status, details=opt.details,
+            debug_locks=opt.debug_locks, debug_pids=opt.debug_pids)
     for t in targets:
         if os.path.exists(t):
             f = state.File(name=t)
@@ -75,7 +76,12 @@ try:
         try:
             state.rollback()
         finally:
-            jwack.force_return_tokens()
+            try:
+                jwack.force_return_tokens()
+            except Exception, e:
+                traceback.print_exc(100, sys.stderr)
+                err('unexpected error: %r\n' % e)
+                retcode = 1
     if vars_init.is_toplevel:
         builder.await_log_reader()
     sys.exit(retcode)

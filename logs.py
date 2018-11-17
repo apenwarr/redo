@@ -2,9 +2,9 @@ import os, re, sys, time
 import vars
 
 
-def check_tty():
+def check_tty(file):
     global RED, GREEN, YELLOW, BOLD, PLAIN
-    if sys.stderr.isatty() and (os.environ.get('TERM') or 'dumb') != 'dumb':
+    if file.isatty() and (os.environ.get('TERM') or 'dumb') != 'dumb':
         # ...use ANSI formatting codes.
         RED    = "\x1b[31m"
         GREEN  = "\x1b[32m"
@@ -52,15 +52,14 @@ class PrettyLog(object):
         sys.stderr.flush()
         g = REDO_RE.match(s)
         if g:
-            # FIXME: support vars.DEBUG_PIDS somewhere
             all = g.group(0)
             self.file.write(s[:-len(all)])
             words = g.group(1).split(':')
             text = g.group(2)
             kind, pid, when = words[0:3]
+            pid = int(pid)
             if kind == 'unchanged':
-                if vars.DEBUG >= 1:
-                    self._pretty(pid, '', '%s (unchanged)' % text)
+                self._pretty(pid, '', '%s (unchanged)' % text)
             elif kind == 'check':
                 self._pretty(pid, GREEN, '(%s)' % text)
             elif kind == 'do':
@@ -102,7 +101,7 @@ _log = None
 def setup(file, pretty):
     global _log
     if pretty:
-        check_tty()
+        check_tty(file)
         _log = PrettyLog(file=file)
     else:
         _log = RawLog(file=file)
