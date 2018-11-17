@@ -59,7 +59,7 @@ def _try_read(fd, n):
     assert(state.is_flushed())
     oldh = signal.signal(signal.SIGALRM, _timeout)
     try:
-        signal.alarm(1)  # emergency fallback
+        signal.setitimer(signal.ITIMER_REAL, 0.01, 0.01)  # emergency fallback
         try:
             b = os.read(_fds[0], 1)
         except OSError, e:
@@ -69,7 +69,7 @@ def _try_read(fd, n):
             else:
                 raise
     finally:
-        signal.alarm(0)
+        signal.setitimer(signal.ITIMER_REAL, 0, 0)
         signal.signal(signal.SIGALRM, oldh)
     return b and b or None  # None means EOF
 
