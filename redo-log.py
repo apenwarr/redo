@@ -61,14 +61,15 @@ def is_locked(fid):
 
 
 def _fix_depth():
-    vars.DEPTH = (len(depth) - 1) * '  '
+    vars.DEPTH = len(depth) * '  '
 
 
 def catlog(t):
     global total_lines, status
     if t in already:
         return
-    depth.append(t)
+    if t != '-':
+        depth.append(t)
     _fix_depth()
     already.add(t)
     if t == '-':
@@ -181,8 +182,9 @@ def catlog(t):
     if line_head:
         # partial line never got terminated
         print line_head
-    assert(depth[-1] == t)
-    depth.pop(-1)
+    if t != '-':
+        assert(depth[-1] == t)
+        depth.pop(-1)
     _fix_depth()
 
 try:
