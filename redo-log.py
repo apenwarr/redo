@@ -31,6 +31,7 @@ queue = []
 depth = []
 total_lines = 0
 status = None
+start_time = time.time()
 
 
 # regexp for matching "redo" lines in the log, which we use for recursion.
@@ -121,7 +122,8 @@ def catlog(t):
         if not line:
             was_locked = is_locked(fid)
             if opt.follow:
-                if opt.status:
+                # Don't display status line for extremely short-lived runs
+                if opt.status and time.time() - start_time > 1.0:
                     width = _tty_width()
                     head = 'redo %s ' % ('{:,}'.format(total_lines))
                     tail = ''
