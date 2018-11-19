@@ -17,6 +17,7 @@ VERBOSE = os.environ.get('REDO_VERBOSE', '') and 1 or 0
 XTRACE = os.environ.get('REDO_XTRACE', '') and 1 or 0
 KEEP_GOING = os.environ.get('REDO_KEEP_GOING', '') and 1 or 0
 LOG = atoi(os.environ.get('REDO_LOG', '1'))  # defaults on
+LOG_INODE = os.environ.get('REDO_LOG_INODE', '')
 COLOR = atoi(os.environ.get('REDO_COLOR', '1'))  # defaults on
 # subprocesses mustn't pretty-print if a parent is running redo-log
 PRETTY = (not LOG) and atoi(os.environ.get('REDO_PRETTY', '1'))

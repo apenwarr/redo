@@ -56,6 +56,12 @@ def start_stdin_log_reader(status, details, pretty, color,
             os.close(w)
             os.dup2(r, 0)
             os.close(r)
+            # redo-log sends to stdout (because if you ask for logs, that's
+            # the output you wanted!).  But redo itself sends logs to stderr
+            # (because they're incidental to the thing you asked for).
+            # To make these semantics work, we point redo-log's stdout at
+            # our stderr when we launch it.
+            os.dup2(2, 1)
             argv = [
                 'redo-log',
                 '--recursive', '--follow',
@@ -251,10 +257,22 @@ class BuildJob:
         os.close(self.f.fileno())
         close_on_exec(1, False)
         if vars.LOG:
-            logf = open(state.logname(self.sf.id), 'w')
-            os.dup2(logf.fileno(), 2)
-            close_on_exec(2, False)
-            logf.close()
+            cur_inode = str(os.fstat(2).st_ino)
+            if not vars.LOG_INODE or cur_inode == vars.LOG_INODE:
+                # .do script has *not* redirected stderr, which means we're
+                # using redo-log's log saving mode.  That means subprocs
+                # should be logged to their own file.  If the .do script
+                # *does* redirect stderr, that redirection should be inherited
+                # by subprocs, so we'd do nothing.
+                logf = open(state.logname(self.sf.id), 'w')
+                new_inode = str(os.fstat(logf.fileno()).st_ino)
+                os.environ['REDO_LOG_INODE'] = new_inode
+                os.dup2(logf.fileno(), 2)
+                close_on_exec(2, False)
+                logf.close()
+        else:
+            if 'REDO_LOG_INODE' in os.environ:
+                del os.environ['REDO_LOG_INODE']
         signal.signal(signal.SIGPIPE, signal.SIG_DFL)  # python ignores SIGPIPE
         if vars.VERBOSE or vars.XTRACE:
             logs.write('* %s' % ' '.join(self.argv).replace('\n', ' '))
