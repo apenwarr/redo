@@ -14,7 +14,8 @@ k,keep-going  keep going as long as possible even if some targets fail
 shuffle    randomize the build order to find dependency bugs
 no-details only show 'redo' recursion trace (to see more later, use redo-log)
 no-status  don't display build summary line at the bottom of the screen
-raw-logs   don't use redo-log, just send all output straight to stderr
+no-log     don't capture error output, just let it flow straight to stderr
+no-pretty  don't pretty-print logs, show raw @@REDO output instead
 debug-locks  print messages about file locking (useful for debugging)
 debug-pids   print process ids as part of log messages (useful for debugging)
 version    print the current version and exit
@@ -38,13 +39,18 @@ if opt.keep_going:
     os.environ['REDO_KEEP_GOING'] = '1'
 if opt.shuffle:
     os.environ['REDO_SHUFFLE'] = '1'
-if opt.raw_logs:
-    os.environ['REDO_RAW_LOGS'] = '1'
-if opt.debug_locks or not os.environ.get('REDO_RAW_LOGS'):
-    # FIXME: force-enabled for redo-log, for now
+if opt.debug_locks:
     os.environ['REDO_DEBUG_LOCKS'] = '1'
 if opt.debug_pids:
     os.environ['REDO_DEBUG_PIDS'] = '1'
+
+# This is slightly tricky: the log and pretty options default to true.  We
+# want to inherit that 'true' value from parent processes *unless* someone
+# explicitly specifies the reverse.
+if opt.no_log:
+    os.environ['REDO_LOG'] = '0'
+    if opt.no_pretty:
+        os.environ['REDO_PRETTY'] = '0'
 
 import vars_init
 vars_init.init(targets)
@@ -55,6 +61,7 @@ from logs import warn, err
 try:
     if vars_init.is_toplevel:
         builder.start_stdin_log_reader(status=opt.status, details=opt.details,
+            pretty=opt.pretty,
             debug_locks=opt.debug_locks, debug_pids=opt.debug_pids)
     for t in targets:
         if os.path.exists(t):

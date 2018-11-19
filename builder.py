@@ -22,8 +22,8 @@ def _try_stat(filename):
 log_reader_pid = None
 
 
-def start_stdin_log_reader(status, details, debug_locks, debug_pids):
-    if vars.RAW_LOGS: return
+def start_stdin_log_reader(status, details, pretty, debug_locks, debug_pids):
+    if not vars.LOG: return
     global log_reader_pid
     r, w = os.pipe()    # main pipe to redo-log
     ar, aw = os.pipe()  # ack pipe from redo-log --ack-fd
@@ -61,6 +61,7 @@ def start_stdin_log_reader(status, details, debug_locks, debug_pids):
                 '--ack-fd', str(aw),
                 ('--status' if status and os.isatty(2) else '--no-status'),
                 ('--details' if details else '--no-details'),
+                ('--pretty' if pretty else '--no-pretty'),
                 ('--debug-locks' if debug_locks else '--no-debug-locks'),
                 ('--debug-pids' if debug_pids else '--no-debug-pids'),
                 '-'
@@ -73,7 +74,7 @@ def start_stdin_log_reader(status, details, debug_locks, debug_pids):
 
 
 def await_log_reader():
-    if vars.RAW_LOGS: return
+    if not vars.LOG: return
     global log_reader_pid
     if log_reader_pid > 0:
         # never actually close fd#1 or fd#2; insanity awaits.
@@ -189,7 +190,7 @@ class BuildJob:
             argv[0:2] = firstline[2:].split(' ')
         # make sure to create the logfile *before* writing the log about it.
         # that way redo-log won't trace into an obsolete logfile.
-        if not vars.RAW_LOGS: open(state.logname(self.sf.id), 'w')
+        if vars.LOG: open(state.logname(self.sf.id), 'w')
         meta('do', _nice(t))
         self.dodir = dodir
         self.basename = basename
@@ -246,7 +247,7 @@ class BuildJob:
         os.dup2(self.f.fileno(), 1)
         os.close(self.f.fileno())
         close_on_exec(1, False)
-        if not vars.RAW_LOGS:
+        if vars.LOG:
             logf = open(state.logname(self.sf.id), 'w')
             os.dup2(logf.fileno(), 2)
             close_on_exec(2, False)

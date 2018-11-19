@@ -100,7 +100,7 @@ _log = None
 
 def setup(file, pretty):
     global _log
-    if pretty:
+    if pretty or vars.PRETTY:
         check_tty(file)
         _log = PrettyLog(file=file)
     else:

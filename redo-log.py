@@ -11,7 +11,7 @@ f,follow        keep watching for more lines to be appended (like tail -f)
 no-details      only show 'redo' recursion trace, not build output
 no-colorize     don't colorize 'redo' log messages
 no-status       don't display build summary line in --follow
-raw-logs        don't format logs, just send raw output straight to stdout
+no-pretty       don't pretty-print logs, show raw @@REDO output instead
 debug-locks     print messages about file locking (useful for debugging)
 debug-pids      print process ids in log messages (useful for debugging)
 ack-fd=         (internal use only) print REDO-OK to this fd upon starting
@@ -209,10 +209,7 @@ try:
         sys.exit(1)
     if opt.status < 2 and not os.isatty(2):
         opt.status = False
-    if opt.raw_logs:
-        logs.setup(file=sys.stdout, pretty=False)
-    else:
-        logs.setup(file=sys.stdout, pretty=True)
+    logs.setup(file=sys.stdout, pretty=opt.pretty)
     if opt.debug_locks:
         vars.DEBUG_LOCKS = 1
     if opt.debug_pids:
