@@ -22,7 +22,8 @@ def _try_stat(filename):
 log_reader_pid = None
 
 
-def start_stdin_log_reader(status, details, pretty, debug_locks, debug_pids):
+def start_stdin_log_reader(status, details, pretty, color,
+                           debug_locks, debug_pids):
     if not vars.LOG: return
     global log_reader_pid
     r, w = os.pipe()    # main pipe to redo-log
@@ -47,7 +48,7 @@ def start_stdin_log_reader(status, details, pretty, debug_locks, debug_pids):
         os.dup2(w, 1)
         os.dup2(w, 2)
         os.close(w)
-        check_tty(sys.stderr)
+        check_tty(sys.stderr, vars.COLOR)
     else:
         # child
         try:
@@ -64,8 +65,10 @@ def start_stdin_log_reader(status, details, pretty, debug_locks, debug_pids):
                 ('--pretty' if pretty else '--no-pretty'),
                 ('--debug-locks' if debug_locks else '--no-debug-locks'),
                 ('--debug-pids' if debug_pids else '--no-debug-pids'),
-                '-'
             ]
+            if color != 1:
+                argv.append('--color' if color >= 2 else '--no-color')
+            argv.append('-')
             os.execvp(argv[0], argv)
         except Exception, e:
             sys.stderr.write('redo-log: exec: %s\n' % e)

@@ -2,9 +2,10 @@ import os, re, sys, time
 import vars
 
 
-def check_tty(file):
+def check_tty(file, color):
     global RED, GREEN, YELLOW, BOLD, PLAIN
-    if file.isatty() and (os.environ.get('TERM') or 'dumb') != 'dumb':
+    color_ok = file.isatty() and (os.environ.get('TERM') or 'dumb') != 'dumb'
+    if (color and color_ok) or color >= 2:
         # ...use ANSI formatting codes.
         RED    = "\x1b[31m"
         GREEN  = "\x1b[32m"
@@ -98,17 +99,17 @@ class PrettyLog(object):
 
 _log = None
 
-def setup(file, pretty):
+def setup(file, pretty, color):
     global _log
     if pretty or vars.PRETTY:
-        check_tty(file)
+        check_tty(file, color=color)
         _log = PrettyLog(file=file)
     else:
         _log = RawLog(file=file)
 
 
-# FIXME: explicitly initialize in each program
-setup(file=sys.stderr, pretty=False)
+# FIXME: explicitly initialize in each program, for clarity
+setup(file=sys.stderr, pretty=vars.PRETTY, color=vars.COLOR)
 
 
 def write(s):

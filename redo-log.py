@@ -10,9 +10,9 @@ r,recursive     show build logs for dependencies too
 u,unchanged     show lines for dependencies not needing to be rebuilt
 f,follow        keep watching for more lines to be appended (like tail -f)
 no-details      only show 'redo' recursion trace, not build output
-no-colorize     don't colorize 'redo' log messages
 no-status       don't display build summary line in --follow
 no-pretty       don't pretty-print logs, show raw @@REDO output instead
+no-color        disable ANSI color; --color to force enable (default: auto)
 debug-locks     print messages about file locking (useful for debugging)
 debug-pids      print process ids in log messages (useful for debugging)
 ack-fd=         (internal use only) print REDO-OK to this fd upon starting
@@ -211,7 +211,7 @@ try:
         sys.exit(1)
     if opt.status < 2 and not os.isatty(2):
         opt.status = False
-    logs.setup(file=sys.stdout, pretty=opt.pretty)
+    logs.setup(file=sys.stdout, pretty=opt.pretty, color=opt.color)
     if opt.debug_locks:
         vars.DEBUG_LOCKS = 1
     if opt.debug_pids:

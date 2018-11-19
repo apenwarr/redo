@@ -21,7 +21,7 @@ rv = 202
 try:
     if vars_init.is_toplevel:
         builder.start_stdin_log_reader(status=True, details=True,
-            pretty=True, debug_locks=False, debug_pids=False)
+            pretty=True, color=True, debug_locks=False, debug_pids=False)
     if vars.TARGET and not vars.UNLOCKED:
         me = os.path.join(vars.STARTDIR, 
                           os.path.join(vars.PWD, vars.TARGET))

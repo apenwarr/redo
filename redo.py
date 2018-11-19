@@ -16,6 +16,7 @@ no-details only show 'redo' recursion trace (to see more later, use redo-log)
 no-status  don't display build summary line at the bottom of the screen
 no-log     don't capture error output, just let it flow straight to stderr
 no-pretty  don't pretty-print logs, show raw @@REDO output instead
+no-color   disable ANSI color; --color to force enable (default: auto)
 debug-locks  print messages about file locking (useful for debugging)
 debug-pids   print process ids as part of log messages (useful for debugging)
 version    print the current version and exit
@@ -51,6 +52,8 @@ if opt.no_log:
     os.environ['REDO_LOG'] = '0'
     if opt.no_pretty:
         os.environ['REDO_PRETTY'] = '0'
+    if opt.no_color:
+        os.environ['REDO_COLOR'] = '0'
 
 import vars_init
 vars_init.init(targets)
@@ -61,7 +64,7 @@ from logs import warn, err
 try:
     if vars_init.is_toplevel:
         builder.start_stdin_log_reader(status=opt.status, details=opt.details,
-            pretty=opt.pretty,
+            pretty=opt.pretty, color=opt.color,
             debug_locks=opt.debug_locks, debug_pids=opt.debug_pids)
     for t in targets:
         if os.path.exists(t):
