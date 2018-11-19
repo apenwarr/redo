@@ -40,7 +40,7 @@ class PrettyLog(object):
     
     def _pretty(self, pid, color, s):
         if vars.DEBUG_PIDS:
-            redo = '%d redo  ' % pid
+            redo = '%-6d redo  ' % pid
         else:
             redo = 'redo  '
         self.file.write(''.join([color, redo, vars.DEPTH,
@@ -115,16 +115,13 @@ def write(s):
     _log.write(s)
 
 
-def meta(kind, s):
-    _log.meta(kind, s)
-
-
-def meta(kind, s):
+def meta(kind, s, pid=None):
     assert(':' not in kind)
     assert('@' not in kind)
     assert('\n' not in s)
+    if pid == None: pid = os.getpid()
     write('@@REDO:%s:%d:%.4f@@ %s'
-          % (kind, os.getpid(), time.time(), s))
+          % (kind, pid, time.time(), s))
 
 def err(s):
     s = s.rstrip()

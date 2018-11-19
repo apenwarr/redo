@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import errno, fcntl, os, re, struct, sys, termios, time
+from atoi import atoi
 import options
 
 optspec = """
@@ -164,12 +165,13 @@ def catlog(t):
             #   logs.PrettyLog does it, but only if we actually call .write().
             words, text = g.groups()
             kind, pid, when = words.split(':')[0:3]
+            pid = atoi(pid)
             if kind == 'unchanged':
                 if opt.unchanged:
                     if opt.debug_locks:
                         logs.write(line.rstrip())
                     elif text not in already:
-                        logs.meta('do', text)
+                        logs.meta('do', text, pid=pid)
                     if opt.recursive:
                         if loglock: loglock.unlock()
                         catlog(text)
@@ -178,7 +180,7 @@ def catlog(t):
                 if opt.debug_locks:
                     logs.write(line.rstrip())
                 elif text not in already:
-                    logs.meta('do', text)
+                    logs.meta('do', text, pid=pid)
                 if opt.recursive:
                     assert text
                     if loglock: loglock.unlock()
@@ -227,7 +229,7 @@ try:
     while queue:
         t = queue.pop(0)
         if t != '-':
-            logs.meta('do', t)
+            logs.meta('do', t, pid=0)
         catlog(t)
 except KeyboardInterrupt:
     sys.exit(200)
