@@ -37,6 +37,7 @@ REDO_RE = re.compile(r'@@REDO:([^@]+)@@ (.*)$')
 
 class PrettyLog(object):
     def __init__(self, file):
+        self.topdir = os.getcwd()
         self.file = file
     
     def _pretty(self, pid, color, s):

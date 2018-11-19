@@ -130,7 +130,7 @@ class BuildJob:
             if not dirty:
                 # target doesn't need to be built; skip the whole task
                 if is_target:
-                    meta('unchanged', _nice(self.t))
+                    meta('unchanged', state.target_relpath(self.t))
                 return self._after2(0)
         except ImmediateReturn, e:
             return self._after2(e.rv)
@@ -200,7 +200,7 @@ class BuildJob:
         # make sure to create the logfile *before* writing the log about it.
         # that way redo-log won't trace into an obsolete logfile.
         if vars.LOG: open(state.logname(self.sf.id), 'w')
-        meta('do', _nice(t))
+        meta('do', state.target_relpath(t))
         self.dodir = dodir
         self.basename = basename
         self.ext = ext
@@ -224,11 +224,14 @@ class BuildJob:
         # hold onto the lock because otherwise we would introduce a race
         # condition; that's why it's called redo-unlocked, because it doesn't
         # grab a lock.
-        argv = ['redo-unlocked', self.sf.name] + [d.name for d in dirty]
-        meta('check', _nice(self.t))
+        here = os.getcwd()
+        def _fix(p):
+            return state.relpath(os.path.join(vars.BASE, p), here)
+        argv = (['redo-unlocked', _fix(self.sf.name)] +
+                [_fix(d.name) for d in dirty])
+        meta('check', state.target_relpath(self.t))
         state.commit()
         def run():
-            os.chdir(vars.BASE)
             os.environ['REDO_DEPTH'] = vars.DEPTH + '  '
             signal.signal(signal.SIGPIPE, signal.SIG_DFL)  # python ignores SIGPIPE
             os.execvp(argv[0], argv)
@@ -266,6 +269,7 @@ class BuildJob:
                 # by subprocs, so we'd do nothing.
                 logf = open(state.logname(self.sf.id), 'w')
                 new_inode = str(os.fstat(logf.fileno()).st_ino)
+                os.environ['REDO_LOG'] = '1'  # .do files can check this
                 os.environ['REDO_LOG_INODE'] = new_inode
                 os.dup2(logf.fileno(), 2)
                 close_on_exec(2, False)
@@ -273,6 +277,7 @@ class BuildJob:
         else:
             if 'REDO_LOG_INODE' in os.environ:
                 del os.environ['REDO_LOG_INODE']
+            os.environ['REDO_LOG'] = ''
         signal.signal(signal.SIGPIPE, signal.SIG_DFL)  # python ignores SIGPIPE
         if vars.VERBOSE or vars.XTRACE:
             logs.write('* %s' % ' '.join(self.argv).replace('\n', ' '))
@@ -354,7 +359,7 @@ class BuildJob:
         sf.zap_deps2()
         sf.save()
         f.close()
-        meta('done', '%d %s' % (rv, self.t))
+        meta('done', '%d %s' % (rv, state.target_relpath(self.t)))
         return rv
 
     def _after2(self, rv):
@@ -427,8 +432,8 @@ def main(targets, shouldbuildfunc):
         else:
             lock.trylock()
         if not lock.owned:
-            meta('locked', _nice(t))
-            locked.append((f.id,t))
+            meta('locked', state.target_relpath(t))
+            locked.append((f.id,t,f.name))
         else:
             # We had to create f before we had a lock, because we need f.id
             # to make the lock.  But someone may have updated the state
@@ -464,7 +469,7 @@ def main(targets, shouldbuildfunc):
                 err('.redo directory disappeared; cannot continue.\n')
                 retcode[0] = 205
                 break
-            fid,t = locked.pop(0)
+            fid,t,fname = locked.pop(0)
             lock = state.Lock(fid)
             backoff = 0.01
             lock.trylock()
@@ -475,7 +480,7 @@ def main(targets, shouldbuildfunc):
                 backoff *= 2
                 # after printing this line, redo-log will recurse into t,
                 # whether it's us building it, or someone else.
-                meta('waiting', _nice(t))
+                meta('waiting', state.target_relpath(t))
                 try:
                     lock.check()
                 except state.CyclicDependencyError:
@@ -494,7 +499,7 @@ def main(targets, shouldbuildfunc):
                 jwack.ensure_token_or_cheat(t, cheat)
                 lock.trylock()
             assert(lock.owned)
-            meta('unlocked', _nice(t))
+            meta('unlocked', state.target_relpath(t))
             if state.File(name=t).is_failed():
                 err('%s: failed in another thread\n' % _nice(t))
                 retcode[0] = 2

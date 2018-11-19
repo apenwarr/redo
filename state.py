@@ -165,6 +165,21 @@ def relpath(t, base):
     return join('/', tparts)
 
 
+# Return a path for t, if cwd were the dirname of vars.TARGET.
+# This is tricky!  STARTDIR+PWD is the directory for the *dofile*, when
+# the dofile was started.  However, inside the dofile, someone may have done
+# a chdir to anywhere else.  vars.TARGET is relative to the dofile path, so
+# we have to first figure out where the dofile was, then find TARGET relative
+# to that, then find t relative to that.
+#
+# FIXME: find some cleaner terminology for all these different paths.
+def target_relpath(t):
+    dofile_dir = os.path.abspath(os.path.join(vars.STARTDIR, vars.PWD))
+    target_dir = os.path.abspath(
+        os.path.dirname(os.path.join(dofile_dir, vars.TARGET)))
+    return relpath(t, target_dir)
+
+
 def warn_override(name):
     warn('%s - you modified it; skipping\n' % name)
 

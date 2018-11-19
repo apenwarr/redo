@@ -26,6 +26,7 @@ vars_init.init(list(targets))
 
 import vars, logs, state
 
+topdir = os.getcwd()
 already = set()
 queue = []
 depth = []
@@ -68,6 +69,10 @@ def _fix_depth():
     vars.DEPTH = len(depth) * '  '
 
 
+def _rel(topdir, mydir, path):
+    return os.path.relpath(os.path.join(topdir, mydir, path), topdir)
+
+
 def catlog(t):
     global total_lines, status
     if t in already:
@@ -76,6 +81,7 @@ def catlog(t):
         depth.append(t)
     _fix_depth()
     already.add(t)
+    mydir = os.path.dirname(t)
     if t == '-':
         f = sys.stdin
         fid = None
@@ -85,7 +91,8 @@ def catlog(t):
         try:
             sf = state.File(name=t, allow_add=False)
         except KeyError:
-            sys.stderr.write('redo-log: %r: not known to redo.\n' % (t,))
+            sys.stderr.write('redo-log: [%s] %r: not known to redo.\n'
+                        % (os.getcwd(), t,))
             sys.exit(24)
         fid = sf.id
         del sf
@@ -168,26 +175,34 @@ def catlog(t):
             words, text = g.groups()
             kind, pid, when = words.split(':')[0:3]
             pid = atoi(pid)
+            relname = _rel(topdir, mydir, text)
+            fixname = os.path.normpath(os.path.join(mydir, text))
             if kind == 'unchanged':
                 if opt.unchanged:
                     if opt.debug_locks:
-                        logs.write(line.rstrip())
-                    elif text not in already:
-                        logs.meta('do', text, pid=pid)
+                        logs.meta(kind, relname, pid=pid)
+                    elif fixname not in already:
+                        logs.meta('do', relname, pid=pid)
                     if opt.recursive:
                         if loglock: loglock.unlock()
-                        catlog(text)
+                        catlog(os.path.join(mydir, text))
                         if loglock: loglock.waitlock(shared=True)
+                    already.add(fixname)
             elif kind in ('do', 'waiting', 'locked', 'unlocked'):
                 if opt.debug_locks:
+                    logs.meta(kind, relname, pid=pid)
                     logs.write(line.rstrip())
-                elif text not in already:
-                    logs.meta('do', text, pid=pid)
+                elif fixname not in already:
+                    logs.meta('do', relname, pid=pid)
                 if opt.recursive:
                     assert text
                     if loglock: loglock.unlock()
-                    catlog(text)
+                    catlog(os.path.join(mydir, text))
                     if loglock: loglock.waitlock(shared=True)
+                already.add(fixname)
+            elif kind == 'done':
+                rv, name = text.split(' ', 1)
+                logs.meta(kind, rv + ' ' + _rel(topdir, mydir, name))
             else:
                 logs.write(line.rstrip())
         else:
@@ -231,7 +246,7 @@ try:
     while queue:
         t = queue.pop(0)
         if t != '-':
-            logs.meta('do', t, pid=0)
+            logs.meta('do', _rel(topdir, '.', t), pid=0)
         catlog(t)
 except KeyboardInterrupt:
     sys.exit(200)
