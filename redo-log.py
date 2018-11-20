@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 import errno, fcntl, os, re, struct, sys, termios, time
 from atoi import atoi
 import options
