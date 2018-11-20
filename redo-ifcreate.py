@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 import sys, os
 import vars, state
-from log import err
+from logs import err
 
 
 try:

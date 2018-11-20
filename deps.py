@@ -1,6 +1,6 @@
 import sys, os
 import vars, state, builder
-from log import debug
+from logs import debug
 
 CLEAN = 0
 DIRTY = 1

@@ -1,7 +1,8 @@
 import sys, os, errno, random, stat, signal, time
 import vars, jwack, state, paths
 from helpers import unlink, close_on_exec, join
-from log import log, log_, debug, debug2, err, warn
+import logs
+from logs import debug, debug2, err, warn, meta, check_tty
 
 
 def _nice(t):
@@ -16,6 +17,84 @@ def _try_stat(filename):
             return None
         else:
             raise
+
+
+log_reader_pid = None
+
+
+def start_stdin_log_reader(status, details, pretty, color,
+                           debug_locks, debug_pids):
+    if not vars.LOG: return
+    global log_reader_pid
+    r, w = os.pipe()    # main pipe to redo-log
+    ar, aw = os.pipe()  # ack pipe from redo-log --ack-fd
+    sys.stdout.flush()
+    sys.stderr.flush()
+    pid = os.fork()
+    if pid:
+        # parent
+        log_reader_pid = pid
+        os.close(r)
+        os.close(aw)
+        b = os.read(ar, 8)
+        if not b:
+            # subprocess died without sending us anything: that's bad.
+            err('failed to start redo-log subprocess; cannot continue.\n')
+            os._exit(99)
+        assert b == 'REDO-OK\n'
+        # now we know the subproc is running and will report our errors
+        # to stderr, so it's okay to lose our own stderr.
+        os.close(ar)
+        os.dup2(w, 1)
+        os.dup2(w, 2)
+        os.close(w)
+        check_tty(sys.stderr, vars.COLOR)
+    else:
+        # child
+        try:
+            os.close(ar)
+            os.close(w)
+            os.dup2(r, 0)
+            os.close(r)
+            # redo-log sends to stdout (because if you ask for logs, that's
+            # the output you wanted!).  But redo itself sends logs to stderr
+            # (because they're incidental to the thing you asked for).
+            # To make these semantics work, we point redo-log's stdout at
+            # our stderr when we launch it.
+            os.dup2(2, 1)
+            argv = [
+                'redo-log',
+                '--recursive', '--follow',
+                '--ack-fd', str(aw),
+                ('--status' if status and os.isatty(2) else '--no-status'),
+                ('--details' if details else '--no-details'),
+                ('--pretty' if pretty else '--no-pretty'),
+                ('--debug-locks' if debug_locks else '--no-debug-locks'),
+                ('--debug-pids' if debug_pids else '--no-debug-pids'),
+            ]
+            if color != 1:
+                argv.append('--color' if color >= 2 else '--no-color')
+            argv.append('-')
+            os.execvp(argv[0], argv)
+        except Exception, e:
+            sys.stderr.write('redo-log: exec: %s\n' % e)
+        finally:
+            os._exit(99)
+
+
+def await_log_reader():
+    if not vars.LOG: return
+    global log_reader_pid
+    if log_reader_pid > 0:
+        # never actually close fd#1 or fd#2; insanity awaits.
+        # replace it with something else instead.
+        # Since our stdout/stderr are attached to redo-log's stdin,
+        # this will notify redo-log that it's time to die (after it finishes
+        # reading the logs)
+        out = open('/dev/tty', 'w')
+        os.dup2(out.fileno(), 1)
+        os.dup2(out.fileno(), 2)
+        os.waitpid(log_reader_pid, 0)
 
 
 class ImmediateReturn(Exception):
@@ -44,12 +123,14 @@ class BuildJob:
         assert(self.lock.owned)
         try:
             try:
-                dirty = self.shouldbuildfunc(self.t)
+                is_target, dirty = self.shouldbuildfunc(self.t)
             except state.CyclicDependencyError:
                 err('cyclic dependency while checking %s\n' % _nice(self.t))
                 raise ImmediateReturn(208)
             if not dirty:
                 # target doesn't need to be built; skip the whole task
+                if is_target:
+                    meta('unchanged', state.target_relpath(self.t))
                 return self._after2(0)
         except ImmediateReturn, e:
             return self._after2(e.rv)
@@ -94,7 +175,7 @@ class BuildJob:
                 sf.save()
                 return self._after2(0)
             else:
-                err('no rule to make %r\n' % t)
+                err('no rule to redo %r\n' % t)
                 return self._after2(1)
         unlink(self.tmpname1)
         unlink(self.tmpname2)
@@ -113,11 +194,13 @@ class BuildJob:
                 ]
         if vars.VERBOSE: argv[1] += 'v'
         if vars.XTRACE: argv[1] += 'x'
-        if vars.VERBOSE or vars.XTRACE: log_('\n')
         firstline = open(os.path.join(dodir, dofile)).readline().strip()
         if firstline.startswith('#!/'):
             argv[0:2] = firstline[2:].split(' ')
-        log('%s\n' % _nice(t))
+        # make sure to create the logfile *before* writing the log about it.
+        # that way redo-log won't trace into an obsolete logfile.
+        if vars.LOG: open(state.logname(self.sf.id), 'w')
+        meta('do', state.target_relpath(t))
         self.dodir = dodir
         self.basename = basename
         self.ext = ext
@@ -141,11 +224,14 @@ class BuildJob:
         # hold onto the lock because otherwise we would introduce a race
         # condition; that's why it's called redo-unlocked, because it doesn't
         # grab a lock.
-        argv = ['redo-unlocked', self.sf.name] + [d.name for d in dirty]
-        log('(%s)\n' % _nice(self.t))
+        here = os.getcwd()
+        def _fix(p):
+            return state.relpath(os.path.join(vars.BASE, p), here)
+        argv = (['redo-unlocked', _fix(self.sf.name)] +
+                [_fix(d.name) for d in dirty])
+        meta('check', state.target_relpath(self.t))
         state.commit()
         def run():
-            os.chdir(vars.BASE)
             os.environ['REDO_DEPTH'] = vars.DEPTH + '  '
             signal.signal(signal.SIGPIPE, signal.SIG_DFL)  # python ignores SIGPIPE
             os.execvp(argv[0], argv)
@@ -173,9 +259,32 @@ class BuildJob:
         os.dup2(self.f.fileno(), 1)
         os.close(self.f.fileno())
         close_on_exec(1, False)
+        if vars.LOG:
+            cur_inode = str(os.fstat(2).st_ino)
+            if not vars.LOG_INODE or cur_inode == vars.LOG_INODE:
+                # .do script has *not* redirected stderr, which means we're
+                # using redo-log's log saving mode.  That means subprocs
+                # should be logged to their own file.  If the .do script
+                # *does* redirect stderr, that redirection should be inherited
+                # by subprocs, so we'd do nothing.
+                logf = open(state.logname(self.sf.id), 'w')
+                new_inode = str(os.fstat(logf.fileno()).st_ino)
+                os.environ['REDO_LOG'] = '1'  # .do files can check this
+                os.environ['REDO_LOG_INODE'] = new_inode
+                os.dup2(logf.fileno(), 2)
+                close_on_exec(2, False)
+                logf.close()
+        else:
+            if 'REDO_LOG_INODE' in os.environ:
+                del os.environ['REDO_LOG_INODE']
+            os.environ['REDO_LOG'] = ''
         signal.signal(signal.SIGPIPE, signal.SIG_DFL)  # python ignores SIGPIPE
-        if vars.VERBOSE or vars.XTRACE: log_('* %s\n' % ' '.join(self.argv))
+        if vars.VERBOSE or vars.XTRACE:
+            logs.write('* %s' % ' '.join(self.argv).replace('\n', ' '))
         os.execvp(self.argv[0], self.argv)
+        # FIXME: it would be nice to log the exit code to logf.
+        #  But that would have to happen in the parent process, which doesn't
+        #  have logf open.
         assert(0)
         # returns only if there's an exception
 
@@ -250,11 +359,7 @@ class BuildJob:
         sf.zap_deps2()
         sf.save()
         f.close()
-        if rv != 0:
-            err('%s: exit code %r\n' % (_nice(t),rv))
-        else:
-            if vars.VERBOSE or vars.XTRACE or vars.DEBUG:
-                log('%s (done)\n\n' % _nice(t))
+        meta('done', '%d %s' % (rv, state.target_relpath(self.t)))
         return rv
 
     def _after2(self, rv):
@@ -276,6 +381,27 @@ def main(targets, shouldbuildfunc):
     def done(t, rv):
         if rv:
             retcode[0] = 1
+    
+    if vars.TARGET and not vars.UNLOCKED:
+        me = os.path.join(vars.STARTDIR, 
+                          os.path.join(vars.PWD, vars.TARGET))
+        myfile = state.File(name=me)
+        selflock = state.Lock(state.LOG_LOCK_MAGIC + myfile.id)
+    else:
+        selflock = myfile = me = None
+    
+    def cheat():
+        if not selflock: return 0
+        selflock.trylock()
+        if not selflock.owned:
+            # redo-log already owns it: let's cheat.
+            # Give ourselves one extra token so that the "foreground" log
+            # can always make progress.
+            return 1
+        else:
+            # redo-log isn't watching us (yet)
+            selflock.unlock()
+            return 0
 
     # In the first cycle, we just build as much as we can without worrying
     # about any lock contention.  If someone else has it locked, we move on.
@@ -292,7 +418,7 @@ def main(targets, shouldbuildfunc):
         seen[t] = 1
         if not jwack.has_token():
             state.commit()
-        jwack.get_token(t)
+        jwack.ensure_token_or_cheat(t, cheat)
         if retcode[0] and not vars.KEEP_GOING:
             break
         if not state.check_sane():
@@ -306,9 +432,8 @@ def main(targets, shouldbuildfunc):
         else:
             lock.trylock()
         if not lock.owned:
-            if vars.DEBUG_LOCKS:
-                log('%s (locked...)\n' % _nice(t))
-            locked.append((f.id,t))
+            meta('locked', state.target_relpath(t))
+            locked.append((f.id,t,f.name))
         else:
             # We had to create f before we had a lock, because we need f.id
             # to make the lock.  But someone may have updated the state
@@ -333,6 +458,8 @@ def main(targets, shouldbuildfunc):
     while locked or jwack.running():
         state.commit()
         jwack.wait_all()
+        assert jwack._mytokens == 0
+        jwack.ensure_token_or_cheat('self', cheat)
         # at this point, we don't have any children holding any tokens, so
         # it's okay to block below.
         if retcode[0] and not vars.KEEP_GOING:
@@ -342,7 +469,7 @@ def main(targets, shouldbuildfunc):
                 err('.redo directory disappeared; cannot continue.\n')
                 retcode[0] = 205
                 break
-            fid,t = locked.pop(0)
+            fid,t,fname = locked.pop(0)
             lock = state.Lock(fid)
             backoff = 0.01
             lock.trylock()
@@ -351,8 +478,9 @@ def main(targets, shouldbuildfunc):
                 import random
                 time.sleep(random.random() * min(backoff, 1.0))
                 backoff *= 2
-                if vars.DEBUG_LOCKS:
-                    warn('%s (WAITING)\n' % _nice(t))
+                # after printing this line, redo-log will recurse into t,
+                # whether it's us building it, or someone else.
+                meta('waiting', state.target_relpath(t))
                 try:
                     lock.check()
                 except state.CyclicDependencyError:
@@ -361,16 +489,17 @@ def main(targets, shouldbuildfunc):
                     return retcode[0]
                 # this sequence looks a little silly, but the idea is to
                 # give up our personal token while we wait for the lock to
-                # be released; but we should never run get_token() while
+                # be released; but we should never run ensure_token() while
                 # holding a lock, or we could cause deadlocks.
                 jwack.release_mine()
                 lock.waitlock()
+                # now t is definitely free, so we get to decide whether
+                # to build it.
                 lock.unlock()
-                jwack.get_token(t)
+                jwack.ensure_token_or_cheat(t, cheat)
                 lock.trylock()
             assert(lock.owned)
-            if vars.DEBUG_LOCKS:
-                log('%s (...unlocked!)\n' % _nice(t))
+            meta('unlocked', state.target_relpath(t))
             if state.File(name=t).is_failed():
                 err('%s: failed in another thread\n' % _nice(t))
                 retcode[0] = 2

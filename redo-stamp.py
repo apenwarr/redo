@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 import sys, os
 import vars, state
-from log import err, debug2
+from logs import err, debug2
 
 if len(sys.argv) > 1:
     err('%s: no arguments expected.\n' % sys.argv[0])

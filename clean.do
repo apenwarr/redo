@@ -6,7 +6,7 @@ if [ -e .do_built ]; then
 	done <.do_built
 fi
 [ -z "$DO_BUILT" ] && rm -rf .do_built .do_built.dir
-rm -rf minimal/.do_built minimal/.do_built.dir
+rm -rf minimal/.do_built minimal/.do_built.dir website
 redo t/clean Documentation/clean version/clean
 rm -f *~ .*~ */*~ */.*~ *.pyc install.wrapper
 find . -name '*.tmp' -exec rm -fv {} \;

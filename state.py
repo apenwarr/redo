@@ -1,7 +1,7 @@
 import sys, os, errno, glob, stat, fcntl, sqlite3
 import vars
 from helpers import unlink, close_on_exec, join
-from log import warn, err, debug2, debug3
+from logs import warn, err, debug2, debug3
 
 # When the module is imported, change the process title.
 # We do it here because this module is imported by all the scripts.
@@ -20,6 +20,8 @@ TIMEOUT=60
 ALWAYS='//ALWAYS'   # an invalid filename that is always marked as dirty
 STAMP_DIR='dir'     # the stamp of a directory; mtime is unhelpful
 STAMP_MISSING='0'   # the stamp of a nonexistent file
+
+LOG_LOCK_MAGIC=0x10000000  # fid offset for "log locks"
 
 
 class CyclicDependencyError(Exception): pass
@@ -163,6 +165,21 @@ def relpath(t, base):
     return join('/', tparts)
 
 
+# Return a path for t, if cwd were the dirname of vars.TARGET.
+# This is tricky!  STARTDIR+PWD is the directory for the *dofile*, when
+# the dofile was started.  However, inside the dofile, someone may have done
+# a chdir to anywhere else.  vars.TARGET is relative to the dofile path, so
+# we have to first figure out where the dofile was, then find TARGET relative
+# to that, then find t relative to that.
+#
+# FIXME: find some cleaner terminology for all these different paths.
+def target_relpath(t):
+    dofile_dir = os.path.abspath(os.path.join(vars.STARTDIR, vars.PWD))
+    target_dir = os.path.abspath(
+        os.path.dirname(os.path.join(dofile_dir, vars.TARGET)))
+    return relpath(t, target_dir)
+
+
 def warn_override(name):
     warn('%s - you modified it; skipping\n' % name)
 
@@ -174,7 +191,7 @@ class File(object):
     # use this mostly to avoid accidentally assigning to typos
     __slots__ = ['id'] + _file_cols[1:]
 
-    def _init_from_idname(self, id, name):
+    def _init_from_idname(self, id, name, allow_add):
         q = ('select %s from Files ' % join(', ', _file_cols))
         if id != None:
             q += 'where rowid=?'
@@ -189,7 +206,9 @@ class File(object):
         row = d.execute(q, l).fetchone()
         if not row:
             if not name:
-                raise Exception('No file with id=%r name=%r' % (id, name))
+                raise KeyError('No file with id=%r name=%r' % (id, name))
+            elif not allow_add:
+                raise KeyError('No file with name=%r' % (name,))
             try:
                 _write('insert into Files (name) values (?)', [name])
             except sqlite3.IntegrityError:
@@ -207,17 +226,17 @@ class File(object):
         if self.name == ALWAYS and self.changed_runid < vars.RUNID:
             self.changed_runid = vars.RUNID
     
-    def __init__(self, id=None, name=None, cols=None):
+    def __init__(self, id=None, name=None, cols=None, allow_add=True):
         if cols:
             return self._init_from_cols(cols)
         else:
-            return self._init_from_idname(id, name)
+            return self._init_from_idname(id, name, allow_add=allow_add)
 
     def __repr__(self):
         return "File(%r)" % (self.nicename(),)
 
     def refresh(self):
-        self._init_from_idname(self.id, None)
+        self._init_from_idname(self.id, None, allow_add=False)
 
     def save(self):
         cols = join(', ', ['%s=?'%i for i in _file_cols[2:]])
@@ -324,6 +343,11 @@ def files():
         yield File(cols=cols)
 
 
+def logname(fid):
+    """Given the id of a File, return the filename of its build log."""
+    return os.path.join(vars.BASE, '.redo', 'log.%d' % fid)
+
+
 # FIXME: I really want to use fcntl F_SETLK, F_SETLKW, etc here.  But python
 # doesn't do the lockdata structure in a portable way, so we have to use
 # fcntl.lockf() instead.  Usually this is just a wrapper for fcntl, so it's
@@ -365,10 +389,13 @@ class Lock:
                 raise
         else:
             self.owned = True
+        return self.owned
 
-    def waitlock(self):
+    def waitlock(self, shared=False):
         self.check()
-        fcntl.lockf(self.lockfile, fcntl.LOCK_EX, 0, 0)
+        fcntl.lockf(self.lockfile,
+            fcntl.LOCK_SH if shared else fcntl.LOCK_EX,
+            0, 0)
         self.owned = True
             
     def unlock(self):

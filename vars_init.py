@@ -1,9 +1,13 @@
 import sys, os
 
 
+is_toplevel = False
+
+
 def init_no_state():
     if not os.environ.get('REDO'):
         os.environ['REDO'] = 'NOT_DEFINED'
+        is_toplevel = True
     if not os.environ.get('REDO_BASE'):
         os.environ['REDO_BASE'] = 'NOT_DEFINED'
 
@@ -11,6 +15,8 @@ def init_no_state():
 def init(targets):
     if not os.environ.get('REDO'):
         # toplevel call to redo
+        global is_toplevel
+        is_toplevel = True
         if len(targets) == 0:
             targets.append('all')
         exenames = [os.path.abspath(sys.argv[0]),

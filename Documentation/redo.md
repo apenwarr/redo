@@ -86,6 +86,32 @@ dependencies.
     can just run three `redo` commands consecutively. 
     Because your .do script is just a script, it will not
     be accidentally parallelized.
+
+--no-details
+:   display *only* the messages from redo itself, not the other messages
+    produced by build scripts.  Generally this gives you a list of which
+    targets were built, but not detailed logs, warnings, or errors.
+
+--no-status
+:   don't display the running build status at the bottom of the screen. 
+    (Unless this option is specified, the status line will be enabled
+    if using --follow, if stderr is a terminal.)  If stderr is *not* a
+    terminal, you can force enable the status line using --status.
+
+--no-pretty
+:   display "raw" redo log lines (@@REDO events) rather than using a
+    human-readable format.  The default is --pretty.
+
+--no-color
+:   when using --pretty and writing to a terminal, colorize the output to
+    make results stand out more clearly.  If not writing to a terminal, you
+    can use --color to force colorized output.
+
+--no-log
+:   don't capture stderr log messages from build scripts.  This prevents
+    redo-log from redisplaying the logs later, and if using --jobs, causes
+    output from all parallel jobs to be jumbled together.  This was the
+    only behaviour available before redo-0.30.  The default is --log.
     
 --debug-locks
 :   print messages about acquiring, releasing, and waiting
@@ -99,6 +125,9 @@ dependencies.
 :   add the process id of the particular redo instance to each
     output message.  This makes it easier to figure out
     which sub-instance of redo is doing what.
+
+--version
+:   displays the redo version number.
 
 
 # DISCUSSION
