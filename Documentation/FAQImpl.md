@@ -1,21 +1,13 @@
-# Hey, does redo even *run* on Windows?
+# Does redo even run on Windows?
 
-FIXME:
-Probably under cygwin.  But it hasn't been tested, so no.
+redo works fine in [Windows Services for Linux (WSL)](https://docs.microsoft.com/en-us/windows/wsl/initialize-distro)
+on Windows 10.  You might consider that to be "real" Windows, or not.  If
+you use it, it runs more or less like it does on Linux.  WSL is considerably
+slower than native Linux, so there is definitely room for speed improvements.
 
 If I were going to port redo to Windows in a "native" way,
 I might grab the source code to a posix shell (like the
 one in MSYS) and link it directly into redo.
-
-`make` also doesn't *really* run on Windows (unless you use
-MSYS or Cygwin or something like that).  There are versions
-of make that do - like Microsoft's version - but their
-syntax is horrifically different from one vendor to
-another, so you might as well just be writing for a
-vendor-specific tool.
-
-At least redo is simple enough that, theoretically, one
-day, I can imagine it being cross platform.
 
 One interesting project that has appeared recently is
 busybox-w32 (https://github.com/pclouds/busybox-w32).  It's
@@ -28,11 +20,67 @@ all of this needs more experimentation.
 
 # Can a *.do file itself be generated as part of the build process?
 
-Not currently.  There's nothing fundamentally preventing us from allowing
-it.  However, it seems easier to reason about your build process if you
-*aren't* auto-generating your build scripts on the fly.
+Yes and no.  Kind of.  Redo doesn't stop you from doing this, and it will
+use a .do file if you generate one.  However, you have to do the steps in
+the right order if you want this to work.  For example, this should work
+fine:
 
-This might change someday.
+	redo-ifchange default.o.do
+	redo-ifchange foo.o
+
+You've told redo to generate `default.o.do` (presumably using a
+script like default.do.do), and *then* you've told redo to generate `foo.o`. 
+When it considers how to build `foo.o`, it will look for a .do file, and
+thus find `default.o.do`, so it'll run it.  Great.
+
+Some people would like us to go a step further, and *automatically* look for
+rules that will help produce default.o.do.  That is, you might want to just
+write this:
+
+	redo-ifchange foo.o bar.o
+
+and then expect that, implicitly, redo will know it needs to look for
+`default.o.do`, and if `default.o.do` doesn't exist yet, it should look for
+`default.do.do`, and so on.
+
+The problem with this idea is...  where does it end?  If there's no
+`default.o.do`, so we look for a `default.do.do`, what if that doesn't exist
+either?  Perhaps there's a `default.do.do.do` for generating `default.do.do`
+files?  And so on.  You have to draw the line somewhere.
+
+
+# What can I do instead of auto-generating *.do files?
+
+When people ask about auto-generating .do files, they usually mean one of
+two things:
+
+1. They want to create a new directory and auto-populate it with .do files
+copied from somewhere.
+
+    - This can be solved in various ways.  For example, you might make a
+      trivial toplevel `default.do` file in the new directory; this will
+      match all possible targets.  You can then use the sh "source" operator
+      (.) and `redo-whichdo` to pull the "real" rules from elsewhere.  An
+      example of [.do file delegation can be found in the wvstreams
+      project](https://github.com/apenwarr/wvstreams/blob/master/delegate.od).
+
+2. They want to generate, eg. `default.o.do` based on auto-detected compiler
+settings, in order to support different brands of compilers, or different
+architectures, etc.
+
+    - The trick here is not to generate `default.o.do`, but rather to
+      generate another script instead.  For example, you could have a
+      `compile.do` that generates a script called `compile`.  `default.o.do`
+      would simply be hard coded to something like `./compile $2 $3`.  The
+      wvstreams project also has [an example of
+      compile.do](https://github.com/apenwarr/wvstreams/blob/master/compile.do).
+
+    - The advantage of separating out into separate default.o.do and compile
+      scripts is that you can put all your system-dependent conditionals
+      into compile.do, so they run only once and choose the "right" compile
+      command.  Then, for each file, you can simply run that command.  If
+      This kind of micro-optimization doesn't appeal to you, then there's no
+      shame in just putting all the logic directly into `default.o.do`.
 
 
 # How does redo store dependencies?
@@ -42,11 +90,19 @@ named `.redo`.  That directory contains a sqlite3 database
 with dependency information.
 
 The format of the `.redo` directory is undocumented because
-it may change at any time.  Maybe it will turn out that we
+it may change at any time.  It will likely turn out that we
 can do something simpler than sqlite3.  If you really need to make a
 tool that pokes around in there, please ask on the mailing
 list if we can standardize something for you.
 
+Unfortunately, the design of having a *single* .redo directory at the
+toplevel of a project has proven problematic: what exactly is the "top
+level" of a "project"?  If your project is a subdirectory of another project
+that then switches to redo, should the .redo directory move up a level in
+the hierarchy when that happens?  And so on.  Eventually, we will
+probably migrate to a system where there is one .redo directory per target
+directory.  This avoids all kinds of problems with symlinks, directory
+renames nested projects, and so on.
 
 # Isn't using sqlite3 overkill?  And un-djb-ish?
 
@@ -66,18 +122,18 @@ it!  Or if you want to be really horrified:
 	root root 1995612 2009-02-03 13:54 /usr/lib/libmysqlclient.so.15.0.0
 
 The mysql *client* library is two megs, and it doesn't even
-have a database server in it!  People who think SQL
+have a database in it!  People who think SQL
 databases are automatically bloated and gross have not yet
 actually experienced the joys of sqlite.  SQL has a
 well-deserved bad reputation, but sqlite is another story
 entirely.  It's excellent, and much simpler and better
 written than you'd expect.
 
-But still, I'm pretty sure it's not very "djbish" to use a
+Still, it's not very "djbish" to use a
 general-purpose database, especially one that has a *SQL
 parser* in it.  (One of the great things about redo's
 design is that it doesn't ever need to parse anything, so
-a SQL parser is a bit embarrassing.)
+embedding a whole SQL parser is a bit embarrassing.)
 
 I'm pretty sure djb never would have done it that way.
 However, I don't think we can reach the performance we want
@@ -85,19 +141,14 @@ with dependency/build/lock information stored in plain text
 files; among other things, that results in too much
 fstat/open activity, which is slow in general, and even
 slower if you want to run on Windows.  That leads us to a
-binary database, and if the binary database isn't sqlite or
-libdb or something, that means we have to implement our own
-data structures.  Which is probably what djb would do, of
-course, but I'm just not convinced that I can do a better
-(or even a smaller) job of it than the sqlite guys did.
+binary database.  And example of the kind of structure we need is the [one
+used by ninja](https://github.com/ninja-build/ninja/blob/master/src/deps_log.h#L29)
+which is very simple, fast, and efficient.
 
 Most of the state database stuff has been isolated in
 state.py.  If you're feeling brave, you can try to
 implement your own better state database, with or without
 sqlite.
-
-It is almost certainly possible to do it much more nicely
-than I have, so if you do, please send it in!
 
 
 # What hash algorithm does redo-stamp use?
@@ -131,7 +182,7 @@ automatically, however:
   know you absolutely want that.  (With timestamps, you can
   just `touch filename` to rebuild everything that depends
   on `filename`.)
-  
+
 - Targets that are just used for aggregation (ie. they
   don't produce any output of their own) would always have
   the same checksum - the checksum of a zero-byte file -
@@ -139,26 +190,26 @@ automatically, however:
 
 - Calculating checksums for every output file adds time to
   the build, even if you don't need that feature.
-  
+
 - Building stuff unnecessarily and then stamping it is
   much slower than just not building it in the first place,
   so for *almost* every use of redo-stamp, it's not the
   right solution anyway.
-  
+
 - To steal a line from the Zen of Python: explicit is
   better than implicit.  Making people think about when
   they're using the stamp feature - knowing that it's slow
   and a little annoying to do - will help people design
   better build scripts that depend on this feature as
   little as possible.
-  
+
 - djb's (as yet unreleased) version of redo doesn't
   implement checksums, so doing that would produce an
   incompatible implementation.  With redo-stamp and
   redo-always being separate programs, you can simply
   choose not to use them if you want to keep maximum
   compatibility for the future.
-  
+
 - Bonus: the redo-stamp algorithm is interchangeable.  You
   don't have to stamp the target file or the source files
   or anything in particular; you can stamp any data you
@@ -168,7 +219,7 @@ automatically, however:
   would always have been needed, and then we'd have to
   explain when to use the explicit one and when to use the
   implicit one.
-  
+
 Thus, we made the decision to only use checksums for
 targets that explicitly call `redo-stamp` (see previous
 question).
@@ -180,6 +231,10 @@ depending on a list of which files exist and which don't)
 were really annoying, and I definitely felt it.  Adding
 redo-stamp and redo-always work the way they do made the
 pain disappear, so I stopped changing things.
+
+A longer and even more detailed explanation of timestamp vs checksum-based
+build dependencies can be found in
+[mtime comparison considered harmful](https://apenwarr.ca/log/20181113).
 
 
 # Why doesn't redo by default print the commands as they are run?
@@ -243,7 +298,6 @@ choose to run only that step in verbose mode:
 	+ cat c.c.c.b.b.a
 	+ ./sleep 1.1
 	redo  t/c.c.c.b.b (done)
-	
 
 If you're using an autobuilder or something that logs build results for
 future examination, you should probably set it to always run redo with

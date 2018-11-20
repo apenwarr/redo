@@ -6,7 +6,7 @@ Optional, but recommended, is the
 `ps` output prettier.
 
 In modern versions of Debian, sqlite3 is already part of the python2.7 package. 
-You can install the requirements like this:
+You can install the prerequisites like this:
 ```sh
 	sudo apt-get install python2.7 python-setproctitle
 ```
@@ -34,3 +34,19 @@ your home directory:
 ```sh
 	PREFIX=$HOME ./redo install
 ```
+
+
+# Distro packages
+
+## MacOS
+
+redo is available from the [Homebrew](https://brew.sh/) project:
+
+	brew install redo
+
+## Linux
+
+Various linux distributions include redo under different names.  Most of the
+packages are unfortunately obsolete and don't contain the most recent bug
+fixes.  At this time (late 2018), we recommend using the latest tagged
+version [from github](https://github.com/apenwarr/redo).

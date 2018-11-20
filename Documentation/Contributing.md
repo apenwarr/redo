@@ -35,6 +35,9 @@ The best things you can do for redo are:
   in default redo build rules for common program types would probably be
   very popular.
 
+- Convince your favourite OS distro to build and include (up to date!) redo
+  packages.
+
 - Tell your friends!
 
 
