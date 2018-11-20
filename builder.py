@@ -228,7 +228,7 @@ class BuildJob:
         def _fix(p):
             return state.relpath(os.path.join(vars.BASE, p), here)
         argv = (['redo-unlocked', _fix(self.sf.name)] +
-                [_fix(d.name) for d in dirty])
+                list(set(_fix(d.name) for d in dirty)))
         meta('check', state.target_relpath(self.t))
         state.commit()
         def run():
