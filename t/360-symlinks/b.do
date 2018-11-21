@@ -1,3 +1,3 @@
-echo x >>b.ran
+printf x >>b.ran
 redo-ifchange a
-cat a >$3
+cat a >$3 || :

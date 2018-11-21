@@ -1,5 +1,5 @@
 #!/usr/bin/env python2
-import sys, os, traceback
+import os, sys, traceback
 
 import vars_init
 vars_init.init(sys.argv[1:])

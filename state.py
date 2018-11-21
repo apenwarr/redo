@@ -14,7 +14,7 @@ else:
     cmdline[0] = os.path.splitext(os.path.basename(cmdline[0]))[0]
     setproctitle(" ".join(cmdline))
 
-SCHEMA_VER=1
+SCHEMA_VER=2
 TIMEOUT=60
 
 ALWAYS='//ALWAYS'   # an invalid filename that is always marked as dirty
@@ -60,10 +60,12 @@ def db():
             row = None
         ver = row and row[0] or None
         if ver != SCHEMA_VER:
-            err("state database: discarding v%s (wanted v%s)\n"
-                % (ver, SCHEMA_VER))
-            must_create = True
-            _db = None
+            # Don't use err() here because this might happen before
+            # redo-log spawns.
+            sys.stderr.write('redo: %s: found v%s (expected v%s)\n'
+                % (dbfile, ver, SCHEMA_VER))
+            sys.stderr.write('redo: manually delete .redo dir to start over.\n')
+            sys.exit(1)
     if must_create:
         unlink(dbfile)
         _db = _connect(dbfile)
@@ -178,6 +180,24 @@ def target_relpath(t):
     target_dir = os.path.abspath(
         os.path.dirname(os.path.join(dofile_dir, vars.TARGET)))
     return relpath(t, target_dir)
+
+
+def detect_override(stamp1, stamp2):
+    """Determine if two stamps differ in a way that means manual override.
+
+    When two stamps differ at all, that means the source is dirty and so we
+    need to rebuild.  If they differ in mtime or size, then someone has surely
+    edited the file, and we don't want to trample their changes.
+
+    But if the only difference is something else (like ownership, st_mode,
+    etc) then that might be a false positive; it's annoying to mark as
+    overridden in that case, so we return False.  (It's still dirty though!)
+    """
+    if stamp1 == stamp2:
+        return False
+    crit1 = stamp1.split('-', 2)[0:2]
+    crit2 = stamp2.split('-', 2)[0:2]
+    return crit1 != crit2
 
 
 def warn_override(name):
@@ -321,17 +341,34 @@ class File(object):
                "    (target, mode, source, delete_me) values (?,?,?,?)",
                [self.id, mode, src.id, False])
 
-    def read_stamp(self):
+    def _read_stamp_st(self, statfunc):
         try:
-            st = os.lstat(os.path.join(vars.BASE, self.name))
+            st = statfunc(os.path.join(vars.BASE, self.name))
         except OSError:
-            return STAMP_MISSING
+            return False, STAMP_MISSING
         if stat.S_ISDIR(st.st_mode):
-            return STAMP_DIR
+            # directories change too much; detect only existence.
+            return False, STAMP_DIR
         else:
             # a "unique identifier" stamp for a regular file
-            return str((st.st_mtime, st.st_size, st.st_ino,
-                        st.st_mode, st.st_uid, st.st_gid))
+            return (stat.S_ISLNK(st.st_mode),
+                '-'.join(str(s) for s in
+                         ('%.6f' % st.st_mtime, st.st_size, st.st_ino,
+                          st.st_mode, st.st_uid, st.st_gid)))
+
+    def read_stamp(self):
+        is_link, pre = self._read_stamp_st(os.lstat)
+        if is_link:
+            # if we're a symlink, we actually care about the link object
+            # itself, *and* the target of the link.  If either changes,
+            # we're considered dirty.
+            #
+            # On the other hand, detect_override() doesn't care about the
+            # target of the link, only the link itself.
+            _, post = self._read_stamp_st(os.stat)
+            return pre + '+' + post
+        else:
+            return pre
 
     def nicename(self):
         return relpath(os.path.join(vars.BASE, self.name), vars.STARTDIR)

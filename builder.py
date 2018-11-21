@@ -147,7 +147,7 @@ class BuildJob:
         newstamp = sf.read_stamp()
         if (sf.is_generated and
             newstamp != state.STAMP_MISSING and 
-            (sf.stamp != newstamp or sf.is_override)):
+            (sf.is_override or state.detect_override(sf.stamp, newstamp))):
                 state.warn_override(_nice(t))
                 if not sf.is_override:
                     warn('%s - old: %r\n' % (_nice(t), sf.stamp))
@@ -345,7 +345,8 @@ class BuildJob:
             sf.is_override = False
             if sf.is_checked() or sf.is_changed():
                 # it got checked during the run; someone ran redo-stamp.
-                # update_stamp would call set_changed(); we don't want that
+                # update_stamp would call set_changed(); we don't want that,
+                # so only use read_stamp.
                 sf.stamp = sf.read_stamp()
             else:
                 sf.csum = None

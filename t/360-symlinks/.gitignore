@@ -1,4 +1,7 @@
 *.ran
 *.extra
+*.final
 a
 b
+*.[123]
+dir
