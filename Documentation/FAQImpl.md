@@ -1,4 +1,4 @@
-# Does redo even run on Windows?
+# Does redo run on Windows?
 
 redo works fine in [Windows Services for Linux (WSL)](https://docs.microsoft.com/en-us/windows/wsl/initialize-distro)
 on Windows 10.  You might consider that to be "real" Windows, or not.  If
@@ -46,7 +46,13 @@ and then expect that, implicitly, redo will know it needs to look for
 The problem with this idea is...  where does it end?  If there's no
 `default.o.do`, so we look for a `default.do.do`, what if that doesn't exist
 either?  Perhaps there's a `default.do.do.do` for generating `default.do.do`
-files?  And so on.  You have to draw the line somewhere.
+files?  And so on.  You'd have to draw an arbitrary line somewhere.
+
+Anyway, unlike make, redo does *not* implicitly generate files.
+It only generates a given file if you redo-ifchange that file
+first, from one of your other .do scripts.  This gets avoids magical
+behaviour, but makes it quite tricky to auto-generate .do files.  See the
+next question for a workaround.
 
 
 # What can I do instead of auto-generating *.do files?

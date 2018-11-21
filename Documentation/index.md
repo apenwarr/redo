@@ -172,6 +172,9 @@ easily be linked from this document.  Here are a few open source examples:
 * You can also find some limited examples in the
   [`t/111-example/`](t/111-example) subdir of the redo project itself.
 
+* A [github search for all.do](https://github.com/search?p=9&q=path%3A%2F+extension%3Ado+filename%3A%2Fall.do&type=Code)
+  shows an ever-growing number of projects using redo.
+
 If you switch your program's build process to use redo, please let us know and
 we can link to it here for some free publicity.
 
