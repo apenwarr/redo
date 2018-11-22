@@ -89,9 +89,11 @@ def db():
                     "     delete_me int, "
                     "     primary key (target,source))")
         _db.execute("insert into Schema (version) values (?)", [SCHEMA_VER])
-        # eat the '0' runid and File id
-        _db.execute("insert into Runid values "
-                    "     ((select max(id)+1 from Runid))")
+        # eat the '0' runid and File id.
+        # Because of the cheesy way t/flush-cache is implemented, leave a
+        # lot of runids available before the "first" one so that we
+        # can adjust cached values to be before the first value.
+        _db.execute("insert into Runid values (1000000000)")
         _db.execute("insert into Files (name) values (?)", [ALWAYS])
 
     if not vars.RUNID:
@@ -289,11 +291,13 @@ class File(object):
 
     def set_static(self):
         self.update_stamp(must_exist=True)
+        self.failed_runid = None
         self.is_override = False
         self.is_generated = False
 
     def set_override(self):
         self.update_stamp()
+        self.failed_runid = None
         self.is_override = True
 
     def update_stamp(self, must_exist=False):

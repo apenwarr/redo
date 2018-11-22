@@ -197,7 +197,7 @@ class BuildJob:
         firstline = open(os.path.join(dodir, dofile)).readline().strip()
         if firstline.startswith('#!/'):
             argv[0:2] = firstline[2:].split(' ')
-        # make sure to create the logfile *before* writing the log about it.
+        # make sure to create the logfile *before* writing the meta() about it.
         # that way redo-log won't trace into an obsolete logfile.
         if vars.LOG: open(state.logname(self.sf.id), 'w')
         self.dodir = dodir

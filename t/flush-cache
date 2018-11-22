@@ -9,6 +9,27 @@ sys.stderr.write("Flushing redo cache...\n")
 db_file = os.path.join(os.environ["REDO_BASE"], ".redo/db.sqlite3")
 db = sqlite3.connect(db_file, timeout=5000)
 
+# This is very (overly) tricky.  Every time we flush the cache, we run an
+# atomic transaction that subtracts 1 from all checked_runid and
+# changed_runid values across the entire system.  Then when checking
+# dependencies, we can see if changed_runid for a given dependency is
+# greater than checked_runid for the target, and their *relative* values
+# will still be intact!  So if a dependency had been built during the
+# current run, it will act as if a *previous* run built the dependency but
+# the current target was built even earlier.  Meanwhile, checked_runid is
+# less than REDO_RUNID, so everything will still need to be rechecked.
+#
+# A second tricky point is that failed_runid is usually null (unless
+# building a given target really did fail last time).  (null - 1) is still
+# null, so this transaction doesn't change failed_runid at all unless it
+# really did fail.
+#
+# Finally, an even more insane problem is that since we decrement these
+# values more than once per run, they end up decreasing fairly rapidly.
+# But 0 is special!  Some code treats failed_runid==0 as if it were null,
+# so when we decrement all the way to zero, we get a spurious test failure.
+# To avoid this, we initialize the runid to a very large number at database
+# creation time.
 db.executescript("pragma synchronous = off;"
                  "update Files set checked_runid=checked_runid-1, "
                  "                 changed_runid=changed_runid-1, "
