@@ -200,7 +200,6 @@ class BuildJob:
         # make sure to create the logfile *before* writing the log about it.
         # that way redo-log won't trace into an obsolete logfile.
         if vars.LOG: open(state.logname(self.sf.id), 'w')
-        meta('do', state.target_relpath(t))
         self.dodir = dodir
         self.basename = basename
         self.ext = ext
@@ -211,6 +210,7 @@ class BuildJob:
         dof.set_static()
         dof.save()
         state.commit()
+        meta('do', state.target_relpath(t))
         jwack.start_job(t, self._do_subproc, self._after)
 
     def _start_unlocked(self, dirty):
