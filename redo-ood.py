@@ -21,9 +21,10 @@ def set_checked(f):
     cache[f.id] = 1
 
 
+cwd = os.getcwd()
 for f in state.files():
     if f.is_generated and f.read_stamp() != state.STAMP_MISSING:
         if deps.isdirty(f, depth='', max_changed=vars.RUNID,
                         already_checked=[],
                         is_checked=is_checked, set_checked=set_checked):
-            print f.nicename()
+            print state.relpath(os.path.join(vars.BASE, f.name), cwd)

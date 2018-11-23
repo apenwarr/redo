@@ -39,6 +39,17 @@ def isdirty(f, depth, max_changed,
     if f.stamp != newstamp:
         if newstamp == state.STAMP_MISSING:
             debug('%s-- DIRTY (missing)\n' % depth)
+            if f.stamp and f.is_generated:
+                # previously was stamped and generated, but suddenly missing.
+                # We can safely forget that it is/was a target; if someone
+                # does redo-ifchange on it and it doesn't exist, we'll mark
+                # it a target again, but if someone creates it by hand,
+                # it'll be a source.  This should reduce false alarms when
+                # files change from targets to sources as a project evolves.
+                debug('%s   converted target -> source\n' % depth)
+                f.is_generated = False
+                #f.update_stamp()
+                f.save()
         else:
             debug('%s-- DIRTY (mtime)\n' % depth)
         if f.csum:
@@ -103,5 +114,3 @@ def isdirty(f, depth, max_changed,
         state.warn_override(f.name)
     set_checked(f)
     return CLEAN
-
-

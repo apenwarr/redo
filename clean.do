@@ -10,3 +10,4 @@ rm -rf minimal/.do_built minimal/.do_built.dir website
 redo t/clean Documentation/clean version/clean
 rm -f *~ .*~ */*~ */.*~ *.pyc install.wrapper
 find . -name '*.tmp' -exec rm -fv {} \;
+find . -name '*.did' -exec rm -fv {} \;
