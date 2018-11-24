@@ -147,24 +147,42 @@ the following order:
 
 In all cases, the .do file must be in the same directory as
 the target file, or in one of the target's parent
-directories.  For example, if given a target named
-`../a/b/xtarget.y`, redo will look for a .do file in the
-following order:
+directories, or in one of the "do directory" shadow hierarchies.
+For example, if given a target named `../a/b/xtarget.y`,
+redo will look for a .do file in the following order:
 
-- $PWD/../a/b/xtarget.y.do
-- $PWD/../a/b/default.y.do
-- $PWD/../a/b/default.do
-- $PWD/../a/default.y.do
-- $PWD/../a/default.do
-- $PWD/../default.y.do
-- $PWD/../default.do
+- In $PWD/../a/b:
+  - $PWD/../a/b/do/xtarget.y.do
+  - $PWD/../a/b/xtarget.y.do
+  - $PWD/../a/b/do/default.y.do
+  - $PWD/../a/b/default.y.do
+  - $PWD/../a/b/do/default.do
+  - $PWD/../a/b/default.do
+- In $PWD/../a:
+  - $PWD/../a/do/b/xtarget.y.do
+  - $PWD/../a/do/b/default.y.do
+  - $PWD/../a/do/b/default.do
+  - $PWD/../a/do/default.y.do
+  - $PWD/../a/do/default.do
+  - $PWD/../a/default.y.do
+  - $PWD/../a/default.do
+- In $PWD/..:
+  - $PWD/../do/a/b/xtarget.y.do
+  - $PWD/../do/a/b/default.y.do
+  - $PWD/../do/a/b/default.do
+  - $PWD/../do/a/default.y.do
+  - $PWD/../do/a/default.do
+  - $PWD/../do/default.y.do
+  - $PWD/../do/default.do
+  - $PWD/../default.y.do
+  - $PWD/../default.do
 
-The first matching .do file is executed as a `/bin/sh`
-script.  The .do script is always executed with the current
-working directory set to the directory containing the .do
-file.  Because of that rule, the
-following two commands always have exactly identical
-behaviour:
+The first matching .do file is executed as a `/bin/sh` script.  The .do script
+is always executed with the current working directory set to the directory
+containing the .do file or to the directory containing the "do" directory
+containing the .do file.  (Each of the three groups in the above list have
+common corresponding working directories, as given.) Because of that rule, the
+following two commands always have exactly identical behaviour:
 
     redo path/to/target
     
