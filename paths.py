@@ -11,8 +11,21 @@ def _default_do_files(filename):
         if ext: ext = '.' + ext
         yield ("default%s.do" % ext), basename, ext
 
-
 def possible_do_files(t):
+    """
+        For a given target (t), generate each possible dofile, regardless of
+        its current existence.  (This lets us easily add create dependencies
+        on the missing files up to the first one we find!)
+
+        Elements of the generated stream are 5-tuples:
+
+            dodir     -- absolute directory containing the .do file
+            dofile    -- name of the .do file (in dodir)
+            basedir   -- target's directory, relative to dodir
+            basename  -- target's base name, stripped of its extension
+            extension -- target's extension, if defaulting, or '', if not
+    """
+
     dirname,filename = os.path.split(t)
     yield (os.path.join(vars.BASE, dirname), "%s.do" % filename,
            '', filename, '')
