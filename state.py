@@ -35,9 +35,17 @@ def _connect(dbfile):
     return _db
 
 
+# We need to keep a process-wide fd open for all access to the lock file.
+# Because POSIX lock files are insane, if you close *one* fd pointing
+# at a given inode, it will immediately release *all* locks on that inode from
+# your pid, even if those locks are on a different fd.  This is literally
+# never what you want.  To avoid the problem, always use just a single fd.
+_lockfile = None
+
+
 _db = None
 def db():
-    global _db
+    global _db, _lockfile
     if _db:
         return _db
         
@@ -50,6 +58,10 @@ def db():
             pass  # if it exists, that's okay
         else:
             raise
+
+    _lockfile = os.open(os.path.join(vars.BASE, '.redo/locks'),
+                        os.O_RDWR | os.O_CREAT, 0666)
+    close_on_exec(_lockfile, True)
 
     must_create = not os.path.exists(dbfile)
     if not must_create:
@@ -399,10 +411,7 @@ class Lock:
     def __init__(self, fid):
         self.owned = False
         self.fid = fid
-        self.lockfile = None
-        self.lockfile = os.open(os.path.join(vars.BASE, '.redo/lock.%d' % fid),
-                                os.O_RDWR | os.O_CREAT, 0666)
-        close_on_exec(self.lockfile, True)
+        assert(_lockfile >= 0)
         assert(_locks.get(fid,0) == 0)
         _locks[fid] = 1
 
@@ -410,8 +419,6 @@ class Lock:
         _locks[self.fid] = 0
         if self.owned:
             self.unlock()
-        if self.lockfile is not None:
-            os.close(self.lockfile)
 
     def check(self):
         assert(not self.owned)
@@ -421,8 +428,9 @@ class Lock:
 
     def trylock(self):
         self.check()
+        assert not self.owned
         try:
-            fcntl.lockf(self.lockfile, fcntl.LOCK_EX|fcntl.LOCK_NB, 0, 0)
+            fcntl.lockf(_lockfile, fcntl.LOCK_EX|fcntl.LOCK_NB, 1, self.fid)
         except IOError, e:
             if e.errno in (errno.EAGAIN, errno.EACCES):
                 pass  # someone else has it locked
@@ -434,14 +442,15 @@ class Lock:
 
     def waitlock(self, shared=False):
         self.check()
-        fcntl.lockf(self.lockfile,
+        assert not self.owned
+        fcntl.lockf(_lockfile,
             fcntl.LOCK_SH if shared else fcntl.LOCK_EX,
-            0, 0)
+            1, self.fid)
         self.owned = True
             
     def unlock(self):
         if not self.owned:
             raise Exception("can't unlock %r - we don't own it" 
                             % self.lockname)
-        fcntl.lockf(self.lockfile, fcntl.LOCK_UN, 0, 0)
+        fcntl.lockf(_lockfile, fcntl.LOCK_UN, 1, self.fid)
         self.owned = False
