@@ -1,12 +1,16 @@
-site_name: the _redo_ build system
+site_name: "redo: a recursive build system"
 theme: readthedocs
 docs_dir: Documentation
 site_dir: website
 strict: true
+extra_javascript:
+  - fetchcode.js
 
 pages:
   - Introduction: index.md
   - Getting Started: GettingStarted.md
+  - Cookbook:
+    - Hello World: cookbook/hello.md
   - FAQ:
     - Basics: FAQBasics.md
     - Semantics: FAQSemantics.md

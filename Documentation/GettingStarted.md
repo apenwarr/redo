@@ -36,7 +36,7 @@ your home directory:
 ```
 
 
-# Distro packages
+# Pre-compiled packages
 
 ## MacOS
 
