@@ -9,7 +9,7 @@ versions of redo were distributed under the GNU LGPL, but this [changed in
 2018](https://groups.google.com/forum/#!topic/redo-list/wLMZMxtn4wo).)
 
 minimal/do is in the public domain so that it's as easy as possible
-to include inside your own projects for people who don't
+to include inside your own projects, to help end users who don't
 have a copy of redo.
 
 
@@ -42,6 +42,11 @@ The best things you can do for redo are:
 - Convince your favourite OS distro to build and include (up to date!) redo
   packages.
 
+- Help proofreading this documentation, and send patches or pull requests
+  with improvements.
+
+- Join the mailing list (below) to discuss design changes or bugs.
+
 - Tell your friends!
 
 
@@ -60,5 +65,3 @@ It's okay to send a message directly to the mailing list
 without subscribing first.  If you reply to someone who writes to the
 list, please leave them in the cc: list, since if they
 haven't subscribed, they won't get your reply otherwise. 
-
-

@@ -1,4 +1,30 @@
-# Does redo make cross-platform builds easy?
+# Help! redo rebuilds every time, even if dependencies are clean!
+
+Many people are confused by this at first.  The `redo` command *always*
+rebuilds the target you requested.  If you want to only conditionally
+rebuild the target, use `redo-ifchange`.
+
+The same rule applies inside .do scripts.  If a .do script calls `redo dep`,
+then it will always redo the target called dep.  If it called `redo-ifchange
+dep`, it will only redo dep if its dependencies have changed.
+
+Typically, you want your toplevel `all.do` script to use `redo-ifchange`. 
+But a `clean.do` script probably should use `redo`, because you want it to
+always clean up your extra files.  A `test.do` probably also uses `redo` for
+its testing sub-tasks, because you might want to run your tests repeatedly.
+
+For rationale, see [Why does 'redo target' redo even unchanged
+targets?](../FAQSemantics/#why-does-redo-target-redo-even-unchanged-targets)
+
+
+# I'm using redo-ifchange. How does redo decide my target is clean/dirty?
+
+You can see (recursively) which dependencies checked by redo, and whether
+they are clean or dirty, by using `redo -d` (which is short for
+"dependencies" or "debug", whichever you prefer).
+
+
+# Does redo make cross-platform or multi-platform builds easy?
 
 A lot of build systems that try to replace make do it by trying to provide a
 lot of predefined rules.  For example, one build system I know includes
@@ -46,13 +72,14 @@ To activate it, you can add a line like this to your .bashrc:
 # Do end users have to have redo installed in order to build my project?
 
 No.  We include a very short and simple shell script
-called `do` in the `minimal/` subdirectory of the redo project.  `do` is like
+called `do` in the `minimal/` subdirectory of the redo project.
+`minimal/do` is like
 `redo` (and it works with the same `*.do` scripts), except it doesn't
 understand dependencies; it just always rebuilds everything from the top.
 
-You can include `do` with your program to make it so non-users of redo can
+You can include `do` with your program so that non-users of redo can
 still build your program.  Someone who wants to hack on your program will
-probably go crazy unless they have a copy of `redo` though.
+probably go crazy unless they install a copy of `redo` though.
 
 Actually, `redo` itself isn't so big, so for large projects where it
 matters, you could just include it with your project.

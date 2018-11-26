@@ -3,22 +3,24 @@ theme: readthedocs
 docs_dir: Documentation
 site_dir: website
 strict: true
+repo_url: https://github.com/apenwarr/redo
+edit_uri: edit/master/Documentation
 extra_javascript:
   - fetchcode.js
 
 pages:
   - Introduction: index.md
   - Getting Started: GettingStarted.md
+  - Contributing.md
   - Cookbook:
-    - Hello World: cookbook/hello.md
-    - Using default.do (text processing): cookbook/defaults.md
+    - Hello World (hello.do, redo-ifchange): cookbook/hello/index.md
+    - Text processing example (default.do, redo-whichdo, redo-always, redo-stamp): cookbook/defaults/index.md
   - FAQ:
     - Basics: FAQBasics.md
     - Semantics: FAQSemantics.md
     - Interop with make: FAQInterop.md
     - Parallel Builds: FAQParallel.md
     - Implementation Details: FAQImpl.md
-  - Contributing.md
   - Reference Manual:
     - redo(1): redo.md
     - redo-ifchange(1): redo-ifchange.md

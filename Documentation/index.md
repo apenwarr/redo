@@ -169,8 +169,8 @@ easily be linked from this document.  Here are a few open source examples:
   Buildroot](https://github.com/apenwarr/buildroot/tree/redo) that uses redo
   in order to clean up its dependency logic.
 
-* You can also find some limited examples in the
-  [`t/111-example/`](t/111-example) subdir of the redo project itself.
+* You can also find some curated examples in the
+  [Documentation/cookbook/](https://github.com/apenwarr/redo/tree/master/Documentation/cookbook/) subdir of the redo project itself.
 
 * A [github search for all.do](https://github.com/search?p=9&q=path%3A%2F+extension%3Ado+filename%3A%2Fall.do&type=Code)
   shows an ever-growing number of projects using redo.
@@ -234,7 +234,8 @@ of these links):
 - catenate's [credo](https://github.com/catenate/credo), a (very
   rearchitected) variant written for the Inferno Shell.
 
-The redo design is so simple and elegant that many individuals have been
+The original redo design is so simple and elegant that many individuals
+have been
 inspired to (and able to) write their own version of it.  In the honoured
 tradition of Unix's `make`, they (almost) all just use the same name,
 `redo`.  Unfortunately, many of these
@@ -242,5 +243,16 @@ implementations are unmaintained, slightly incompatible with the "standard"
 redo semantics, and/or have few or no automated tests.
 
 At the time of this writing, none of them except apenwarr/redo (ie.  this
-project) support parallel builds (`redo -j`).  For large projects,
-parallel builds are usually considered essential.
+project) support parallel builds (`redo -j`) or log linearization
+(`redo-log`).  For large projects, parallel builds are usually considered
+essential.
+
+The [automated tests](https://github.com/apenwarr/redo/tree/master/t) in
+this version of redo are almost, but not quite, appropriate for testing any
+redo implementation.  If you really must write a new version of redo, we
+invite you to thoroughly test it against the existing test suite to ensure
+compatibility.  You can also steal our tests (with attribution, of course)
+and include them in your own source package.  We'd also love it it you
+contribute more automated tests when you find a bug, or send us patches if
+you find a test which is accidentally incompatible (as opposed to finding a
+real bug) with other redo implementations.
