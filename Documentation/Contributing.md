@@ -1,10 +1,14 @@
 # License
 
 My version of redo was written without ever seeing redo code by Bernstein or
-Grosskurth, so I own the entire copyright.  It's distributed under the GNU
-LGPL version 2.  You can find a copy of it in the file called LICENSE.
+Grosskurth, so I own the entire copyright.  It's distributed under the terms
+of the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0),
+which you can find in the file called
+[LICENSE](https://github.com/apenwarr/redo/tree/master/LICENSE).  (Previous
+versions of redo were distributed under the GNU LGPL, but this [changed in
+2018](https://groups.google.com/forum/#!topic/redo-list/wLMZMxtn4wo).)
 
-minimal/do is in the public domain so that it's even easier
+minimal/do is in the public domain so that it's as easy as possible
 to include inside your own projects for people who don't
 have a copy of redo.
 
