@@ -2,7 +2,8 @@
 
 Let's start with Hello World: famously, the simplest project that does
 anything interesting.  We'll write this one in C, but don't worry if
-you're not a C programmer!  We'll keep this simple.
+you're not a C programmer.  The focus isn't the C code itself, just to
+compile it.
 
 To play with the code on your own machine, get the [redo
 source code](https://github.com/apenwarr/redo) and look in the
@@ -13,10 +14,10 @@ source code](https://github.com/apenwarr/redo) and look in the
 First, let's create a source file that we want to compile:
 <pre><code lang='c' src='hello.c'></code></pre>
 
-Now we need a .do file to tell redo how to build it:
+Now we need a .do file to tell redo how to compile it:
 <pre><code lang='sh' src='hello.do'></code></pre>
 
-With those files in place, we can compile and run the program:
+With those files in place, we can build and run the program:
 ```shell
 $ redo hello
 redo  hello
@@ -26,7 +27,7 @@ Hello, world!
 ```
 
 Use the `redo` command to forcibly re-run a specific rule (in this case, the
-compile rule).  Or, if you only want to recompile `hello` when its input
+compiler).  Or, if you only want to recompile `hello` when its input
 files (dependencies) have changed, use `redo-ifchange`.
 ```shell
 $ redo hello
@@ -60,14 +61,9 @@ redo  all
 redo    hello
 
 # Notice that this forcibly re-runs the 'all'
-# rule, but all.do calls redo-ifchange, not redo,
-# so it doesn't forcibly recompile hello itself.
-#
-# You can use this trick to experiment with one
-# step in your build process at a time, without
-# having to play tricks to make that step re-run,
-# like you might do with make (eg. by deleting or
-# touching files).
+# rule, but all.do calls redo-ifchange, so
+# hello itself is only recompiled if its
+# dependencies change.
 $ redo
 redo  all
 

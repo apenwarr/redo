@@ -1,0 +1,8 @@
+// C/C++ header file identifying the current version
+#ifndef __VERSION_H
+#define __VERSION_H
+
+#define VERSION "%VERSION%"
+#define DATE "%DATE%"
+
+#endif // __VERSION_H

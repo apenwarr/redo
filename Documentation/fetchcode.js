@@ -2,8 +2,9 @@
 
 async function fetchCode(e, lang, src) {
     const resp = await fetch(src);
-    const t = await resp.text();
-    e.innerHTML = hljs.highlight(lang, t).value;
+    let t = await resp.text();
+    if (lang) t = hljs.highlight(lang, t).value;
+    e.innerHTML = t;
 }
 
 function fetchAndHighlightAll() {
@@ -18,7 +19,6 @@ function fetchAndHighlightAll() {
     	title.style.display = 'block';
     	e.parentElement.insertBefore(title, e);
     	fetchCode(e, lang, src);
-    	console.log('found', lang, src);
     }
 }
 

@@ -1,0 +1,3 @@
+# python module identifying the current version
+VERSION='%VERSION%'
+DATE='%DATE%'
