@@ -14,7 +14,7 @@ source code](https://github.com/apenwarr/redo) and look in the
 
 Let's create some input files we can use.  The input to our
 preprocessor will have file extension `.in`.  The output can be in various
-formats
+formats.
 <pre><code src='test.txt.in'></code></pre>
 <pre><code lang='c' src='include/version.h.in'></code></pre>
 <pre><code lang='python' src='version.py.in'></code></pre>
@@ -44,7 +44,7 @@ will try using `default.do` instead.  Let's write a default.do for our text
 preprocessor.
 <pre><code lang='sh' src='default.do'></code></pre>
 
-If `default.do` is asked to build X, and there exists a file named `X.in`, we
+If `default.do` is asked to build `X`, and there exists a file named `X.in`, we
 use `sed` to do our variable substitutions.  In that case, `default.do` uses
 redo-ifchange to depend on `X.in`, `version`, and `date`.  If a file named
 `X.in` does *not* exist, then we don't know what to do, so we give an error.
@@ -84,6 +84,7 @@ While we're here, let's make an `all.do` so that we don't have to tell redo
 exactly which files to rebuild, every single time.
 <pre><code lang='sh' src='all.do'></code></pre>
 
+Results:
 ```shell
 $ redo
 redo  all
@@ -150,7 +151,7 @@ unnecessary work on every build.  To solve that, there's `redo-stamp`.
 redo-stamp does the opposite of redo-always: while redo-always makes things
 build *more* often, redo-stamp makes things build *less* often. 
 Specifically, it lets a .do file provide a "stamp value" for its output; if
-that stamp value is the same as before, then its target should be considered
+that stamp value is the same as before, then the target should be considered
 unchanged after all.
 
 The most common stamp value is just the content itself.  Since in redo, we
@@ -158,7 +159,7 @@ write the content to $3, we can also read it back from $3:
 <pre><code lang='sh' src='version.do'></code></pre>
 <pre><code lang='sh' src='date.do'></code></pre>
 
-And the final result is what we want: although `version` and `date` are
+And the final result is what we want.  Although `version` and `date` are
 generated every time, the targets which depend on them are not:
 ```shell
 $ redo clean
@@ -185,6 +186,44 @@ redo    date
 redo    version
 ```
 
+
+### Temporary overrides
+
+Sometimes you want to override a file even if it *is* a target (ie. it has
+previously been built by redo and has a valid .do file associated with it). 
+In our example, maybe you want to hardcode the version number because you're
+building a release.  This is easy: redo notices whenever you overwrite a
+file from outside redo, and will avoid replacing that file until you
+subsequently delete it:
+```shell
+$ echo "1.0" >version
+
+$ redo
+redo  all
+redo    (test.txt)
+redo    date
+redo: version - you modified it; skipping
+redo    test.txt
+redo    version.py
+redo    include/version.h
+
+$ redo
+redo  all
+redo    (test.txt)
+redo    date
+redo: version - you modified it; skipping
+
+$ rm version
+
+$ redo
+redo  all
+redo    (test.txt)
+redo    date
+redo    version
+redo    test.txt
+redo    version.py
+redo    include/version.h
+```
 
 ### default.do, subdirectories, and redo-whichdo
 
@@ -225,8 +264,8 @@ a particular target.  For a file named X, that formula is as follows:
 - ...and so on...
 
 (Note: for targets with an extension, like X.o, redo actually tries even
-more .do files, like default.o.do and ../default.o.do.  For precise details,
-read the [redo man page](../../redo).)
+more .do files, like `default.o.do` and `../default.o.do`.  For precise
+details, read the [redo man page](../../redo).)
 
 You can see which .do files redo considers for a given target by using the
 `redo-whichdo` command.  If redo-whichdo returns successfully, the last name
@@ -241,7 +280,7 @@ default.do
 ```
 
 
-### Redo always runs from the .do file's directory
+### Redo always runs in the .do file's directory
 
 To ensure consistency, redo always changes the current directory to
 the directory *containing the selected .do file* (**not** the directory
@@ -254,7 +293,7 @@ redo  include/version.h
 redo    version
 redo    date
 
-$ cd include && redo version.h
+$ (cd include && redo version.h)
 redo  version.h
 redo    ../version
 redo    ../date
@@ -266,7 +305,7 @@ files it's building relative to the $PWD at the time you started redo.)
 This feature is critical to redo's recursive nature; it's the reason that
 essays like [Recursive Make Considered Harmful](http://aegis.sourceforge.net/auug97.pdf)
 don't apply to redo.  Any redo target, anywhere in your source tree, can
-use redo-ifchange to depend on one of your other targets, and the dependency
+use redo-ifchange to depend on any of your other targets, and the dependency
 will work right.
 
 Why does redo change to the directory containing the .do file, instead of
