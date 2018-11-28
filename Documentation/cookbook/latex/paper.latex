@@ -1,0 +1,17 @@
+\documentclass{article}
+\usepackage{graphicx}
+
+\title{A very brief note on relativity}
+\author{The Redo Contributors}
+
+\begin{document}
+\maketitle
+\tableofcontents
+
+\newpage
+\section{Amazing Discovery}
+\input{discovery.txt}
+
+\section{Irrelevant Chart}
+\includegraphics{mpg.eps}
+\end{document}

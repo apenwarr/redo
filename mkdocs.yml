@@ -15,6 +15,7 @@ pages:
   - Cookbook:
     - Hello World (hello.do, redo-ifchange): cookbook/hello/index.md
     - Text processing example (default.do, redo-whichdo, redo-always, redo-stamp): cookbook/defaults/index.md
+    - R plots and LaTeX to pdf (side effects, multiple outputs, autodepends): cookbook/latex/index.md
   - FAQ:
     - Basics: FAQBasics.md
     - Semantics: FAQSemantics.md
