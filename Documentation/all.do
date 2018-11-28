@@ -1,4 +1,4 @@
-redo-ifchange doc.list cookbook/all
+redo-ifchange doc.list
 sed 's/\.md/.1/' <doc.list |
 xargs redo-ifchange
 
