@@ -7,6 +7,8 @@ repo_url: https://github.com/apenwarr/redo
 edit_uri: edit/master/Documentation
 extra_javascript:
   - fetchcode.js
+extra_css:
+  - extra_style.css
 
 pages:
   - Introduction: index.md
