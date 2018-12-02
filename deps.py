@@ -8,7 +8,8 @@ DIRTY = 1
 def isdirty(f, depth, max_changed,
             already_checked,
             is_checked=state.File.is_checked,
-            set_checked=state.File.set_checked_save):
+            set_checked=state.File.set_checked_save,
+            log_override=state.warn_override):
     if f.id in already_checked:
         raise state.CyclicDependencyError()
     # make a copy of the list, so upon returning, our parent's copy
@@ -16,7 +17,7 @@ def isdirty(f, depth, max_changed,
     already_checked = list(already_checked) + [f.id]
 
     if vars.DEBUG >= 1:
-        debug('%s?%s\n' % (depth, f.nicename()))
+        debug('%s?%s %r,%r\n' % (depth, f.nicename(), f.is_generated, f.is_override))
 
     if f.failed_runid:
         debug('%s-- DIRTY (failed last time)\n' % depth)
@@ -25,7 +26,7 @@ def isdirty(f, depth, max_changed,
         debug('%s-- DIRTY (never built)\n' % depth)
         return DIRTY
     if f.changed_runid > max_changed:
-        debug('%s-- DIRTY (built)\n' % depth)
+        debug('%s-- DIRTY (built %d > %d; %d)\n' % (depth, f.changed_runid, max_changed, vars.RUNID))
         return DIRTY  # has been built more recently than parent
     if is_checked(f):
         if vars.DEBUG >= 1:
@@ -46,10 +47,11 @@ def isdirty(f, depth, max_changed,
                 # it a target again, but if someone creates it by hand,
                 # it'll be a source.  This should reduce false alarms when
                 # files change from targets to sources as a project evolves.
-                debug('%s   converted target -> source\n' % depth)
-                f.is_generated = False
-                #f.update_stamp()
+                debug('%s   converted target -> source %r\n' % (depth, f.id))
+                f.is_generated = f.failed_runid = 0
                 f.save()
+                f.refresh()
+                assert not f.is_generated
         else:
             debug('%s-- DIRTY (mtime)\n' % depth)
         if f.csum:
@@ -69,7 +71,9 @@ def isdirty(f, depth, max_changed,
                           max_changed = max(f.changed_runid,
                                             f.checked_runid),
                           already_checked=already_checked,
-                          is_checked=is_checked, set_checked=set_checked)
+                          is_checked=is_checked,
+                          set_checked=set_checked,
+                          log_override=log_override)
             if sub:
                 debug('%s-- DIRTY (sub)\n' % depth)
                 dirty = sub
@@ -111,6 +115,6 @@ def isdirty(f, depth, max_changed,
 
     # if we get here, it's because the target is clean
     if f.is_override:
-        state.warn_override(f.name)
+        log_override(f.name)
     set_checked(f)
     return CLEAN

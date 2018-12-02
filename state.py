@@ -299,7 +299,18 @@ class File(object):
         debug2('FAILED: %r\n' % self.name)
         self.update_stamp()
         self.failed_runid = vars.RUNID
-        self.is_generated = True
+        if self.stamp != STAMP_MISSING:
+            # if we failed and the target file still exists,
+            # then we're generated.
+            self.is_generated = True
+        else:
+            # if the target file now does *not* exist, then go back to
+            # treating this as a source file.  Since it doesn't exist,
+            # if someone tries to rebuild it immediately, it'll go
+            # back to being a target.  But if the file is manually
+            # created before that, we don't need a "manual override"
+            # warning.
+            self.is_generated = False
 
     def set_static(self):
         self.update_stamp(must_exist=True)
@@ -321,6 +332,30 @@ class File(object):
             self.stamp = newstamp
             self.set_changed()
 
+    def is_source(self):
+        if self.name.startswith('//'):
+            return False  # special name, ignore
+        newstamp = self.read_stamp()
+        if (self.is_generated and
+            (not self.is_failed() or newstamp != STAMP_MISSING) and
+            not self.is_override and
+            self.stamp == newstamp):
+            # target is as we left it
+            return False
+        if ((not self.is_generated or self.stamp != newstamp) and
+            newstamp == STAMP_MISSING):
+            # target has gone missing after the last build.
+            # It's not usefully a source *or* a target.
+            return False
+        return True
+
+    def is_target(self):
+        if not self.is_generated:
+            return False
+        if self.is_source():
+            return False
+        return True
+
     def is_checked(self):
         return self.checked_runid and self.checked_runid >= vars.RUNID
 
@@ -331,6 +366,8 @@ class File(object):
         return self.failed_runid and self.failed_runid >= vars.RUNID
 
     def deps(self):
+        if self.is_override or not self.is_generated:
+            return
         q = ('select Deps.mode, Deps.source, %s '
              '  from Files '
              '    join Deps on Files.rowid = Deps.source '

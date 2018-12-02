@@ -204,8 +204,6 @@ class BuildJob:
         self.basename = basename
         self.ext = ext
         self.argv = argv
-        sf.is_generated = True
-        sf.save()
         dof = state.File(name=os.path.join(dodir, dofile))
         dof.set_static()
         dof.save()
@@ -313,6 +311,9 @@ class BuildJob:
             err('...you should write status messages to stderr, not stdout.\n')
             rv = 207
         if rv==0:
+            # FIXME: race condition here between updating stamp/is_generated
+            # and actually renaming the files into place.  There needs to
+            # be some kind of two-stage commit, I guess.
             if st2:
                 try:
                     os.rename(self.tmpname2, t)

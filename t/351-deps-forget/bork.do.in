@@ -1,2 +1,0 @@
-echo bork
-printf x >>$1.log

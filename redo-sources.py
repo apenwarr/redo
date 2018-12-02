@@ -13,7 +13,5 @@ if len(sys.argv[1:]) != 0:
 
 cwd = os.getcwd()
 for f in state.files():
-    if f.name.startswith('//'):
-        continue  # special name, ignore
-    if not f.is_generated and f.read_stamp() != state.STAMP_MISSING:
+    if f.is_source():
         print state.relpath(os.path.join(vars.BASE, f.name), cwd)
