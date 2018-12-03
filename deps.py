@@ -1,5 +1,5 @@
-import sys, os
-import vars, state, builder
+import os
+import vars, state
 from logs import debug
 
 CLEAN = 0
@@ -17,16 +17,18 @@ def isdirty(f, depth, max_changed,
     already_checked = list(already_checked) + [f.id]
 
     if vars.DEBUG >= 1:
-        debug('%s?%s %r,%r\n' % (depth, f.nicename(), f.is_generated, f.is_override))
+        debug('%s?%s %r,%r\n'
+              % (depth, f.nicename(), f.is_generated, f.is_override))
 
     if f.failed_runid:
         debug('%s-- DIRTY (failed last time)\n' % depth)
         return DIRTY
-    if f.changed_runid == None:
+    if f.changed_runid is None:
         debug('%s-- DIRTY (never built)\n' % depth)
         return DIRTY
     if f.changed_runid > max_changed:
-        debug('%s-- DIRTY (built %d > %d; %d)\n' % (depth, f.changed_runid, max_changed, vars.RUNID))
+        debug('%s-- DIRTY (built %d > %d; %d)\n'
+              % (depth, f.changed_runid, max_changed, vars.RUNID))
         return DIRTY  # has been built more recently than parent
     if is_checked(f):
         if vars.DEBUG >= 1:
@@ -60,16 +62,16 @@ def isdirty(f, depth, max_changed,
             return DIRTY
 
     must_build = []
-    for mode,f2 in f.deps():
+    for mode, f2 in f.deps():
         dirty = CLEAN
         if mode == 'c':
             if os.path.exists(os.path.join(vars.BASE, f2.name)):
                 debug('%s-- DIRTY (created)\n' % depth)
                 dirty = DIRTY
         elif mode == 'm':
-            sub = isdirty(f2, depth = depth + '  ',
-                          max_changed = max(f.changed_runid,
-                                            f.checked_runid),
+            sub = isdirty(f2, depth=depth + '  ',
+                          max_changed=max(f.changed_runid,
+                                          f.checked_runid),
                           already_checked=already_checked,
                           is_checked=is_checked,
                           set_checked=set_checked,
@@ -78,14 +80,14 @@ def isdirty(f, depth, max_changed,
                 debug('%s-- DIRTY (sub)\n' % depth)
                 dirty = sub
         else:
-            assert(mode in ('c','m'))
+            assert mode in ('c', 'm')
         if not f.csum:
             # f is a "normal" target: dirty f2 means f is instantly dirty
             if dirty == DIRTY:
                 # f2 is definitely dirty, so f definitely needs to
                 # redo.
                 return DIRTY
-            elif isinstance(dirty,list):
+            elif isinstance(dirty, list):
                 # our child f2 might be dirty, but it's not sure yet.  It's
                 # given us a list of targets we have to redo in order to
                 # be sure.
@@ -99,7 +101,7 @@ def isdirty(f, depth, max_changed,
                 # redo.  However, after that, f might turn out to be
                 # unchanged.
                 return [f]
-            elif isinstance(dirty,list):
+            elif isinstance(dirty, list):
                 # our child f2 might be dirty, but it's not sure yet.  It's
                 # given us a list of targets we have to redo in order to
                 # be sure.

@@ -5,6 +5,7 @@ is_toplevel = False
 
 
 def init_no_state():
+    global is_toplevel
     if not os.environ.get('REDO'):
         os.environ['REDO'] = 'NOT_DEFINED'
         is_toplevel = True
@@ -13,9 +14,9 @@ def init_no_state():
 
 
 def init(targets):
+    global is_toplevel
     if not os.environ.get('REDO'):
         # toplevel call to redo
-        global is_toplevel
         is_toplevel = True
         if len(targets) == 0:
             targets.append('all')

@@ -1,3 +1,5 @@
+# pylint: skip-file
+#
 # Copyright 2011 Avery Pennarun and options.py contributors.
 # All rights reserved.
 #

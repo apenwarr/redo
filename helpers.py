@@ -1,5 +1,4 @@
 import os, errno, fcntl
-from atoi import atoi
 
 
 def join(between, l):
@@ -25,5 +24,3 @@ def close_on_exec(fd, yes):
     if yes:
         fl |= fcntl.FD_CLOEXEC
     fcntl.fcntl(fd, fcntl.F_SETFD, fl)
-
-

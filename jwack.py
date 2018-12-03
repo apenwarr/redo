@@ -74,7 +74,8 @@
 # simpler :)
 #
 import sys, os, errno, select, fcntl, signal
-from helpers import atoi, close_on_exec
+from atoi import atoi
+from helpers import close_on_exec
 import state, vars
 
 _toplevel = 0
@@ -87,7 +88,7 @@ _waitfds = {}
 
 def _debug(s):
     if 0:
-        sys.stderr.write('jwack#%d: %s' % (os.getpid(),s))
+        sys.stderr.write('jwack#%d: %s' % (os.getpid(), s))
 
 
 def _create_tokens(n):
@@ -132,7 +133,6 @@ def _release_except_mine():
 
 
 def release_mine():
-    global _mytokens
     assert _mytokens >= 1
     _debug('%d,%d -> release_mine()\n' % (_mytokens, _cheats))
     _release(1)
@@ -146,9 +146,9 @@ def _timeout(sig, frame):
 # This makes it easier to differentiate different kinds of pipes when using
 # strace.
 def _make_pipe(startfd):
-    (a,b) = os.pipe()
+    (a, b) = os.pipe()
     fds = (fcntl.fcntl(a, fcntl.F_DUPFD, startfd),
-            fcntl.fcntl(b, fcntl.F_DUPFD, startfd+1))
+           fcntl.fcntl(b, fcntl.F_DUPFD, startfd + 1))
     os.close(a)
     os.close(b)
     return fds
@@ -162,7 +162,7 @@ def _try_read(fd, n):
     # socket: http://cr.yp.to/unix/nonblock.html
     # We can't just make the socket non-blocking, because we want to be
     # compatible with GNU Make, and they can't handle it.
-    r,w,x = select.select([fd], [], [], 0)
+    r, w, x = select.select([fd], [], [], 0)
     if not r:
         return None  # try again
     # ok, the socket is readable - but some other process might get there
@@ -199,19 +199,19 @@ def setup(maxjobs):
     assert maxjobs > 0
     assert not _tokenfds
     _debug('setup(%d)\n' % maxjobs)
-    
+
     flags = ' ' + os.getenv('MAKEFLAGS', '') + ' '
     FIND1 = ' --jobserver-auth='  # renamed in GNU make 4.2
     FIND2 = ' --jobserver-fds='   # fallback syntax
     FIND = FIND1
     ofs = flags.find(FIND1)
     if ofs < 0:
-      FIND = FIND2
-      ofs = flags.find(FIND2)
+        FIND = FIND2
+        ofs = flags.find(FIND2)
     if ofs >= 0:
         s = flags[ofs+len(FIND):]
-        (arg,junk) = s.split(' ', 1)
-        (a,b) = arg.split(',', 1)
+        (arg, junk) = s.split(' ', 1)
+        (a, b) = arg.split(',', 1)
         a = atoi(a)
         b = atoi(b)
         if a <= 0 or b <= 0:
@@ -221,20 +221,21 @@ def setup(maxjobs):
             fcntl.fcntl(b, fcntl.F_GETFL)
         except IOError, e:
             if e.errno == errno.EBADF:
-                raise ValueError('broken --jobserver-auth from make; prefix your Makefile rule with a "+"')
+                raise ValueError('broken --jobserver-auth from make; ' +
+                                 'prefix your Makefile rule with a "+"')
             else:
                 raise
-        _tokenfds = (a,b)
-    
+        _tokenfds = (a, b)
+
     cheats = os.getenv('REDO_CHEATFDS', '')
     if cheats:
-        (a,b) = cheats.split(',', 1)
+        (a, b) = cheats.split(',', 1)
         a = atoi(a)
         b = atoi(b)
         if a <= 0 or b <= 0:
             raise ValueError('invalid REDO_CHEATFDS: %r' % cheats)
-        _cheatfds = (a,b)
-    
+        _cheatfds = (a, b)
+
     if not _tokenfds:
         # need to start a new server
         _toplevel = maxjobs
@@ -256,7 +257,7 @@ def _wait(want_token, max_delay):
         rfds.append(_tokenfds[0])
     assert rfds
     assert state.is_flushed()
-    r,w,x = select.select(rfds, [], [], max_delay)
+    r, w, x = select.select(rfds, [], [], max_delay)
     _debug('_tokenfds=%r; wfds=%r; readable: %r\n' % (_tokenfds, _waitfds, r))
     for fd in r:
         if fd == _tokenfds[0]:
@@ -270,7 +271,7 @@ def _wait(want_token, max_delay):
             # now need to recreate it.
             b = _try_read(_cheatfds[0], 1)
             _debug('GOT cheatfd\n')
-            if b == None:
+            if b is None:
                 _create_tokens(1)
                 if has_token():
                     _release_except_mine()
@@ -383,7 +384,7 @@ def force_return_tokens():
     n = len(_waitfds)
     _debug('%d,%d -> %d jobs left in force_return_tokens\n'
            % (_mytokens, _cheats, n))
-    for k in _waitfds.keys():
+    for k in list(_waitfds):
         del _waitfds[k]
     _create_tokens(n)
     if has_token():
@@ -405,26 +406,25 @@ def _pre_job(r, w, pfn):
         pfn()
 
 
-class Job:
+class Job(object):
     def __init__(self, name, pid, donefunc):
         self.name = name
         self.pid = pid
         self.rv = None
         self.donefunc = donefunc
-        
+
     def __repr__(self):
         return 'Job(%s,%d)' % (self.name, self.pid)
 
-            
+
 def start_job(reason, jobfunc, donefunc):
     assert state.is_flushed()
-    global _mytokens
     assert _mytokens <= 1
     assert _mytokens == 1
     # Subprocesses always start with 1 token, so we have to destroy ours
     # in order for the universe to stay in balance.
     _destroy_tokens(1)
-    r,w = _make_pipe(50)
+    r, w = _make_pipe(50)
     pid = os.fork()
     if pid == 0:
         # child
@@ -433,8 +433,8 @@ def start_job(reason, jobfunc, donefunc):
         try:
             try:
                 rv = jobfunc() or 0
-                _debug('jobfunc completed (%r, %r)\n' % (jobfunc,rv))
-            except Exception:
+                _debug('jobfunc completed (%r, %r)\n' % (jobfunc, rv))
+            except Exception:  # pylint: disable=broad-except
                 import traceback
                 traceback.print_exc()
         finally:

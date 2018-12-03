@@ -1,12 +1,15 @@
 import os, re, sys, time
 import vars
 
+RED = GREEN = YELLOW = BOLD = PLAIN = None
+
 
 def check_tty(file, color):
     global RED, GREEN, YELLOW, BOLD, PLAIN
     color_ok = file.isatty() and (os.environ.get('TERM') or 'dumb') != 'dumb'
     if (color and color_ok) or color >= 2:
         # ...use ANSI formatting codes.
+        # pylint: disable=bad-whitespace
         RED    = "\x1b[31m"
         GREEN  = "\x1b[32m"
         YELLOW = "\x1b[33m"
@@ -25,7 +28,7 @@ class RawLog(object):
         self.file = file
 
     def write(self, s):
-        assert('\n' not in s)
+        assert '\n' not in s
         sys.stdout.flush()
         sys.stderr.flush()
         self.file.write(s + '\n')
@@ -39,17 +42,18 @@ class PrettyLog(object):
     def __init__(self, file):
         self.topdir = os.getcwd()
         self.file = file
-    
+
     def _pretty(self, pid, color, s):
         if vars.DEBUG_PIDS:
             redo = '%-6d redo  ' % pid
         else:
             redo = 'redo  '
-        self.file.write(''.join([color, redo, vars.DEPTH,
-                                  BOLD if color else '', s, PLAIN, '\n']))
+        self.file.write(
+            ''.join([color, redo, vars.DEPTH,
+                     BOLD if color else '', s, PLAIN, '\n']))
 
     def write(self, s):
-        assert('\n' not in s)
+        assert '\n' not in s
         sys.stdout.flush()
         sys.stderr.flush()
         g = REDO_RE.match(s)
@@ -58,7 +62,7 @@ class PrettyLog(object):
             self.file.write(s[:-len(all)])
             words = g.group(1).split(':')
             text = g.group(2)
-            kind, pid, when = words[0:3]
+            kind, pid, _ = words[0:3]
             pid = int(pid)
             if kind == 'unchanged':
                 self._pretty(pid, '', '%s (unchanged)' % text)
@@ -85,10 +89,10 @@ class PrettyLog(object):
                     self._pretty(pid, GREEN, '%s (...unlocked!)' % text)
             elif kind == 'error':
                 self.file.write(''.join([RED, 'redo: ',
-                                          BOLD, text, PLAIN, '\n']))
+                                         BOLD, text, PLAIN, '\n']))
             elif kind == 'warning':
                 self.file.write(''.join([YELLOW, 'redo: ',
-                                          BOLD, text, PLAIN, '\n']))
+                                         BOLD, text, PLAIN, '\n']))
             elif kind == 'debug':
                 self._pretty(pid, '', text)
             else:
@@ -118,10 +122,11 @@ def write(s):
 
 
 def meta(kind, s, pid=None):
-    assert(':' not in kind)
-    assert('@' not in kind)
-    assert('\n' not in s)
-    if pid == None: pid = os.getpid()
+    assert ':' not in kind
+    assert '@' not in kind
+    assert '\n' not in s
+    if pid is None:
+        pid = os.getpid()
     write('@@REDO:%s:%d:%.4f@@ %s'
           % (kind, pid, time.time(), s))
 

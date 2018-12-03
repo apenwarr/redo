@@ -36,11 +36,11 @@ os.environ['REDO_NO_OOB'] = ''    # not inheritable by subprocesses
 
 
 def get_locks():
-  """Get the list of held locks."""
-  return os.environ.get('REDO_LOCKS', '').split(':')
+    """Get the list of held locks."""
+    return os.environ.get('REDO_LOCKS', '').split(':')
 
 def add_lock(name):
-  """Add a lock to the list of held locks."""
-  locks = set(get_locks())
-  locks.add(name)
-  os.environ['REDO_LOCKS'] = ':'.join(list(locks))
+    """Add a lock to the list of held locks."""
+    locks = set(get_locks())
+    locks.add(name)
+    os.environ['REDO_LOCKS'] = ':'.join(list(locks))

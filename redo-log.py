@@ -1,5 +1,6 @@
 #!/usr/bin/env python2
-import errno, fcntl, os, re, struct, sys, termios, time
+import errno, fcntl, os, re, struct, sys, time
+import termios
 from atoi import atoi
 import options
 
@@ -28,7 +29,6 @@ import vars, logs, state
 
 topdir = os.getcwd()
 already = set()
-queue = []
 depth = []
 total_lines = 0
 status = None
@@ -53,11 +53,10 @@ def _atoi(s):
 def _tty_width():
     s = struct.pack("HHHH", 0, 0, 0, 0)
     try:
-        import fcntl, termios
         s = fcntl.ioctl(sys.stderr.fileno(), termios.TIOCGWINSZ, s)
     except (IOError, ImportError):
         return _atoi(os.environ.get('WIDTH')) or 70
-    (ysize,xsize,ypix,xpix) = struct.unpack('HHHH', s)
+    (ysize, xsize, ypix, xpix) = struct.unpack('HHHH', s)
     return xsize or 70
 
 
@@ -69,8 +68,8 @@ def _fix_depth():
     vars.DEPTH = len(depth) * '  '
 
 
-def _rel(topdir, mydir, path):
-    return os.path.relpath(os.path.join(topdir, mydir, path), topdir)
+def _rel(top, mydir, path):
+    return os.path.relpath(os.path.join(top, mydir, path), topdir)
 
 
 def catlog(t):
@@ -92,7 +91,7 @@ def catlog(t):
             sf = state.File(name=t, allow_add=False)
         except KeyError:
             sys.stderr.write('redo-log: [%s] %r: not known to redo.\n'
-                        % (os.getcwd(), t,))
+                             % (os.getcwd(), t,))
             sys.exit(24)
         fid = sf.id
         del sf
@@ -148,9 +147,10 @@ def catlog(t):
                             tail = n + ' ' + tail
                     status = head + tail
                     if len(status) > width:
-                        sys.stderr.write('\nOVERSIZE STATUS (%d):\n%r\n' %
-                            (len(status), status))
-                    assert(len(status) <= width)
+                        sys.stderr.write(
+                            '\nOVERSIZE STATUS (%d):\n%r\n'
+                            % (len(status), status))
+                    assert len(status) <= width
                     sys.stdout.flush()
                     sys.stderr.write('\r%-*.*s\r' % (width, width, status))
                 time.sleep(min(delay, 1.0))
@@ -184,9 +184,11 @@ def catlog(t):
                     elif fixname not in already:
                         logs.meta('do', relname, pid=pid)
                     if opt.recursive:
-                        if loglock: loglock.unlock()
+                        if loglock:
+                            loglock.unlock()
                         catlog(os.path.join(mydir, text))
-                        if loglock: loglock.waitlock(shared=True)
+                        if loglock:
+                            loglock.waitlock(shared=True)
                     already.add(fixname)
             elif kind in ('do', 'waiting', 'locked', 'unlocked'):
                 if opt.debug_locks:
@@ -196,9 +198,11 @@ def catlog(t):
                     logs.meta('do', relname, pid=pid)
                 if opt.recursive:
                     assert text
-                    if loglock: loglock.unlock()
+                    if loglock:
+                        loglock.unlock()
                     catlog(os.path.join(mydir, text))
-                    if loglock: loglock.waitlock(shared=True)
+                    if loglock:
+                        loglock.waitlock(shared=True)
                 already.add(fixname)
             elif kind == 'done':
                 rv, name = text.split(' ', 1)
@@ -218,40 +222,49 @@ def catlog(t):
         # partial line never got terminated
         print line_head
     if t != '-':
-        assert(depth[-1] == t)
+        assert depth[-1] == t
         depth.pop(-1)
     _fix_depth()
 
-try:
-    if not targets:
-        sys.stderr.write('redo-log: give at least one target; maybe "all"?\n')
-        sys.exit(1)
-    if opt.status < 2 and not os.isatty(2):
-        opt.status = False
-    logs.setup(file=sys.stdout, pretty=opt.pretty, color=opt.color)
-    if opt.debug_locks:
-        vars.DEBUG_LOCKS = 1
-    if opt.debug_pids:
-        vars.DEBUG_PIDS = 1
-    if opt.ack_fd:
-        # Write back to owner, to let them know we started up okay and
-        # will be able to see their error output, so it's okay to close
-        # their old stderr.
-        ack_fd = int(opt.ack_fd)
-        assert(ack_fd > 2)
-        if os.write(ack_fd, 'REDO-OK\n') != 8:
-            raise Exception('write to ack_fd returned wrong length')
-        os.close(ack_fd)
-    queue += targets
-    while queue:
-        t = queue.pop(0)
-        if t != '-':
-            logs.meta('do', _rel(topdir, '.', t), pid=0)
-        catlog(t)
-except KeyboardInterrupt:
-    sys.exit(200)
-except IOError, e:
-    if e.errno == errno.EPIPE:
-        pass
-    else:
-        raise
+
+def main():
+    queue = []
+    try:
+        if not targets:
+            sys.stderr.write(
+                'redo-log: give at least one target; ' +
+                'maybe "all"?\n')
+            sys.exit(1)
+        if opt.status < 2 and not os.isatty(2):
+            opt.status = False
+        logs.setup(file=sys.stdout, pretty=opt.pretty, color=opt.color)
+        if opt.debug_locks:
+            vars.DEBUG_LOCKS = 1
+        if opt.debug_pids:
+            vars.DEBUG_PIDS = 1
+        if opt.ack_fd:
+            # Write back to owner, to let them know we started up okay and
+            # will be able to see their error output, so it's okay to close
+            # their old stderr.
+            ack_fd = int(opt.ack_fd)
+            assert ack_fd > 2
+            if os.write(ack_fd, 'REDO-OK\n') != 8:
+                raise Exception('write to ack_fd returned wrong length')
+            os.close(ack_fd)
+        queue += targets
+        while queue:
+            t = queue.pop(0)
+            if t != '-':
+                logs.meta('do', _rel(topdir, '.', t), pid=0)
+            catlog(t)
+    except KeyboardInterrupt:
+        sys.exit(200)
+    except IOError, e:
+        if e.errno == errno.EPIPE:
+            pass
+        else:
+            raise
+
+
+if __name__ == '__main__':
+    main()

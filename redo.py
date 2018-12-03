@@ -1,13 +1,13 @@
 #!/usr/bin/env python2
 #
 # Copyright 2010-2018 Avery Pennarun and contributors
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 #     http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -16,7 +16,7 @@
 #
 import sys, os, traceback
 import options
-from helpers import atoi
+from atoi import atoi
 
 optspec = """
 redo [targets...]
@@ -83,7 +83,8 @@ try:
     if vars_init.is_toplevel and (vars.LOG or j > 1):
         builder.close_stdin()
     if vars_init.is_toplevel and vars.LOG:
-        builder.start_stdin_log_reader(status=opt.status, details=opt.details,
+        builder.start_stdin_log_reader(
+            status=opt.status, details=opt.details,
             pretty=opt.pretty, color=opt.color,
             debug_locks=opt.debug_locks, debug_pids=opt.debug_pids)
     for t in targets:
@@ -93,21 +94,21 @@ try:
                 warn('%s: exists and not marked as generated; not redoing.\n'
                      % f.nicename())
     state.rollback()
-    
+
     if j < 1 or j > 1000:
         err('invalid --jobs value: %r\n' % opt.jobs)
     jwack.setup(j)
     try:
-        assert(state.is_flushed())
+        assert state.is_flushed()
         retcode = builder.main(targets, lambda t: (True, True))
-        assert(state.is_flushed())
+        assert state.is_flushed()
     finally:
         try:
             state.rollback()
         finally:
             try:
                 jwack.force_return_tokens()
-            except Exception, e:
+            except Exception, e:  # pylint: disable=broad-except
                 traceback.print_exc(100, sys.stderr)
                 err('unexpected error: %r\n' % e)
                 retcode = 1

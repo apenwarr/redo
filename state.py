@@ -1,7 +1,7 @@
-import sys, os, errno, glob, stat, fcntl, sqlite3
+import sys, os, errno, stat, fcntl, sqlite3
 import vars
 from helpers import unlink, close_on_exec, join
-from logs import warn, err, debug2, debug3
+from logs import warn, debug2, debug3
 
 # When the module is imported, change the process title.
 # We do it here because this module is imported by all the scripts.
@@ -14,17 +14,18 @@ else:
     cmdline[0] = os.path.splitext(os.path.basename(cmdline[0]))[0]
     setproctitle(" ".join(cmdline))
 
-SCHEMA_VER=2
-TIMEOUT=60
+SCHEMA_VER = 2
+TIMEOUT = 60
 
-ALWAYS='//ALWAYS'   # an invalid filename that is always marked as dirty
-STAMP_DIR='dir'     # the stamp of a directory; mtime is unhelpful
-STAMP_MISSING='0'   # the stamp of a nonexistent file
+ALWAYS = '//ALWAYS'   # an invalid filename that is always marked as dirty
+STAMP_DIR = 'dir'     # the stamp of a directory; mtime is unhelpful
+STAMP_MISSING = '0'   # the stamp of a nonexistent file
 
-LOG_LOCK_MAGIC=0x10000000  # fid offset for "log locks"
+LOG_LOCK_MAGIC = 0x10000000  # fid offset for "log locks"
 
 
-class CyclicDependencyError(Exception): pass
+class CyclicDependencyError(Exception):
+    pass
 
 
 def _connect(dbfile):
@@ -48,7 +49,7 @@ def db():
     global _db, _lockfile
     if _db:
         return _db
-        
+
     dbdir = '%s/.redo' % vars.BASE
     dbfile = '%s/db.sqlite3' % dbdir
     try:
@@ -74,7 +75,8 @@ def db():
         if ver != SCHEMA_VER:
             # Don't use err() here because this might happen before
             # redo-log spawns.
-            sys.stderr.write('redo: %s: found v%s (expected v%s)\n'
+            sys.stderr.write(
+                'redo: %s: found v%s (expected v%s)\n'
                 % (dbfile, ver, SCHEMA_VER))
             sys.stderr.write('redo: manually delete .redo dir to start over.\n')
             sys.exit(1)
@@ -113,10 +115,10 @@ def db():
                     "     ((select max(id)+1 from Runid))")
         vars.RUNID = _db.execute("select last_insert_rowid()").fetchone()[0]
         os.environ['REDO_RUNID'] = str(vars.RUNID)
-    
+
     _db.commit()
     return _db
-    
+
 
 def init():
     db()
@@ -155,7 +157,7 @@ def is_flushed():
 
 _insane = None
 def check_sane():
-    global _insane, _writable
+    global _insane
     if not _insane:
         _insane = not os.path.exists('%s/.redo' % vars.BASE)
     return not _insane
@@ -170,7 +172,7 @@ def relpath(t, base):
     base = os.path.normpath(base)
     tparts = t.split('/')
     bparts = base.split('/')
-    for tp,bp in zip(tparts,bparts):
+    for tp, bp in zip(tparts, bparts):
         if tp != bp:
             break
         tparts.pop(0)
@@ -225,13 +227,16 @@ class File(object):
     # use this mostly to avoid accidentally assigning to typos
     __slots__ = ['id'] + _file_cols[1:]
 
+    # These warnings are a result of the weird way this class is
+    # initialized, which we should fix, and then re-enable warning.
+    # pylint: disable=attribute-defined-outside-init
     def _init_from_idname(self, id, name, allow_add):
         q = ('select %s from Files ' % join(', ', _file_cols))
         if id != None:
             q += 'where rowid=?'
             l = [id]
         elif name != None:
-            name = (name==ALWAYS) and ALWAYS or relpath(name, vars.BASE)
+            name = (name == ALWAYS) and ALWAYS or relpath(name, vars.BASE)
             q += 'where name=?'
             l = [name]
         else:
@@ -250,7 +255,7 @@ class File(object):
                 # big deal.
                 pass
             row = d.execute(q, l).fetchone()
-            assert(row)
+            assert row
         return self._init_from_cols(row)
 
     def _init_from_cols(self, cols):
@@ -259,12 +264,12 @@ class File(object):
          self.stamp, self.csum) = cols
         if self.name == ALWAYS and self.changed_runid < vars.RUNID:
             self.changed_runid = vars.RUNID
-    
+
     def __init__(self, id=None, name=None, cols=None, allow_add=True):
         if cols:
-            return self._init_from_cols(cols)
+            self._init_from_cols(cols)
         else:
-            return self._init_from_idname(id, name, allow_add=allow_add)
+            self._init_from_idname(id, name, allow_add=allow_add)
 
     def __repr__(self):
         return "File(%r)" % (self.nicename(),)
@@ -337,13 +342,13 @@ class File(object):
             return False  # special name, ignore
         newstamp = self.read_stamp()
         if (self.is_generated and
-            (not self.is_failed() or newstamp != STAMP_MISSING) and
-            not self.is_override and
-            self.stamp == newstamp):
+                (not self.is_failed() or newstamp != STAMP_MISSING) and
+                not self.is_override and
+                self.stamp == newstamp):
             # target is as we left it
             return False
         if ((not self.is_generated or self.stamp != newstamp) and
-            newstamp == STAMP_MISSING):
+                newstamp == STAMP_MISSING):
             # target has gone missing after the last build.
             # It's not usefully a source *or* a target.
             return False
@@ -375,8 +380,8 @@ class File(object):
         for row in db().execute(q, [self.id]).fetchall():
             mode = row[0]
             cols = row[1:]
-            assert(mode in ('c', 'm'))
-            yield mode,File(cols=cols)
+            assert mode in ('c', 'm')
+            yield mode, File(cols=cols)
 
     def zap_deps1(self):
         debug2('zap-deps1: %r\n' % self.name)
@@ -389,7 +394,7 @@ class File(object):
     def add_dep(self, mode, dep):
         src = File(name=dep)
         debug3('add-dep: "%s" < %s "%s"\n' % (self.name, mode, src.name))
-        assert(self.id != src.id)
+        assert self.id != src.id
         _write("insert or replace into Deps "
                "    (target, mode, source, delete_me) values (?,?,?,?)",
                [self.id, mode, src.id, False])
@@ -404,10 +409,12 @@ class File(object):
             return False, STAMP_DIR
         else:
             # a "unique identifier" stamp for a regular file
-            return (stat.S_ISLNK(st.st_mode),
+            return (
+                stat.S_ISLNK(st.st_mode),
                 '-'.join(str(s) for s in
                          ('%.6f' % st.st_mtime, st.st_size, st.st_ino,
-                          st.st_mode, st.st_uid, st.st_gid)))
+                          st.st_mode, st.st_uid, st.st_gid))
+            )
 
     def read_stamp(self):
         is_link, pre = self._read_stamp_st(os.lstat)
@@ -444,12 +451,12 @@ def logname(fid):
 # ok, but it doesn't have F_GETLK, so we can't report which pid owns the lock.
 # The makes debugging a bit harder.  When we someday port to C, we can do that.
 _locks = {}
-class Lock:
+class Lock(object):
     def __init__(self, fid):
         self.owned = False
         self.fid = fid
-        assert(_lockfile >= 0)
-        assert(_locks.get(fid,0) == 0)
+        assert _lockfile >= 0
+        assert _locks.get(fid, 0) == 0
         _locks[fid] = 1
 
     def __del__(self):
@@ -458,7 +465,7 @@ class Lock:
             self.unlock()
 
     def check(self):
-        assert(not self.owned)
+        assert not self.owned
         if str(self.fid) in vars.get_locks():
             # Lock already held by parent: cyclic dependence
             raise CyclicDependencyError()
@@ -480,14 +487,15 @@ class Lock:
     def waitlock(self, shared=False):
         self.check()
         assert not self.owned
-        fcntl.lockf(_lockfile,
+        fcntl.lockf(
+            _lockfile,
             fcntl.LOCK_SH if shared else fcntl.LOCK_EX,
             1, self.fid)
         self.owned = True
-            
+
     def unlock(self):
         if not self.owned:
-            raise Exception("can't unlock %r - we don't own it" 
-                            % self.lockname)
+            raise Exception("can't unlock %r - we don't own it"
+                            % self.fid)
         fcntl.lockf(_lockfile, fcntl.LOCK_UN, 1, self.fid)
         self.owned = False
