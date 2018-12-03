@@ -14,6 +14,7 @@ pages:
   - Introduction: index.md
   - Getting Started: GettingStarted.md
   - Contributing.md
+  - Roadmap.md
   - Cookbook:
     - Hello World (hello.do, redo-ifchange): cookbook/hello/index.md
     - Text processing example (default.do, redo-whichdo, redo-always, redo-stamp): cookbook/defaults/index.md
