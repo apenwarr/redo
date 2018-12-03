@@ -27,14 +27,16 @@ v,verbose  print commands as they are read from .do files (variables intact)
 x,xtrace   print commands as they are executed (variables expanded)
 k,keep-going  keep going as long as possible even if some targets fail
 shuffle    randomize the build order to find dependency bugs
+version    print the current version and exit
+
+ redo-log options:
+no-log     don't capture error output, just let it flow straight to stderr
 no-details only show 'redo' recursion trace (to see more later, use redo-log)
 no-status  don't display build summary line at the bottom of the screen
-no-log     don't capture error output, just let it flow straight to stderr
 no-pretty  don't pretty-print logs, show raw @@REDO output instead
 no-color   disable ANSI color; --color to force enable (default: auto)
 debug-locks  print messages about file locking (useful for debugging)
 debug-pids   print process ids as part of log messages (useful for debugging)
-version    print the current version and exit
 """
 o = options.Options(optspec)
 (opt, flags, extra) = o.parse(sys.argv[1:])
