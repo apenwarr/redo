@@ -22,9 +22,14 @@ def _try_stat(filename):
 log_reader_pid = None
 
 
+def close_stdin():
+    f = open('/dev/null')
+    os.dup2(f.fileno(), 0)
+    f.close()
+
+
 def start_stdin_log_reader(status, details, pretty, color,
                            debug_locks, debug_pids):
-    if not vars.LOG: return
     global log_reader_pid
     r, w = os.pipe()    # main pipe to redo-log
     ar, aw = os.pipe()  # ack pipe from redo-log --ack-fd

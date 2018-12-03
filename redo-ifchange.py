@@ -19,7 +19,8 @@ def should_build(t):
 
 rv = 202
 try:
-    if vars_init.is_toplevel:
+    if vars_init.is_toplevel and vars.LOG:
+        builder.close_stdin()
         builder.start_stdin_log_reader(status=True, details=True,
             pretty=True, color=True, debug_locks=False, debug_pids=False)
     if vars.TARGET and not vars.UNLOCKED:

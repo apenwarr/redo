@@ -38,6 +38,11 @@ instead.
 A .do script can call redo recursively to build its
 dependencies.
 
+To avoid confusion caused by multiple programs trying to
+use the terminal, inside .do scripts, stdin is normally
+redirected to /dev/null.  The only exception is if the `-j`
+option is *not* given and `--no-log` is used.
+
 
 # OPTIONS
 

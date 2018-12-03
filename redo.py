@@ -79,7 +79,10 @@ import vars, state, builder, jwack
 from logs import warn, err
 
 try:
-    if vars_init.is_toplevel:
+    j = atoi(opt.jobs or 1)
+    if vars_init.is_toplevel and (vars.LOG or j > 1):
+        builder.close_stdin()
+    if vars_init.is_toplevel and vars.LOG:
         builder.start_stdin_log_reader(status=opt.status, details=opt.details,
             pretty=opt.pretty, color=opt.color,
             debug_locks=opt.debug_locks, debug_pids=opt.debug_pids)
@@ -91,7 +94,6 @@ try:
                      % f.nicename())
     state.rollback()
     
-    j = atoi(opt.jobs or 1)
     if j < 1 or j > 1000:
         err('invalid --jobs value: %r\n' % opt.jobs)
     jwack.setup(j)
