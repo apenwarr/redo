@@ -304,6 +304,30 @@ t8=$(a=1 f8)
 [ "$t8" = "1" ] || fail 88
 
 
+# Some versions of zsh (eg.  5.0.8 on MacOS, but not 5.3.1
+# on Debian) fail this one.  It seems to be very specific:
+# "set -e" aborts the subshell, if a
+# function-within-a-function returns an error code, even
+# though there's an "|| true" there, but only if in the
+# else clause, and only if the outer () does *not* have an
+# "|| something" clause.
+#
+# "x || true" should not abort when set -e, even if x is
+# a function.
+(
+	set -e
+	f() { false; }
+	g() { true | f; }
+	if false; then
+		:
+	else
+		! g || true
+	fi
+)
+rv=$?
+[ "$rv" = 0 ] || fail 89
+
+
 # http://www.gnu.org/software/hello/manual/autoconf/Limitations-of-Builtins.html
 . /dev/null || fail 90
 (! : | :) && fail 91 || true
@@ -388,6 +412,10 @@ set x y z
 # This is the #1 bashism I've observed, and totally unnecessary, so let's
 # dock it some points so it doesn't always end up as the primary shell.
 [ 1 == 1 ] 2>/dev/null && warn 118
+
+# Some shells apparently don't support left padding in printf
+x=$(printf "a%-5sc" "b")
+[ "$x" = "ab    c" ] || warn 119
 
 [ -n "$FAIL" ] || exit 40
 exit $FAIL
