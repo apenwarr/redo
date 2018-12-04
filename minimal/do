@@ -54,12 +54,13 @@ if [ -z "$DO_BUILT" ]; then
 	export _do_opt_verbose=
 	export _do_opt_clean=
 fi
-while getopts 'dxvch?' _opt; do
+while getopts 'dxvcj:h?' _opt; do
 	case $_opt in
 		d) _do_opt_debug=1 ;;
 		x) _do_opt_exec=x ;;
 		v) _do_opt_verbose=v ;;
 		c) _do_opt_clean=1 ;;
+		j) ;;  # silently ignore, for compat with real redo
 		\?|h|*) printf "%s" "$USAGE" >&2
 		   exit 99
 		   ;;

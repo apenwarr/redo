@@ -235,6 +235,9 @@ def setup(maxjobs):
         if a <= 0 or b <= 0:
             raise ValueError('invalid REDO_CHEATFDS: %r' % cheats)
         _cheatfds = (a, b)
+    else:
+        _cheatfds = _make_pipe(102)
+        os.putenv('REDO_CHEATFDS', '%d,%d' % (_cheatfds[0], _cheatfds[1]))
 
     if not _tokenfds:
         # need to start a new server
@@ -247,8 +250,6 @@ def setup(maxjobs):
                   (os.getenv('MAKEFLAGS', ''),
                    _tokenfds[0], _tokenfds[1],
                    _tokenfds[0], _tokenfds[1]))
-        _cheatfds = _make_pipe(102)
-        os.putenv('REDO_CHEATFDS', '%d,%d' % (_cheatfds[0], _cheatfds[1]))
 
 
 def _wait(want_token, max_delay):
