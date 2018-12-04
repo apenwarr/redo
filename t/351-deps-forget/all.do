@@ -30,6 +30,8 @@ is_ood() {
 	redo-ood | qgrep '^bork$'
 }
 
+. ../skip-if-minimal-do.sh
+
 
 # The table for our table-driven test.
 # Column meanings are:
