@@ -4,16 +4,16 @@
 # For the full version, visit http://github.com/apenwarr/redo
 #
 # The author disclaims copyright to this source file and hereby places it in
-# the public domain. (2010 12 14; updated 2018 10 31)
+# the public domain. (2010 12 14; updated 2018 12 04)
 #
 USAGE="
-usage: $0 [-d] [-x] [-v] [-c] <targets...>
+usage: do [-d] [-x] [-v] [-c] <targets...>
   -d  print extra debug messages (mostly about dependency checks)
   -v  run .do files with 'set -v'
   -x  run .do files with 'set -x'
   -c  clean up all old targets before starting
 
-  Note: $0 is an implementation of redo that does *not* check dependencies.
+  Note: do is an implementation of redo that does *not* check dependencies.
   It will never rebuild a target it has already built, unless you use -c.
 "
 
@@ -77,9 +77,11 @@ if [ -z "$DO_BUILT" -a "$_cmd" != "redo-whichdo" ]; then
 		set all  # only toplevel redo has a default target
 	fi
 	export DO_BUILT=$PWD/.do_built
+	if [ -z "$_do_opt_clean" -a -e "$DO_BUILT" ]; then
+		echo "do: Incremental mode. Use -c for clean rebuild." >&2
+	fi
 	: >>"$DO_BUILT"
 	sort -u "$DO_BUILT" >"$DO_BUILT.new"
-	echo "Cleaning up from previous run..." >&2
 	while read f; do
 		[ -n "$_do_opt_clean" ] && printf "%s\0%s.did\0" "$f" "$f"
 		printf "%s.did.tmp\0" "$f"
@@ -355,13 +357,13 @@ case $_cmd in
 	do|redo|redo-ifchange) _redo "$@" ;;
 	redo-whichdo) _whichdo "$1" ;;
 	do.test) ;;
-	*) printf "$0: '%s': unexpected redo command" "$_cmd" >&2; exit 99 ;;
+	*) printf "do: '%s': unexpected redo command" "$_cmd" >&2; exit 99 ;;
 esac
 [ "$?" = 0 ] || exit 1
 
 if [ -n "$DO_TOP" ]; then
 	if [ -n "$_do_opt_clean" ]; then
-		echo "Removing stamp files..." >&2
+		echo "do: Removing stamp files..." >&2
 		[ ! -e "$DO_BUILT" ] ||
 		while read f; do printf "%s.did\0" "$f"; done <"$DO_BUILT" |
 		xargs -0 rm -f 2>/dev/null
