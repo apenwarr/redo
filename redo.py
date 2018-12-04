@@ -78,44 +78,49 @@ vars_init.init(targets)
 import vars, state, builder, jwack
 from logs import warn, err
 
-try:
-    j = atoi(opt.jobs or 1)
-    if vars_init.is_toplevel and (vars.LOG or j > 1):
-        builder.close_stdin()
-    if vars_init.is_toplevel and vars.LOG:
-        builder.start_stdin_log_reader(
-            status=opt.status, details=opt.details,
-            pretty=opt.pretty, color=opt.color,
-            debug_locks=opt.debug_locks, debug_pids=opt.debug_pids)
-    for t in targets:
-        if os.path.exists(t):
-            f = state.File(name=t)
-            if not f.is_generated:
-                warn('%s: exists and not marked as generated; not redoing.\n'
-                     % f.nicename())
-    state.rollback()
-
-    if j < 1 or j > 1000:
-        err('invalid --jobs value: %r\n' % opt.jobs)
-    jwack.setup(j)
+def main():
     try:
-        assert state.is_flushed()
-        retcode = builder.main(targets, lambda t: (True, True))
-        assert state.is_flushed()
-    finally:
+        j = atoi(opt.jobs or 1)
+        if vars_init.is_toplevel and (vars.LOG or j > 1):
+            builder.close_stdin()
+        if vars_init.is_toplevel and vars.LOG:
+            builder.start_stdin_log_reader(
+                status=opt.status, details=opt.details,
+                pretty=opt.pretty, color=opt.color,
+                debug_locks=opt.debug_locks, debug_pids=opt.debug_pids)
+        for t in targets:
+            if os.path.exists(t):
+                f = state.File(name=t)
+                if not f.is_generated:
+                    warn('%s: exists and not marked as generated; not redoing.\n'
+                         % f.nicename())
+        state.rollback()
+
+        if j < 1 or j > 1000:
+            err('invalid --jobs value: %r\n' % opt.jobs)
+        jwack.setup(j)
         try:
-            state.rollback()
+            assert state.is_flushed()
+            retcode = builder.main(targets, lambda t: (True, True))
+            assert state.is_flushed()
         finally:
             try:
-                jwack.force_return_tokens()
-            except Exception, e:  # pylint: disable=broad-except
-                traceback.print_exc(100, sys.stderr)
-                err('unexpected error: %r\n' % e)
-                retcode = 1
-    if vars_init.is_toplevel:
-        builder.await_log_reader()
-    sys.exit(retcode)
-except KeyboardInterrupt:
-    if vars_init.is_toplevel:
-        builder.await_log_reader()
-    sys.exit(200)
+                state.rollback()
+            finally:
+                try:
+                    jwack.force_return_tokens()
+                except Exception, e:  # pylint: disable=broad-except
+                    traceback.print_exc(100, sys.stderr)
+                    err('unexpected error: %r\n' % e)
+                    retcode = 1
+        if vars_init.is_toplevel:
+            builder.await_log_reader()
+        sys.exit(retcode)
+    except KeyboardInterrupt:
+        if vars_init.is_toplevel:
+            builder.await_log_reader()
+        sys.exit(200)
+
+
+if __name__ == '__main__':
+    main()
