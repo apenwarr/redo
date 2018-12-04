@@ -4,8 +4,6 @@
 /minimal/.do_built
 /minimal/.do_built.dir
 *~
-*.pyc
 *.tmp
-/redo-sh
 *.did
-/website
+/docs.out

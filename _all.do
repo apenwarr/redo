@@ -3,5 +3,7 @@ if [ "$1,$2" != "_all,_all" ]; then
 	exit 1
 fi
 
-redo-ifchange redo-sh
-redo-ifchange version/all Documentation/all
+# Do this first, to ensure we're using a good shell
+redo-ifchange redo/sh
+
+redo-ifchange bin/all docs/all

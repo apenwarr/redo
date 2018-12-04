@@ -1,0 +1,9 @@
+redo-ifchange md2man.py ../redo/whichpython
+read py <../redo/whichpython
+if ../redo/python ./md2man.py /dev/null /dev/null >/dev/null; then
+	echo '../redo/python ./md2man.py $2.md.tmp $2.html'
+else
+	echo "Warning: md2man.py missing modules; can't generate manpages." >&2
+	echo "Warning: try this: sudo easy_install markdown BeautifulSoup" >&2
+	echo 'echo Skipping: $2.1 >&2'
+fi

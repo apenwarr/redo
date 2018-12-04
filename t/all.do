@@ -1,3 +1,5 @@
+redo-ifchange flush-cache
+
 # tests that "set -e" works (.do scripts always run with -e set by default)
 rm -f 000-set-minus-e/log
 redo 000-set-minus-e/all

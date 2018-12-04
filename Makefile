@@ -1,10 +1,21 @@
+default: all
+
+build:
+	+./do build
+
 all:
+	+./do all
 
-Makefile:
-	@
+test:
+	+./do test
 
-%: FORCE
-	+./redo $@
+clean:
+	+./do clean
 
-.PHONY: FORCE
+install:
+	+./do install
 
+env:
+	env
+
+.PHONY: build test clean env

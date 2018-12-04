@@ -1,10 +1,10 @@
 site_name: "redo: a recursive build system"
 theme: readthedocs
-docs_dir: Documentation
-site_dir: website
+docs_dir: docs
+site_dir: docs.out
 strict: true
 repo_url: https://github.com/apenwarr/redo
-edit_uri: edit/master/Documentation
+edit_uri: edit/master/docs
 extra_javascript:
   - fetchcode.js
 extra_css:

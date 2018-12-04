@@ -2,5 +2,5 @@
 sed 's/\.do$//' |
 xargs redo
 
-rm -f broken shellfile *~ .*~ stress.log
+rm -f broken shellfile *~ .*~ stress.log flush-cache
 rm -rf 'space home dir'
