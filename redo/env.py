@@ -1,5 +1,5 @@
 import os, sys
-from atoi import atoi
+from .atoi import atoi
 
 is_toplevel = False
 

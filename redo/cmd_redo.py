@@ -14,9 +14,9 @@
 # limitations under the License.
 #
 import sys, os, traceback
-import env, options, state, builder, jobserver
-from atoi import atoi
-from logs import warn, err
+from . import env, options, state, builder, jobserver
+from .atoi import atoi
+from .logs import warn, err
 
 optspec = """
 redo [targets...]
@@ -46,7 +46,7 @@ def main():
     targets = extra
 
     if opt.version:
-        import version
+        from . import version
         print version.TAG
         sys.exit(0)
     if opt.debug:

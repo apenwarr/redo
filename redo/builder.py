@@ -1,8 +1,7 @@
 import sys, os, errno, stat, signal, time
-import cycles, env, jobserver, state, paths
-from helpers import unlink, close_on_exec
-import logs
-from logs import debug2, err, warn, meta, check_tty
+from . import cycles, env, jobserver, logs, state, paths
+from .helpers import unlink, close_on_exec
+from .logs import debug2, err, warn, meta, check_tty
 
 
 def _nice(t):

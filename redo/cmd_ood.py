@@ -1,6 +1,6 @@
 import sys, os
-import env, state, deps
-from logs import err
+from . import env, state, deps
+from .logs import err
 
 cache = {}
 

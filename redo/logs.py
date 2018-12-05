@@ -1,5 +1,5 @@
 import os, re, sys, time
-import env
+from . import env
 
 RED = GREEN = YELLOW = BOLD = PLAIN = None
 

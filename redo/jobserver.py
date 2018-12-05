@@ -74,9 +74,9 @@
 # simpler :)
 #
 import sys, os, errno, select, fcntl, signal
-from atoi import atoi
-from helpers import close_on_exec
-import state, env
+from . import state, env
+from .atoi import atoi
+from .helpers import close_on_exec
 
 _toplevel = 0
 _mytokens = 1

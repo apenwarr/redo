@@ -1,5 +1,5 @@
 import sys, os
-import env, state
+from . import env, state
 
 
 def main():

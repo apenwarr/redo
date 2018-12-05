@@ -1,7 +1,7 @@
 import errno, fcntl, os, re, struct, sys, time
 import termios
-from atoi import atoi
-import env, logs, options, state
+from .atoi import atoi
+from . import env, logs, options, state
 
 optspec = """
 redo-log [options...] [targets...]

@@ -1,6 +1,6 @@
 import sys, os
-import env, state
-from logs import err
+from . import env, state
+from .logs import err
 
 
 def main():

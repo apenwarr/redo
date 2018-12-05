@@ -1,6 +1,6 @@
 import os
-import cycles, env, state
-from logs import debug
+from . import cycles, env, state
+from .logs import debug
 
 CLEAN = 0
 DIRTY = 1

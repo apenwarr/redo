@@ -1,6 +1,6 @@
 import os, sys, traceback
-import env, state, builder, jobserver, deps
-from logs import debug2, err
+from . import env, state, builder, jobserver, deps
+from .logs import debug2, err
 
 
 def should_build(t):

@@ -1,6 +1,6 @@
 import os
-import env
-from logs import debug2
+from . import env
+from .logs import debug2
 
 
 def _default_do_files(filename):

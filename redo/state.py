@@ -1,7 +1,7 @@
 import sys, os, errno, stat, fcntl, sqlite3
-import cycles, env
-from helpers import unlink, close_on_exec, join
-from logs import warn, debug2, debug3
+from . import cycles, env
+from .helpers import unlink, close_on_exec, join
+from .logs import warn, debug2, debug3
 
 SCHEMA_VER = 2
 TIMEOUT = 60

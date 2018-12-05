@@ -11,7 +11,7 @@ jobs=1
 
 # We probably want to fix these eventually, but in the meantime, these
 # ones are relatively harmless.
-disable=multiple-imports,missing-docstring,wrong-import-position,locally-disabled,invalid-name,unused-argument,fixme,global-statement,redefined-variable-type,using-constant-test,unused-variable,file-ignored,simplifiable-if-statement,relative-import
+disable=multiple-imports,missing-docstring,locally-disabled,invalid-name,unused-argument,fixme,global-statement,redefined-variable-type,using-constant-test,unused-variable,file-ignored,simplifiable-if-statement
 
 
 [REPORTS]

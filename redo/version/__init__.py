@@ -1,1 +1,1 @@
-from _version import COMMIT, TAG, DATE
+from ._version import COMMIT, TAG, DATE
