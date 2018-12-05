@@ -1,5 +1,5 @@
 import sys, os, errno, stat, signal, time
-import env, jobserver, state, paths
+import cycles, env, jobserver, state, paths
 from helpers import unlink, close_on_exec
 import logs
 from logs import debug2, err, warn, meta, check_tty
@@ -129,7 +129,7 @@ class BuildJob(object):
         try:
             try:
                 is_target, dirty = self.shouldbuildfunc(self.t)
-            except state.CyclicDependencyError:
+            except cycles.CyclicDependencyError:
                 err('cyclic dependency while checking %s\n' % _nice(self.t))
                 raise ImmediateReturn(208)
             if not dirty:
@@ -264,7 +264,7 @@ class BuildJob(object):
         os.environ['REDO_PWD'] = state.relpath(newp, env.STARTDIR)
         os.environ['REDO_TARGET'] = self.basename + self.ext
         os.environ['REDO_DEPTH'] = env.DEPTH + '  '
-        env.add_lock(str(self.lock.fid))
+        cycles.add(self.lock.fid)
         if dn:
             os.chdir(dn)
         os.dup2(self.f.fileno(), 1)
@@ -499,7 +499,7 @@ def main(targets, shouldbuildfunc):
                 meta('waiting', state.target_relpath(t))
                 try:
                     lock.check()
-                except state.CyclicDependencyError:
+                except cycles.CyclicDependencyError:
                     err('cyclic dependency while building %s\n' % _nice(t))
                     retcode[0] = 208
                     return retcode[0]

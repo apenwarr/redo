@@ -1,5 +1,5 @@
 import os
-import env, state
+import cycles, env, state
 from logs import debug
 
 CLEAN = 0
@@ -11,7 +11,7 @@ def isdirty(f, depth, max_changed,
             set_checked=state.File.set_checked_save,
             log_override=state.warn_override):
     if f.id in already_checked:
-        raise state.CyclicDependencyError()
+        raise cycles.CyclicDependencyError()
     # make a copy of the list, so upon returning, our parent's copy
     # is unaffected
     already_checked = list(already_checked) + [f.id]

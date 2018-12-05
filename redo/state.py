@@ -1,5 +1,5 @@
 import sys, os, errno, stat, fcntl, sqlite3
-import env
+import cycles, env
 from helpers import unlink, close_on_exec, join
 from logs import warn, debug2, debug3
 
@@ -22,10 +22,6 @@ STAMP_DIR = 'dir'     # the stamp of a directory; mtime is unhelpful
 STAMP_MISSING = '0'   # the stamp of a nonexistent file
 
 LOG_LOCK_MAGIC = 0x10000000  # fid offset for "log locks"
-
-
-class CyclicDependencyError(Exception):
-    pass
 
 
 def _connect(dbfile):
@@ -466,9 +462,7 @@ class Lock(object):
 
     def check(self):
         assert not self.owned
-        if str(self.fid) in env.get_locks():
-            # Lock already held by parent: cyclic dependence
-            raise CyclicDependencyError()
+        cycles.check(self.fid)
 
     def trylock(self):
         self.check()
