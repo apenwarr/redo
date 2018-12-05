@@ -1,9 +1,9 @@
 import sys, os
 
-import vars_init
-vars_init.init([])
+import env_init
+env_init.init([])
 
-import state, vars
+import state, env
 from logs import err
 
 
@@ -15,7 +15,7 @@ def main():
     cwd = os.getcwd()
     for f in state.files():
         if f.is_source():
-            print state.relpath(os.path.join(vars.BASE, f.name), cwd)
+            print state.relpath(os.path.join(env.BASE, f.name), cwd)
 
 
 if __name__ == '__main__':

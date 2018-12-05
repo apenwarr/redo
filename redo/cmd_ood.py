@@ -1,9 +1,9 @@
 import sys, os
 
-import vars_init
-vars_init.init([])
+import env_init
+env_init.init([])
 
-import vars, state, deps
+import env, state, deps
 from logs import err
 
 if len(sys.argv[1:]) != 0:
@@ -32,12 +32,12 @@ def main():
         if f.is_target():
             if deps.isdirty(f,
                             depth='',
-                            max_changed=vars.RUNID,
+                            max_changed=env.RUNID,
                             already_checked=[],
                             is_checked=is_checked,
                             set_checked=set_checked,
                             log_override=log_override):
-                print state.relpath(os.path.join(vars.BASE, f.name), cwd)
+                print state.relpath(os.path.join(env.BASE, f.name), cwd)
 
 
 if __name__ == '__main__':

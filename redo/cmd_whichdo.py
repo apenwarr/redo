@@ -1,7 +1,7 @@
 import sys, os
 
-import vars_init
-vars_init.init_no_state()
+import env_init
+env_init.init_no_state()
 
 import paths
 from logs import err

@@ -1,5 +1,5 @@
 import sys, os
-import vars, state
+import env, state
 from logs import err, debug2
 
 
@@ -32,11 +32,11 @@ def main():
 
     csum = sh.hexdigest()
 
-    if not vars.TARGET:
+    if not env.TARGET:
         sys.exit(0)
 
-    me = os.path.join(vars.STARTDIR,
-                      os.path.join(vars.PWD, vars.TARGET))
+    me = os.path.join(env.STARTDIR,
+                      os.path.join(env.PWD, env.TARGET))
     f = state.File(name=me)
     changed = (csum != f.csum)
     debug2('%s: old = %s\n' % (f.name, f.csum))

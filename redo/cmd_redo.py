@@ -71,18 +71,18 @@ if opt.no_log:
     if opt.no_color:
         os.environ['REDO_COLOR'] = '0'
 
-import vars_init
-vars_init.init(targets)
+import env_init
+env_init.init(targets)
 
-import vars, state, builder, jobserver
+import env, state, builder, jobserver
 from logs import warn, err
 
 def main():
     try:
         j = atoi(opt.jobs or 1)
-        if vars_init.is_toplevel and (vars.LOG or j > 1):
+        if env_init.is_toplevel and (env.LOG or j > 1):
             builder.close_stdin()
-        if vars_init.is_toplevel and vars.LOG:
+        if env_init.is_toplevel and env.LOG:
             builder.start_stdin_log_reader(
                 status=opt.status, details=opt.details,
                 pretty=opt.pretty, color=opt.color,
@@ -91,8 +91,8 @@ def main():
             if os.path.exists(t):
                 f = state.File(name=t)
                 if not f.is_generated:
-                    warn('%s: exists and not marked as generated; not redoing.\n'
-                         % f.nicename())
+                    warn(('%s: exists and not marked as generated; ' +
+                          'not redoing.\n') % f.nicename())
         state.rollback()
 
         if j < 1 or j > 1000:
@@ -112,11 +112,11 @@ def main():
                     traceback.print_exc(100, sys.stderr)
                     err('unexpected error: %r\n' % e)
                     retcode = 1
-        if vars_init.is_toplevel:
+        if env_init.is_toplevel:
             builder.await_log_reader()
         sys.exit(retcode)
     except KeyboardInterrupt:
-        if vars_init.is_toplevel:
+        if env_init.is_toplevel:
             builder.await_log_reader()
         sys.exit(200)
 

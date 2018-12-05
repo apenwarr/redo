@@ -21,10 +21,10 @@ o = options.Options(optspec)
 (opt, flags, extra) = o.parse(sys.argv[1:])
 targets = extra
 
-import vars_init
-vars_init.init(list(targets))
+import env_init
+env_init.init(list(targets))
 
-import vars, logs, state
+import env, logs, state
 
 topdir = os.getcwd()
 already = set()
@@ -64,7 +64,7 @@ def is_locked(fid):
 
 
 def _fix_depth():
-    vars.DEPTH = len(depth) * '  '
+    env.DEPTH = len(depth) * '  '
 
 
 def _rel(top, mydir, path):
@@ -236,11 +236,11 @@ def main():
             sys.exit(1)
         if opt.status < 2 and not os.isatty(2):
             opt.status = False
-        logs.setup(file=sys.stdout, pretty=opt.pretty, color=opt.color)
+        logs.setup(tty=sys.stdout, pretty=opt.pretty, color=opt.color)
         if opt.debug_locks:
-            vars.DEBUG_LOCKS = 1
+            env.DEBUG_LOCKS = 1
         if opt.debug_pids:
-            vars.DEBUG_PIDS = 1
+            env.DEBUG_PIDS = 1
         if opt.ack_fd:
             # Write back to owner, to let them know we started up okay and
             # will be able to see their error output, so it's okay to close

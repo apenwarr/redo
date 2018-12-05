@@ -76,7 +76,7 @@
 import sys, os, errno, select, fcntl, signal
 from atoi import atoi
 from helpers import close_on_exec
-import state, vars
+import state, env
 
 _toplevel = 0
 _mytokens = 1
@@ -343,7 +343,7 @@ def ensure_token_or_cheat(reason, cheatfunc):
         if not has_token():
             assert _mytokens == 0
             n = cheatfunc()
-            _debug('%s: %s: cheat = %d\n' % (vars.TARGET, reason, n))
+            _debug('%s: %s: cheat = %d\n' % (env.TARGET, reason, n))
             if n > 0:
                 _mytokens += n
                 _cheats += n

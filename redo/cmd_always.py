@@ -1,11 +1,11 @@
 import sys, os
-import vars, state
+import env, state
 
 
 def main():
     try:
-        me = os.path.join(vars.STARTDIR,
-                          os.path.join(vars.PWD, vars.TARGET))
+        me = os.path.join(env.STARTDIR,
+                          os.path.join(env.PWD, env.TARGET))
         f = state.File(name=me)
         f.add_dep('m', state.ALWAYS)
         always = state.File(name=state.ALWAYS)

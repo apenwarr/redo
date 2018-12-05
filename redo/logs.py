@@ -1,12 +1,12 @@
 import os, re, sys, time
-import vars
+import env
 
 RED = GREEN = YELLOW = BOLD = PLAIN = None
 
 
-def check_tty(file, color):
+def check_tty(tty, color):
     global RED, GREEN, YELLOW, BOLD, PLAIN
-    color_ok = file.isatty() and (os.environ.get('TERM') or 'dumb') != 'dumb'
+    color_ok = tty.isatty() and (os.environ.get('TERM') or 'dumb') != 'dumb'
     if (color and color_ok) or color >= 2:
         # ...use ANSI formatting codes.
         # pylint: disable=bad-whitespace
@@ -24,8 +24,8 @@ def check_tty(file, color):
 
 
 class RawLog(object):
-    def __init__(self, file):
-        self.file = file
+    def __init__(self, tty):
+        self.file = tty
 
     def write(self, s):
         assert '\n' not in s
@@ -39,17 +39,17 @@ REDO_RE = re.compile(r'@@REDO:([^@]+)@@ (.*)$')
 
 
 class PrettyLog(object):
-    def __init__(self, file):
+    def __init__(self, tty):
         self.topdir = os.getcwd()
-        self.file = file
+        self.file = tty
 
     def _pretty(self, pid, color, s):
-        if vars.DEBUG_PIDS:
+        if env.DEBUG_PIDS:
             redo = '%-6d redo  ' % pid
         else:
             redo = 'redo  '
         self.file.write(
-            ''.join([color, redo, vars.DEPTH,
+            ''.join([color, redo, env.DEPTH,
                      BOLD if color else '', s, PLAIN, '\n']))
 
     def write(self, s):
@@ -58,8 +58,8 @@ class PrettyLog(object):
         sys.stderr.flush()
         g = REDO_RE.match(s)
         if g:
-            all = g.group(0)
-            self.file.write(s[:-len(all)])
+            capture = g.group(0)
+            self.file.write(s[:-len(capture)])
             words = g.group(1).split(':')
             text = g.group(2)
             kind, pid, _ = words[0:3]
@@ -75,17 +75,17 @@ class PrettyLog(object):
                 rv = int(rv)
                 if rv:
                     self._pretty(pid, RED, '%s (exit %d)' % (name, rv))
-                elif vars.VERBOSE or vars.XTRACE or vars.DEBUG:
+                elif env.VERBOSE or env.XTRACE or env.DEBUG:
                     self._pretty(pid, GREEN, '%s (done)' % name)
                     self.file.write('\n')
             elif kind == 'locked':
-                if vars.DEBUG_LOCKS:
+                if env.DEBUG_LOCKS:
                     self._pretty(pid, GREEN, '%s (locked...)' % text)
             elif kind == 'waiting':
-                if vars.DEBUG_LOCKS:
+                if env.DEBUG_LOCKS:
                     self._pretty(pid, GREEN, '%s (WAITING)' % text)
             elif kind == 'unlocked':
-                if vars.DEBUG_LOCKS:
+                if env.DEBUG_LOCKS:
                     self._pretty(pid, GREEN, '%s (...unlocked!)' % text)
             elif kind == 'error':
                 self.file.write(''.join([RED, 'redo: ',
@@ -104,17 +104,17 @@ class PrettyLog(object):
 
 _log = None
 
-def setup(file, pretty, color):
+def setup(tty, pretty, color):
     global _log
-    if pretty or vars.PRETTY:
-        check_tty(file, color=color)
-        _log = PrettyLog(file=file)
+    if pretty or env.PRETTY:
+        check_tty(tty, color=color)
+        _log = PrettyLog(tty=tty)
     else:
-        _log = RawLog(file=file)
+        _log = RawLog(tty=tty)
 
 
 # FIXME: explicitly initialize in each program, for clarity
-setup(file=sys.stderr, pretty=vars.PRETTY, color=vars.COLOR)
+setup(tty=sys.stderr, pretty=env.PRETTY, color=env.COLOR)
 
 
 def write(s):
@@ -139,16 +139,16 @@ def warn(s):
     meta('warning', s)
 
 def debug(s):
-    if vars.DEBUG >= 1:
+    if env.DEBUG >= 1:
         s = s.rstrip()
         meta('debug', s)
 
 def debug2(s):
-    if vars.DEBUG >= 2:
+    if env.DEBUG >= 2:
         s = s.rstrip()
         meta('debug', s)
 
 def debug3(s):
-    if vars.DEBUG >= 3:
+    if env.DEBUG >= 3:
         s = s.rstrip()
         meta('debug', s)

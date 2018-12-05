@@ -1,12 +1,12 @@
 import sys, os
-import vars, state
+import env, state
 from logs import err
 
 
 def main():
     try:
-        me = os.path.join(vars.STARTDIR,
-                          os.path.join(vars.PWD, vars.TARGET))
+        me = os.path.join(env.STARTDIR,
+                          os.path.join(env.PWD, env.TARGET))
         f = state.File(name=me)
         for t in sys.argv[1:]:
             if not t:

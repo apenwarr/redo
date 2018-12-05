@@ -1,5 +1,5 @@
 import os
-import vars, state
+import env, state
 from logs import debug
 
 CLEAN = 0
@@ -16,7 +16,7 @@ def isdirty(f, depth, max_changed,
     # is unaffected
     already_checked = list(already_checked) + [f.id]
 
-    if vars.DEBUG >= 1:
+    if env.DEBUG >= 1:
         debug('%s?%s %r,%r\n'
               % (depth, f.nicename(), f.is_generated, f.is_override))
 
@@ -28,10 +28,10 @@ def isdirty(f, depth, max_changed,
         return DIRTY
     if f.changed_runid > max_changed:
         debug('%s-- DIRTY (built %d > %d; %d)\n'
-              % (depth, f.changed_runid, max_changed, vars.RUNID))
+              % (depth, f.changed_runid, max_changed, env.RUNID))
         return DIRTY  # has been built more recently than parent
     if is_checked(f):
-        if vars.DEBUG >= 1:
+        if env.DEBUG >= 1:
             debug('%s-- CLEAN (checked)\n' % depth)
         return CLEAN  # has already been checked during this session
     if not f.stamp:
@@ -65,7 +65,7 @@ def isdirty(f, depth, max_changed,
     for mode, f2 in f.deps():
         dirty = CLEAN
         if mode == 'c':
-            if os.path.exists(os.path.join(vars.BASE, f2.name)):
+            if os.path.exists(os.path.join(env.BASE, f2.name)):
                 debug('%s-- DIRTY (created)\n' % depth)
                 dirty = DIRTY
         elif mode == 'm':
