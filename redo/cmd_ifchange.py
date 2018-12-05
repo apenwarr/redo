@@ -3,7 +3,7 @@ import os, sys, traceback
 import vars_init
 vars_init.init(sys.argv[1:])
 
-import vars, state, builder, jwack, deps
+import vars, state, builder, jobserver, deps
 from logs import debug2, err
 
 def should_build(t):
@@ -32,7 +32,7 @@ def main():
         else:
             f = me = None
             debug2('redo-ifchange: not adding depends.\n')
-        jwack.setup(1)
+        jobserver.setup(1)
         try:
             targets = sys.argv[1:]
             if f:
@@ -46,7 +46,7 @@ def main():
                 state.rollback()
             finally:
                 try:
-                    jwack.force_return_tokens()
+                    jobserver.force_return_tokens()
                 except Exception, e:  # pylint: disable=broad-except
                     traceback.print_exc(100, sys.stderr)
                     err('unexpected error: %r\n' % e)

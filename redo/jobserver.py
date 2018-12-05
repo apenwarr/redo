@@ -88,7 +88,7 @@ _waitfds = {}
 
 def _debug(s):
     if 0:
-        sys.stderr.write('jwack#%d: %s' % (os.getpid(), s))
+        sys.stderr.write('job#%d: %s' % (os.getpid(), s))
 
 
 def _create_tokens(n):

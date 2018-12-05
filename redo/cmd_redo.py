@@ -74,7 +74,7 @@ if opt.no_log:
 import vars_init
 vars_init.init(targets)
 
-import vars, state, builder, jwack
+import vars, state, builder, jobserver
 from logs import warn, err
 
 def main():
@@ -97,7 +97,7 @@ def main():
 
         if j < 1 or j > 1000:
             err('invalid --jobs value: %r\n' % opt.jobs)
-        jwack.setup(j)
+        jobserver.setup(j)
         try:
             assert state.is_flushed()
             retcode = builder.main(targets, lambda t: (True, True))
@@ -107,7 +107,7 @@ def main():
                 state.rollback()
             finally:
                 try:
-                    jwack.force_return_tokens()
+                    jobserver.force_return_tokens()
                 except Exception, e:  # pylint: disable=broad-except
                     traceback.print_exc(100, sys.stderr)
                     err('unexpected error: %r\n' % e)

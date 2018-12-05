@@ -1,5 +1,5 @@
 import sys, os, errno, stat, signal, time
-import vars, jwack, state, paths
+import vars, jobserver, state, paths
 from helpers import unlink, close_on_exec
 import logs
 from logs import debug2, err, warn, meta, check_tty
@@ -221,7 +221,7 @@ class BuildJob(object):
         dof.save()
         state.commit()
         meta('do', state.target_relpath(t))
-        jwack.start_job(t, self._do_subproc, self._after)
+        jobserver.start_job(t, self._do_subproc, self._after)
 
     def _start_unlocked(self, dirty):
         # out-of-band redo of some sub-objects.  This happens when we're not
@@ -250,7 +250,7 @@ class BuildJob(object):
             # returns only if there's an exception
         def after(t, rv):
             return self._after2(rv)
-        jwack.start_job(self.t, run, after)
+        jobserver.start_job(self.t, run, after)
 
     def _do_subproc(self):
         # careful: REDO_PWD was the PWD relative to the STARTPATH at the time
@@ -432,9 +432,9 @@ def main(targets, shouldbuildfunc):
         if t in seen:
             continue
         seen[t] = 1
-        if not jwack.has_token():
+        if not jobserver.has_token():
             state.commit()
-        jwack.ensure_token_or_cheat(t, cheat)
+        jobserver.ensure_token_or_cheat(t, cheat)
         if retcode[0] and not vars.KEEP_GOING:
             break
         if not state.check_sane():
@@ -471,11 +471,11 @@ def main(targets, shouldbuildfunc):
     # do anything.  The only exception is if we're invoked as redo instead
     # of redo-ifchange; then we have to redo it even if someone else already
     # did.  But that should be rare.
-    while locked or jwack.running():
+    while locked or jobserver.running():
         state.commit()
-        jwack.wait_all()
-        assert jwack._mytokens == 0  # pylint: disable=protected-access
-        jwack.ensure_token_or_cheat('self', cheat)
+        jobserver.wait_all()
+        assert jobserver._mytokens == 0  # pylint: disable=protected-access
+        jobserver.ensure_token_or_cheat('self', cheat)
         # at this point, we don't have any children holding any tokens, so
         # it's okay to block below.
         if retcode[0] and not vars.KEEP_GOING:
@@ -507,12 +507,12 @@ def main(targets, shouldbuildfunc):
                 # give up our personal token while we wait for the lock to
                 # be released; but we should never run ensure_token() while
                 # holding a lock, or we could cause deadlocks.
-                jwack.release_mine()
+                jobserver.release_mine()
                 lock.waitlock()
                 # now t is definitely free, so we get to decide whether
                 # to build it.
                 lock.unlock()
-                jwack.ensure_token_or_cheat(t, cheat)
+                jobserver.ensure_token_or_cheat(t, cheat)
                 lock.trylock()
             assert lock.owned
             meta('unlocked', state.target_relpath(t))
