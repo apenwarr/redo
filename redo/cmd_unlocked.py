@@ -1,9 +1,10 @@
 import sys, os
-import state
+import env, state
 from logs import err
 
 
 def main():
+    env.inherit()
     if len(sys.argv[1:]) < 2:
         err('%s: at least 2 arguments expected.\n' % sys.argv[0])
         sys.exit(1)

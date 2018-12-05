@@ -5,8 +5,9 @@ from logs import err
 
 def main():
     try:
-        me = os.path.join(env.STARTDIR,
-                          os.path.join(env.PWD, env.TARGET))
+        env.inherit()
+        me = os.path.join(env.v.STARTDIR,
+                          os.path.join(env.v.PWD, env.v.TARGET))
         f = state.File(name=me)
         for t in sys.argv[1:]:
             if not t:

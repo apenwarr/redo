@@ -4,8 +4,9 @@ import env, state
 
 def main():
     try:
-        me = os.path.join(env.STARTDIR,
-                          os.path.join(env.PWD, env.TARGET))
+        env.inherit()
+        me = os.path.join(env.v.STARTDIR,
+                          os.path.join(env.v.PWD, env.v.TARGET))
         f = state.File(name=me)
         f.add_dep('m', state.ALWAYS)
         always = state.File(name=state.ALWAYS)

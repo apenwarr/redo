@@ -14,8 +14,9 @@
 # limitations under the License.
 #
 import sys, os, traceback
-import options
+import env, options, state, builder, jobserver
 from atoi import atoi
+from logs import warn, err
 
 optspec = """
 redo [targets...]
@@ -37,52 +38,50 @@ no-color   disable ANSI color; --color to force enable (default: auto)
 debug-locks  print messages about file locking (useful for debugging)
 debug-pids   print process ids as part of log messages (useful for debugging)
 """
-o = options.Options(optspec)
-(opt, flags, extra) = o.parse(sys.argv[1:])
-
-targets = extra
-
-if opt.version:
-    import version
-    print version.TAG
-    sys.exit(0)
-if opt.debug:
-    os.environ['REDO_DEBUG'] = str(opt.debug or 0)
-if opt.verbose:
-    os.environ['REDO_VERBOSE'] = '1'
-if opt.xtrace:
-    os.environ['REDO_XTRACE'] = '1'
-if opt.keep_going:
-    os.environ['REDO_KEEP_GOING'] = '1'
-if opt.shuffle:
-    os.environ['REDO_SHUFFLE'] = '1'
-if opt.debug_locks:
-    os.environ['REDO_DEBUG_LOCKS'] = '1'
-if opt.debug_pids:
-    os.environ['REDO_DEBUG_PIDS'] = '1'
-
-# This is slightly tricky: the log and pretty options default to true.  We
-# want to inherit that 'true' value from parent processes *unless* someone
-# explicitly specifies the reverse.
-if opt.no_log:
-    os.environ['REDO_LOG'] = '0'
-    if opt.no_pretty:
-        os.environ['REDO_PRETTY'] = '0'
-    if opt.no_color:
-        os.environ['REDO_COLOR'] = '0'
-
-import env_init
-env_init.init(targets)
-
-import env, state, builder, jobserver
-from logs import warn, err
 
 def main():
+    o = options.Options(optspec)
+    (opt, flags, extra) = o.parse(sys.argv[1:])
+
+    targets = extra
+
+    if opt.version:
+        import version
+        print version.TAG
+        sys.exit(0)
+    if opt.debug:
+        os.environ['REDO_DEBUG'] = str(opt.debug or 0)
+    if opt.verbose:
+        os.environ['REDO_VERBOSE'] = '1'
+    if opt.xtrace:
+        os.environ['REDO_XTRACE'] = '1'
+    if opt.keep_going:
+        os.environ['REDO_KEEP_GOING'] = '1'
+    if opt.shuffle:
+        os.environ['REDO_SHUFFLE'] = '1'
+    if opt.debug_locks:
+        os.environ['REDO_DEBUG_LOCKS'] = '1'
+    if opt.debug_pids:
+        os.environ['REDO_DEBUG_PIDS'] = '1'
+
+    # This is slightly tricky: the log and pretty options default to true.  We
+    # want to inherit that 'true' value from parent processes *unless* someone
+    # explicitly specifies the reverse.
+    if opt.no_log:
+        os.environ['REDO_LOG'] = '0'
+        if opt.no_pretty:
+            os.environ['REDO_PRETTY'] = '0'
+        if opt.no_color:
+            os.environ['REDO_COLOR'] = '0'
+
     try:
+        state.init(targets)
+        if env.is_toplevel and not targets:
+            targets = ['all']
         j = atoi(opt.jobs or 1)
-        if env_init.is_toplevel and (env.LOG or j > 1):
+        if env.is_toplevel and (env.v.LOG or j > 1):
             builder.close_stdin()
-        if env_init.is_toplevel and env.LOG:
+        if env.is_toplevel and env.v.LOG:
             builder.start_stdin_log_reader(
                 status=opt.status, details=opt.details,
                 pretty=opt.pretty, color=opt.color,
@@ -112,11 +111,11 @@ def main():
                     traceback.print_exc(100, sys.stderr)
                     err('unexpected error: %r\n' % e)
                     retcode = 1
-        if env_init.is_toplevel:
+        if env.is_toplevel:
             builder.await_log_reader()
         sys.exit(retcode)
     except KeyboardInterrupt:
-        if env_init.is_toplevel:
+        if env.is_toplevel:
             builder.await_log_reader()
         sys.exit(200)
 

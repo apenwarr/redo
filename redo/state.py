@@ -46,7 +46,7 @@ def db():
     if _db:
         return _db
 
-    dbdir = '%s/.redo' % env.BASE
+    dbdir = '%s/.redo' % env.v.BASE
     dbfile = '%s/db.sqlite3' % dbdir
     try:
         os.mkdir(dbdir)
@@ -56,7 +56,7 @@ def db():
         else:
             raise
 
-    _lockfile = os.open(os.path.join(env.BASE, '.redo/locks'),
+    _lockfile = os.open(os.path.join(env.v.BASE, '.redo/locks'),
                         os.O_RDWR | os.O_CREAT, 0666)
     close_on_exec(_lockfile, True)
 
@@ -106,17 +106,18 @@ def db():
         _db.execute("insert into Runid values (1000000000)")
         _db.execute("insert into Files (name) values (?)", [ALWAYS])
 
-    if not env.RUNID:
+    if not env.v.RUNID:
         _db.execute("insert into Runid values "
                     "     ((select max(id)+1 from Runid))")
-        env.RUNID = _db.execute("select last_insert_rowid()").fetchone()[0]
-        os.environ['REDO_RUNID'] = str(env.RUNID)
+        env.v.RUNID = _db.execute("select last_insert_rowid()").fetchone()[0]
+        os.environ['REDO_RUNID'] = str(env.v.RUNID)
 
     _db.commit()
     return _db
 
 
-def init():
+def init(targets):
+    env.init(targets)
     db()
 
 
@@ -155,7 +156,7 @@ _insane = None
 def check_sane():
     global _insane
     if not _insane:
-        _insane = not os.path.exists('%s/.redo' % env.BASE)
+        _insane = not os.path.exists('%s/.redo' % env.v.BASE)
     return not _insane
 
 
@@ -179,18 +180,18 @@ def relpath(t, base):
     return join('/', tparts)
 
 
-# Return a path for t, if cwd were the dirname of env.TARGET.
+# Return a path for t, if cwd were the dirname of env.v.TARGET.
 # This is tricky!  STARTDIR+PWD is the directory for the *dofile*, when
 # the dofile was started.  However, inside the dofile, someone may have done
-# a chdir to anywhere else.  env.TARGET is relative to the dofile path, so
+# a chdir to anywhere else.  env.v.TARGET is relative to the dofile path, so
 # we have to first figure out where the dofile was, then find TARGET relative
 # to that, then find t relative to that.
 #
 # FIXME: find some cleaner terminology for all these different paths.
 def target_relpath(t):
-    dofile_dir = os.path.abspath(os.path.join(env.STARTDIR, env.PWD))
+    dofile_dir = os.path.abspath(os.path.join(env.v.STARTDIR, env.v.PWD))
     target_dir = os.path.abspath(
-        os.path.dirname(os.path.join(dofile_dir, env.TARGET)))
+        os.path.dirname(os.path.join(dofile_dir, env.v.TARGET)))
     return relpath(t, target_dir)
 
 
@@ -232,7 +233,7 @@ class File(object):
             q += 'where rowid=?'
             l = [fid]
         elif name != None:
-            name = (name == ALWAYS) and ALWAYS or relpath(name, env.BASE)
+            name = (name == ALWAYS) and ALWAYS or relpath(name, env.v.BASE)
             q += 'where name=?'
             l = [name]
         else:
@@ -258,8 +259,8 @@ class File(object):
         (self.id, self.name, self.is_generated, self.is_override,
          self.checked_runid, self.changed_runid, self.failed_runid,
          self.stamp, self.csum) = cols
-        if self.name == ALWAYS and self.changed_runid < env.RUNID:
-            self.changed_runid = env.RUNID
+        if self.name == ALWAYS and self.changed_runid < env.v.RUNID:
+            self.changed_runid = env.v.RUNID
 
     def __init__(self, fid=None, name=None, cols=None, allow_add=True):
         if cols:
@@ -284,7 +285,7 @@ class File(object):
                 self.id])
 
     def set_checked(self):
-        self.checked_runid = env.RUNID
+        self.checked_runid = env.v.RUNID
 
     def set_checked_save(self):
         self.set_checked()
@@ -292,14 +293,14 @@ class File(object):
 
     def set_changed(self):
         debug2('BUILT: %r (%r)\n' % (self.name, self.stamp))
-        self.changed_runid = env.RUNID
+        self.changed_runid = env.v.RUNID
         self.failed_runid = None
         self.is_override = False
 
     def set_failed(self):
         debug2('FAILED: %r\n' % self.name)
         self.update_stamp()
-        self.failed_runid = env.RUNID
+        self.failed_runid = env.v.RUNID
         if self.stamp != STAMP_MISSING:
             # if we failed and the target file still exists,
             # then we're generated.
@@ -358,13 +359,13 @@ class File(object):
         return True
 
     def is_checked(self):
-        return self.checked_runid and self.checked_runid >= env.RUNID
+        return self.checked_runid and self.checked_runid >= env.v.RUNID
 
     def is_changed(self):
-        return self.changed_runid and self.changed_runid >= env.RUNID
+        return self.changed_runid and self.changed_runid >= env.v.RUNID
 
     def is_failed(self):
-        return self.failed_runid and self.failed_runid >= env.RUNID
+        return self.failed_runid and self.failed_runid >= env.v.RUNID
 
     def deps(self):
         if self.is_override or not self.is_generated:
@@ -397,7 +398,7 @@ class File(object):
 
     def _read_stamp_st(self, statfunc):
         try:
-            st = statfunc(os.path.join(env.BASE, self.name))
+            st = statfunc(os.path.join(env.v.BASE, self.name))
         except OSError:
             return False, STAMP_MISSING
         if stat.S_ISDIR(st.st_mode):
@@ -427,7 +428,7 @@ class File(object):
             return pre
 
     def nicename(self):
-        return relpath(os.path.join(env.BASE, self.name), env.STARTDIR)
+        return relpath(os.path.join(env.v.BASE, self.name), env.v.STARTDIR)
 
 
 def files():
@@ -438,7 +439,7 @@ def files():
 
 def logname(fid):
     """Given the id of a File, return the filename of its build log."""
-    return os.path.join(env.BASE, '.redo', 'log.%d' % fid)
+    return os.path.join(env.v.BASE, '.redo', 'log.%d' % fid)
 
 
 # FIXME: I really want to use fcntl F_SETLK, F_SETLKW, etc here.  But python

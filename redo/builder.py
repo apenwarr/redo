@@ -6,7 +6,7 @@ from logs import debug2, err, warn, meta, check_tty
 
 
 def _nice(t):
-    return state.relpath(t, env.STARTDIR)
+    return state.relpath(t, env.v.STARTDIR)
 
 
 def _try_stat(filename):
@@ -53,7 +53,7 @@ def start_stdin_log_reader(status, details, pretty, color,
         os.dup2(w, 1)
         os.dup2(w, 2)
         os.close(w)
-        check_tty(sys.stderr, env.COLOR)
+        check_tty(sys.stderr, env.v.COLOR)
     else:
         # child
         try:
@@ -88,7 +88,7 @@ def start_stdin_log_reader(status, details, pretty, color,
 
 
 def await_log_reader():
-    if not env.LOG:
+    if not env.v.LOG:
         return
     if log_reader_pid > 0:
         # never actually close fd#1 or fd#2; insanity awaits.
@@ -110,7 +110,7 @@ class ImmediateReturn(Exception):
 
 class BuildJob(object):
     def __init__(self, t, sf, lock, shouldbuildfunc, donefunc):
-        self.t = t  # original target name, not relative to env.BASE
+        self.t = t  # original target name, not relative to env.v.BASE
         self.sf = sf
         tmpbase = t
         while not os.path.isdir(os.path.dirname(tmpbase) or '.'):
@@ -140,7 +140,7 @@ class BuildJob(object):
         except ImmediateReturn, e:
             return self._after2(e.rv)
 
-        if env.NO_OOB or dirty == True:  # pylint: disable=singleton-comparison
+        if env.v.NO_OOB or dirty == True:  # pylint: disable=singleton-comparison
             self._start_do()
         else:
             self._start_unlocked(dirty)
@@ -198,16 +198,16 @@ class BuildJob(object):
                 # temp output file name
                 state.relpath(os.path.abspath(self.tmpname2), dodir),
                ]
-        if env.VERBOSE:
+        if env.v.VERBOSE:
             argv[1] += 'v'
-        if env.XTRACE:
+        if env.v.XTRACE:
             argv[1] += 'x'
         firstline = open(os.path.join(dodir, dofile)).readline().strip()
         if firstline.startswith('#!/'):
             argv[0:2] = firstline[2:].split(' ')
         # make sure to create the logfile *before* writing the meta() about it.
         # that way redo-log won't trace into an obsolete logfile.
-        if env.LOG:
+        if env.v.LOG:
             open(state.logname(self.sf.id), 'w')
         # FIXME: put these variables somewhere else, instead of on-the-fly
         # extending this class!
@@ -236,13 +236,13 @@ class BuildJob(object):
         # grab a lock.
         here = os.getcwd()
         def _fix(p):
-            return state.relpath(os.path.join(env.BASE, p), here)
+            return state.relpath(os.path.join(env.v.BASE, p), here)
         argv = (['redo-unlocked', _fix(self.sf.name)] +
                 list(set(_fix(d.name) for d in dirty)))
         meta('check', state.target_relpath(self.t))
         state.commit()
         def run():
-            os.environ['REDO_DEPTH'] = env.DEPTH + '  '
+            os.environ['REDO_DEPTH'] = env.v.DEPTH + '  '
             # python ignores SIGPIPE
             signal.signal(signal.SIGPIPE, signal.SIG_DFL)
             os.execvp(argv[0], argv)
@@ -261,18 +261,18 @@ class BuildJob(object):
         assert state.is_flushed()
         dn = self.dodir
         newp = os.path.realpath(dn)
-        os.environ['REDO_PWD'] = state.relpath(newp, env.STARTDIR)
+        os.environ['REDO_PWD'] = state.relpath(newp, env.v.STARTDIR)
         os.environ['REDO_TARGET'] = self.basename + self.ext
-        os.environ['REDO_DEPTH'] = env.DEPTH + '  '
+        os.environ['REDO_DEPTH'] = env.v.DEPTH + '  '
         cycles.add(self.lock.fid)
         if dn:
             os.chdir(dn)
         os.dup2(self.f.fileno(), 1)
         os.close(self.f.fileno())
         close_on_exec(1, False)
-        if env.LOG:
+        if env.v.LOG:
             cur_inode = str(os.fstat(2).st_ino)
-            if not env.LOG_INODE or cur_inode == env.LOG_INODE:
+            if not env.v.LOG_INODE or cur_inode == env.v.LOG_INODE:
                 # .do script has *not* redirected stderr, which means we're
                 # using redo-log's log saving mode.  That means subprocs
                 # should be logged to their own file.  If the .do script
@@ -290,7 +290,7 @@ class BuildJob(object):
                 del os.environ['REDO_LOG_INODE']
             os.environ['REDO_LOG'] = ''
         signal.signal(signal.SIGPIPE, signal.SIG_DFL)  # python ignores SIGPIPE
-        if env.VERBOSE or env.XTRACE:
+        if env.v.VERBOSE or env.v.XTRACE:
             logs.write('* %s' % ' '.join(self.argv).replace('\n', ' '))
         os.execvp(self.argv[0], self.argv)
         # FIXME: it would be nice to log the exit code to logf.
@@ -387,7 +387,7 @@ class BuildJob(object):
 
 def main(targets, shouldbuildfunc):
     retcode = [0]  # a list so that it can be reassigned from done()
-    if env.SHUFFLE:
+    if env.v.SHUFFLE:
         import random
         random.shuffle(targets)
 
@@ -397,9 +397,9 @@ def main(targets, shouldbuildfunc):
         if rv:
             retcode[0] = 1
 
-    if env.TARGET and not env.UNLOCKED:
-        me = os.path.join(env.STARTDIR,
-                          os.path.join(env.PWD, env.TARGET))
+    if env.v.TARGET and not env.v.UNLOCKED:
+        me = os.path.join(env.v.STARTDIR,
+                          os.path.join(env.v.PWD, env.v.TARGET))
         myfile = state.File(name=me)
         selflock = state.Lock(state.LOG_LOCK_MAGIC + myfile.id)
     else:
@@ -435,7 +435,7 @@ def main(targets, shouldbuildfunc):
         if not jobserver.has_token():
             state.commit()
         jobserver.ensure_token_or_cheat(t, cheat)
-        if retcode[0] and not env.KEEP_GOING:
+        if retcode[0] and not env.v.KEEP_GOING:
             break
         if not state.check_sane():
             err('.redo directory disappeared; cannot continue.\n')
@@ -443,7 +443,7 @@ def main(targets, shouldbuildfunc):
             break
         f = state.File(name=t)
         lock = state.Lock(f.id)
-        if env.UNLOCKED:
+        if env.v.UNLOCKED:
             lock.owned = True
         else:
             lock.trylock()
@@ -478,7 +478,7 @@ def main(targets, shouldbuildfunc):
         jobserver.ensure_token_or_cheat('self', cheat)
         # at this point, we don't have any children holding any tokens, so
         # it's okay to block below.
-        if retcode[0] and not env.KEEP_GOING:
+        if retcode[0] and not env.v.KEEP_GOING:
             break
         if locked:
             if not state.check_sane():

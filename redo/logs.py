@@ -44,12 +44,12 @@ class PrettyLog(object):
         self.file = tty
 
     def _pretty(self, pid, color, s):
-        if env.DEBUG_PIDS:
+        if env.v.DEBUG_PIDS:
             redo = '%-6d redo  ' % pid
         else:
             redo = 'redo  '
         self.file.write(
-            ''.join([color, redo, env.DEPTH,
+            ''.join([color, redo, env.v.DEPTH,
                      BOLD if color else '', s, PLAIN, '\n']))
 
     def write(self, s):
@@ -75,17 +75,17 @@ class PrettyLog(object):
                 rv = int(rv)
                 if rv:
                     self._pretty(pid, RED, '%s (exit %d)' % (name, rv))
-                elif env.VERBOSE or env.XTRACE or env.DEBUG:
+                elif env.v.VERBOSE or env.v.XTRACE or env.v.DEBUG:
                     self._pretty(pid, GREEN, '%s (done)' % name)
                     self.file.write('\n')
             elif kind == 'locked':
-                if env.DEBUG_LOCKS:
+                if env.v.DEBUG_LOCKS:
                     self._pretty(pid, GREEN, '%s (locked...)' % text)
             elif kind == 'waiting':
-                if env.DEBUG_LOCKS:
+                if env.v.DEBUG_LOCKS:
                     self._pretty(pid, GREEN, '%s (WAITING)' % text)
             elif kind == 'unlocked':
-                if env.DEBUG_LOCKS:
+                if env.v.DEBUG_LOCKS:
                     self._pretty(pid, GREEN, '%s (...unlocked!)' % text)
             elif kind == 'error':
                 self.file.write(''.join([RED, 'redo: ',
@@ -106,18 +106,21 @@ _log = None
 
 def setup(tty, pretty, color):
     global _log
-    if pretty or env.PRETTY:
+    if pretty or env.v.PRETTY:
         check_tty(tty, color=color)
         _log = PrettyLog(tty=tty)
     else:
         _log = RawLog(tty=tty)
 
 
-# FIXME: explicitly initialize in each program, for clarity
-setup(tty=sys.stderr, pretty=env.PRETTY, color=env.COLOR)
+def _maybe_setup():
+    # FIXME: explicitly initialize in each program, for clarity
+    if not _log:
+        setup(tty=sys.stderr, pretty=env.v.PRETTY, color=env.v.COLOR)
 
 
 def write(s):
+    _maybe_setup()
     _log.write(s)
 
 
@@ -139,16 +142,16 @@ def warn(s):
     meta('warning', s)
 
 def debug(s):
-    if env.DEBUG >= 1:
+    if env.v.DEBUG >= 1:
         s = s.rstrip()
         meta('debug', s)
 
 def debug2(s):
-    if env.DEBUG >= 2:
+    if env.v.DEBUG >= 2:
         s = s.rstrip()
         meta('debug', s)
 
 def debug3(s):
-    if env.DEBUG >= 3:
+    if env.v.DEBUG >= 3:
         s = s.rstrip()
         meta('debug', s)

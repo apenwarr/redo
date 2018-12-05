@@ -4,6 +4,7 @@ from logs import err, debug2
 
 
 def main():
+    env.inherit()
     if len(sys.argv) > 1:
         err('%s: no arguments expected.\n' % sys.argv[0])
         sys.exit(1)
@@ -32,11 +33,11 @@ def main():
 
     csum = sh.hexdigest()
 
-    if not env.TARGET:
+    if not env.v.TARGET:
         sys.exit(0)
 
-    me = os.path.join(env.STARTDIR,
-                      os.path.join(env.PWD, env.TARGET))
+    me = os.path.join(env.v.STARTDIR,
+                      os.path.join(env.v.PWD, env.v.TARGET))
     f = state.File(name=me)
     changed = (csum != f.csum)
     debug2('%s: old = %s\n' % (f.name, f.csum))

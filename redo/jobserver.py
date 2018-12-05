@@ -343,7 +343,7 @@ def ensure_token_or_cheat(reason, cheatfunc):
         if not has_token():
             assert _mytokens == 0
             n = cheatfunc()
-            _debug('%s: %s: cheat = %d\n' % (env.TARGET, reason, n))
+            _debug('%s: %s: cheat = %d\n' % (env.v.TARGET, reason, n))
             if n > 0:
                 _mytokens += n
                 _cheats += n

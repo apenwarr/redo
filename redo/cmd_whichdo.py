@@ -1,13 +1,10 @@
 import sys, os
-
-import env_init
-env_init.init_no_state()
-
-import paths
+import env, paths
 from logs import err
 
 
 def main():
+    env.init_no_state()
     if len(sys.argv[1:]) != 1:
         err('%s: exactly one argument expected.\n' % sys.argv[0])
         sys.exit(1)

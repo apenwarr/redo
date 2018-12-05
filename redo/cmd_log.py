@@ -1,7 +1,7 @@
 import errno, fcntl, os, re, struct, sys, time
 import termios
 from atoi import atoi
-import options
+import env, logs, options, state
 
 optspec = """
 redo-log [options...] [targets...]
@@ -21,11 +21,6 @@ o = options.Options(optspec)
 (opt, flags, extra) = o.parse(sys.argv[1:])
 targets = extra
 
-import env_init
-env_init.init(list(targets))
-
-import env, logs, state
-
 topdir = os.getcwd()
 already = set()
 depth = []
@@ -42,19 +37,12 @@ start_time = time.time()
 REDO_LINE_RE = re.compile(r'^@@REDO:([^@]+)@@ (.*)\n$')
 
 
-def _atoi(s):
-    try:
-        return int(s)
-    except TypeError:
-        return 0
-
-
 def _tty_width():
     s = struct.pack("HHHH", 0, 0, 0, 0)
     try:
         s = fcntl.ioctl(sys.stderr.fileno(), termios.TIOCGWINSZ, s)
     except (IOError, ImportError):
-        return _atoi(os.environ.get('WIDTH')) or 70
+        return atoi(os.environ.get('WIDTH')) or 70
     (ysize, xsize, ypix, xpix) = struct.unpack('HHHH', s)
     return xsize or 70
 
@@ -64,7 +52,7 @@ def is_locked(fid):
 
 
 def _fix_depth():
-    env.DEPTH = len(depth) * '  '
+    env.v.DEPTH = len(depth) * '  '
 
 
 def _rel(top, mydir, path):
@@ -234,13 +222,14 @@ def main():
                 'redo-log: give at least one target; ' +
                 'maybe "all"?\n')
             sys.exit(1)
+        state.init(targets)
         if opt.status < 2 and not os.isatty(2):
             opt.status = False
         logs.setup(tty=sys.stdout, pretty=opt.pretty, color=opt.color)
         if opt.debug_locks:
-            env.DEBUG_LOCKS = 1
+            env.v.DEBUG_LOCKS = 1
         if opt.debug_pids:
-            env.DEBUG_PIDS = 1
+            env.v.DEBUG_PIDS = 1
         if opt.ack_fd:
             # Write back to owner, to let them know we started up okay and
             # will be able to see their error output, so it's okay to close
