@@ -18,11 +18,13 @@ that design.
 
 After I found out about djb redo, I searched the Internet for any sign that
 other people had discovered what I had: a hidden, unimplemented gem of
-brilliant code design.  I found only one interesting link: Alan Grosskurth,
-whose [Master's thesis at the University of Waterloo](http://grosskurth.ca/papers/mmath-thesis.pdf)
-was about top-down software rebuilding, that is, djb redo.  He wrote his
-own (admittedly slow) implementation in about 250 lines of shell script,
-which gives an idea for how straightforward the system is.
+brilliant code design.  I found only one interesting link at the time: Alan
+Grosskurth, whose [Master's thesis at the University of
+Waterloo](http://grosskurth.ca/papers/mmath-thesis.pdf) was about top-down
+software rebuilding, that is, djb redo.  He wrote his own (admittedly slow)
+implementation in about 250 lines of shell script, which gives an idea for
+how straightforward the system is.  Since then, several other
+implementations have appeared (see list below).
 
 My implementation of redo is called `redo` for the same reason that there
 are 75 different versions of `make` that are all called `make`.  It's somehow
@@ -169,8 +171,10 @@ easily be linked from this document.  Here are a few open source examples:
   Buildroot](https://github.com/apenwarr/buildroot/tree/redo) that uses redo
   in order to clean up its dependency logic.
 
-* You can also find some curated examples in the
-  [docs/cookbook/](https://github.com/apenwarr/redo/tree/master/docs/cookbook/) subdir of the redo project itself.
+* You can find some curated tutorial examples in the
+  [cookbook](cookbook/hello/), such as [git variable
+  substitution](cookbook/defaults/) and [text processing with
+  LaTeX](cookbook/latex/) (including plot generation with R and ggplot2).
 
 * A [github search for all.do](https://github.com/search?p=9&q=path%3A%2F+extension%3Ado+filename%3A%2Fall.do&type=Code)
   shows an ever-growing number of projects using redo.
@@ -181,7 +185,8 @@ we can link to it here for some free publicity.
 (Please don't use the integration testing code in the redo project's `t/`
 directory as serious examples of how to use redo.  Many of the tests are
 doing things in intentionally psychotic ways in order to stress redo's code
-and find bugs.)
+and find bugs.  On the other hand, if you're building your own
+reimplementation of redo, using our test suite is a great idea.)
 
 
 # How does this redo compare to other redo implementations?
@@ -198,8 +203,8 @@ experimentation, but the plan is to eventually migrate it to plain C.  (Some
 people like to call this version "python-redo", but I don't like that name. 
 We shouldn't have to rename it when we later transliterate the code to C.)
 
-Here are some other redo variants (thanks to Nils Dagsson Moskopp for many
-of these links):
+Here are some other redo variants (thanks to Nils Dagsson Moskopp for
+collecting many of these links):
 
 - Alan Grosskurth's [redo thesis](http://grosskurth.ca/papers/mmath-thesis.pdf)
   and related sh implementation.  (Arguably, this paper is the one that got
