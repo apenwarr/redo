@@ -19,10 +19,10 @@ You can run redo without installing it, like this:
 ```sh
 	git clone https://github.com/apenwarr/redo
 	cd redo
-	./redo -j10 test
+	./do -j10 test
 ```
 
-If the tests pass, you can either add $PWD/redo to your PATH, or install
+If the tests pass, you can either add $PWD/redo/bin to your PATH, or install
 redo on your system.  To install for all users, put it in /usr/local:
 
 ```sh

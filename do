@@ -66,11 +66,13 @@ case $target in
 		build && bin/redo $args "$target"
 		;;
 	test)
-		# Test both redo and minimal/do
+		# First test minimal/do
 		build
+		# Add ./redo to PATH so we launch with redo/sh as the shell
 		PATH=$PWD/redo:$PATH minimal/do test || die "minimal/do test failed"
 		clean
 		build
+		# Now switch to testing 'real' redo
 		bin/redo $args test || die "redo test failed"
 		;;
 	clean)
