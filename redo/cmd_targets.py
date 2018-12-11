@@ -1,13 +1,14 @@
 import sys, os
-from . import env, state
-from .logs import err
+from . import env, logs, state
 
 
 def main():
-    state.init([])
     if len(sys.argv[1:]) != 0:
-        err('%s: no arguments expected.\n' % sys.argv[0])
+        sys.stderr.write('%s: no arguments expected.\n' % sys.argv[0])
         sys.exit(1)
+
+    state.init([])
+    logs.setup(tty=sys.stderr, pretty=env.v.PRETTY, color=env.v.COLOR)
 
     cwd = os.getcwd()
     for f in state.files():

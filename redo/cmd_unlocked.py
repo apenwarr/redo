@@ -1,13 +1,14 @@
 import sys, os
-from . import env, state
-from .logs import err
+from . import env, logs, state
 
 
 def main():
-    env.inherit()
     if len(sys.argv[1:]) < 2:
-        err('%s: at least 2 arguments expected.\n' % sys.argv[0])
+        sys.stderr.write('%s: at least 2 arguments expected.\n' % sys.argv[0])
         sys.exit(1)
+
+    env.inherit()
+    logs.setup(tty=sys.stderr, pretty=env.v.PRETTY, color=env.v.COLOR)
 
     target = sys.argv[1]
     deps = sys.argv[2:]

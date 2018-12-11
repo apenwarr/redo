@@ -4,7 +4,7 @@ from . import env
 RED = GREEN = YELLOW = BOLD = PLAIN = None
 
 
-def check_tty(tty, color):
+def _check_tty(tty, color):
     global RED, GREEN, YELLOW, BOLD, PLAIN
     color_ok = tty.isatty() and (os.environ.get('TERM') or 'dumb') != 'dumb'
     if (color and color_ok) or color >= 2:
@@ -106,21 +106,14 @@ _log = None
 
 def setup(tty, pretty, color):
     global _log
-    if pretty or env.v.PRETTY:
-        check_tty(tty, color=color)
+    if pretty:
+        _check_tty(tty, color=color)
         _log = PrettyLog(tty=tty)
     else:
         _log = RawLog(tty=tty)
 
 
-def _maybe_setup():
-    # FIXME: explicitly initialize in each program, for clarity
-    if not _log:
-        setup(tty=sys.stderr, pretty=env.v.PRETTY, color=env.v.COLOR)
-
-
 def write(s):
-    _maybe_setup()
     _log.write(s)
 
 

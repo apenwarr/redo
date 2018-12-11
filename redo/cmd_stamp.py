@@ -1,17 +1,20 @@
 import sys, os
-from . import env, state
-from .logs import err, debug2
+from . import env, logs, state
+from .logs import debug2
 
 
 def main():
-    env.inherit()
     if len(sys.argv) > 1:
-        err('%s: no arguments expected.\n' % sys.argv[0])
+        sys.stderr.write('%s: no arguments expected.\n' % sys.argv[0])
         sys.exit(1)
 
     if os.isatty(0):
-        err('%s: you must provide the data to stamp on stdin\n' % sys.argv[0])
+        sys.stderr.write('%s: you must provide the data to stamp on stdin\n'
+                         % sys.argv[0])
         sys.exit(1)
+
+    env.inherit()
+    logs.setup(tty=sys.stderr, pretty=env.v.PRETTY, color=env.v.COLOR)
 
     # hashlib is only available in python 2.5 or higher, but the 'sha'
     # module produces a DeprecationWarning in python 2.6 or higher.  We want

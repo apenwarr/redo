@@ -1,5 +1,5 @@
 import os, sys, traceback
-from . import env, state, builder, jobserver, deps
+from . import env, builder, deps, jobserver, logs, state
 from .logs import debug2, err
 
 
@@ -24,6 +24,8 @@ def main():
             builder.start_stdin_log_reader(
                 status=True, details=True,
                 pretty=True, color=True, debug_locks=False, debug_pids=False)
+        else:
+            logs.setup(tty=sys.stderr, pretty=env.v.PRETTY, color=env.v.COLOR)
         if env.v.TARGET and not env.v.UNLOCKED:
             me = os.path.join(env.v.STARTDIR,
                               os.path.join(env.v.PWD, env.v.TARGET))

@@ -1,7 +1,7 @@
 import sys, os, errno, stat, signal, time
 from . import cycles, env, jobserver, logs, state, paths
 from .helpers import unlink, close_on_exec
-from .logs import debug2, err, warn, meta, check_tty
+from .logs import debug2, err, warn, meta
 
 
 def _nice(t):
@@ -52,7 +52,7 @@ def start_stdin_log_reader(status, details, pretty, color,
         os.dup2(w, 1)
         os.dup2(w, 2)
         os.close(w)
-        check_tty(sys.stderr, env.v.COLOR)
+        logs.setup(tty=sys.stderr, pretty=False, color=False)
     else:
         # child
         try:

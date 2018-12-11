@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 import sys, os, traceback
-from . import env, options, state, builder, jobserver
+from . import builder, env, jobserver, logs, options, state
 from .atoi import atoi
 from .logs import warn, err
 
@@ -86,6 +86,9 @@ def main():
                 status=opt.status, details=opt.details,
                 pretty=opt.pretty, color=opt.color,
                 debug_locks=opt.debug_locks, debug_pids=opt.debug_pids)
+        else:
+            logs.setup(tty=sys.stderr, pretty=env.v.PRETTY, color=env.v.COLOR)
+
         for t in targets:
             if os.path.exists(t):
                 f = state.File(name=t)
