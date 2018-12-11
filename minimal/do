@@ -4,7 +4,7 @@
 # For the full version, visit http://github.com/apenwarr/redo
 #
 # The author disclaims copyright to this source file and hereby places it in
-# the public domain. (2010 12 14; updated 2018 12 04)
+# the public domain. (2010 12 14; updated 2018 12 11)
 #
 USAGE="
 usage: do [-d] [-x] [-v] [-c] <targets...>
@@ -44,7 +44,8 @@ dirname()
 )
 
 _dirsplit "$0"
-export REDO=$(cd "${_dirsplit_dir:-.}" && echo "$PWD/$_dirsplit_base")
+REDO=$(cd "${_dirsplit_dir:-.}" && echo "$PWD/$_dirsplit_base")
+export REDO
 _cmd=$_dirsplit_base
 
 DO_TOP=
@@ -76,7 +77,7 @@ if [ -z "$DO_BUILT" -a "$_cmd" != "redo-whichdo" ]; then
 	if [ "$#" -eq 0 ] && [ "$_cmd" = "do" -o "$_cmd" = "redo" ]; then
 		set all  # only toplevel redo has a default target
 	fi
-	export DO_BUILT=$PWD/.do_built
+	export DO_BUILT="$PWD/.do_built"
 	if [ -z "$_do_opt_clean" -a -e "$DO_BUILT" ]; then
 		echo "do: Incremental mode. Use -c for clean rebuild." >&2
 	fi
@@ -89,7 +90,7 @@ if [ -z "$DO_BUILT" -a "$_cmd" != "redo-whichdo" ]; then
 	xargs -0 rm -f 2>/dev/null
 	mv "$DO_BUILT.new" "$DO_BUILT"
 	DO_PATH=$DO_BUILT.dir
-	export PATH=$DO_PATH:$PATH
+	export PATH="$DO_PATH:$PATH"
 	rm -rf "$DO_PATH"
 	mkdir "$DO_PATH"
 	for d in redo redo-ifchange redo-whichdo; do

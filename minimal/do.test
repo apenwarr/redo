@@ -102,8 +102,8 @@ check_s "" "$_dirsplit_base"
 
 
 SECTION _relpath
-check "a/b/c"  _relpath $PWD/a/b/c
-check "../a/b/c"  _relpath $PWD/../a/b/c
+check "a/b/c"  _relpath "$PWD/a/b/c"
+check "../a/b/c"  _relpath "$PWD/../a/b/c"
 check ""  _relpath "$PWD"
 (cd / && check "a/b/c"  _relpath a/b/c)
 (cd / && check "a/b/c"  _relpath /a/b/c)

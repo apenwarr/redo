@@ -25,7 +25,7 @@ for sh in dash /usr/xpg4/bin/sh ash posh mksh ksh ksh88 ksh93 pdksh \
 	SH=$PWD/$1.new/sh
 	
 	set +e
-	( cd ../t && $SH shelltest.od ) >shelltest.tmp 2>&1
+	( cd ../t && "$SH" shelltest.od ) >shelltest.tmp 2>&1
 	RV=$?
 	set -e
 	
