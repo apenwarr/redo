@@ -42,7 +42,7 @@ def main():
                     f.add_dep('m', t)
                 f.save()
                 state.commit()
-            rv = builder.main(targets, should_build)
+            rv = builder.run(targets, should_build)
         finally:
             try:
                 state.rollback()

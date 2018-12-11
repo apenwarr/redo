@@ -102,7 +102,7 @@ def main():
         jobserver.setup(j)
         try:
             assert state.is_flushed()
-            retcode = builder.main(targets, lambda t: (True, True))
+            retcode = builder.run(targets, lambda t: (True, True))
             assert state.is_flushed()
         finally:
             try:

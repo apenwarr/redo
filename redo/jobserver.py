@@ -92,6 +92,11 @@ def _debug(s):
 
 
 def _create_tokens(n):
+    """Materialize and own n tokens.
+
+    If there are any cheater tokens active, they each destroy one matching
+    newly-created token.
+    """
     global _mytokens, _cheats
     assert n >= 0
     assert _cheats >= 0
@@ -103,6 +108,7 @@ def _create_tokens(n):
 
 
 def _destroy_tokens(n):
+    """Destroy n tokens that are currently in our posession."""
     global _mytokens
     assert _mytokens >= n
     _mytokens -= n
@@ -253,6 +259,19 @@ def setup(maxjobs):
 
 
 def _wait(want_token, max_delay):
+    """Wait for a subproc to die or, if want_token, tokenfd to be readable.
+
+    Does not actually read tokenfd once it's readable (so someone else might
+    read it before us).  This function returns after max_delay seconds or
+    when at least one subproc dies or (if want_token) for tokenfd to be
+    readable.
+
+    Args:
+      want_token: true if we should return when tokenfd is readable.
+      max_delay: max seconds to wait, or None to wait forever.
+    Returns:
+      None
+    """
     rfds = _waitfds.keys()
     if want_token:
         rfds.append(_tokenfds[0])
@@ -295,12 +314,23 @@ def _wait(want_token, max_delay):
 
 
 def has_token():
+    """Returns true if this process has a job token."""
     assert _mytokens >= 0
     if _mytokens >= 1:
         return True
 
 
-def ensure_token(reason, max_delay=None):
+def _ensure_token(reason, max_delay=None):
+    """Don't return until this process has a job token.
+
+    Args:
+      reason: the reason (for debugging purposes) we need a token.  Usually
+        the name of a target we want to build.
+      max_delay: the max time to wait for a token, or None if forever.
+    Returns:
+      None, but has_token() is now true *unless* max_delay is non-None
+      and we timed out.
+    """
     global _mytokens
     assert state.is_flushed()
     assert _mytokens <= 1
@@ -330,6 +360,23 @@ def ensure_token(reason, max_delay=None):
 
 
 def ensure_token_or_cheat(reason, cheatfunc):
+    """Wait for a job token to become available, or cheat if possible.
+
+    If we already have a token, we return immediately.  If we have any
+    processes running *and* we don't own any tokens, we wait for a process
+    to finish, and then use that token.
+
+    Otherwise, we're allowed to cheat.  We call cheatfunc() occasionally
+    to consider cheating; if it returns n > 0, we materialize that many
+    cheater tokens and return.
+
+    Args:
+      reason: the reason (for debugging purposes) we need a token.  Usually
+        the name of a target we want to build.
+      cheatfunc: a function which returns n > 0 (usually 1) if we should
+        cheat right now, because we're the "foreground" process that must
+        be allowed to continue.
+    """
     global _mytokens, _cheats
     backoff = 0.01
     while not has_token():
@@ -337,8 +384,8 @@ def ensure_token_or_cheat(reason, cheatfunc):
             # If we already have a subproc running, then effectively we
             # already have a token.  Don't create a cheater token unless
             # we're completely idle.
-            ensure_token(reason, max_delay=None)
-        ensure_token(reason, max_delay=min(1.0, backoff))
+            _ensure_token(reason, max_delay=None)
+        _ensure_token(reason, max_delay=min(1.0, backoff))
         backoff *= 2
         if not has_token():
             assert _mytokens == 0
@@ -351,10 +398,12 @@ def ensure_token_or_cheat(reason, cheatfunc):
 
 
 def running():
+    """Returns true if we have any running jobs."""
     return len(_waitfds)
 
 
 def wait_all():
+    """Wait for all running jobs to finish."""
     _debug("%d,%d -> wait_all\n" % (_mytokens, _cheats))
     assert state.is_flushed()
     while 1:
@@ -382,6 +431,7 @@ def wait_all():
 
 
 def force_return_tokens():
+    """Release or destroy all the tokens we own, in preparation for exit."""
     n = len(_waitfds)
     _debug('%d,%d -> %d jobs left in force_return_tokens\n'
            % (_mytokens, _cheats, n))
@@ -401,14 +451,18 @@ def force_return_tokens():
     assert state.is_flushed()
 
 
-def _pre_job(r, w, pfn):
-    os.close(r)
-    if pfn:
-        pfn()
-
-
 class Job(object):
+    """Metadata about a running job."""
+
     def __init__(self, name, pid, donefunc):
+        """Initialize a job.
+
+        Args:
+          name: the name of the job (usually a target filename).
+          pid: the pid of the subprocess running this job.
+          donefunc: the function(name, return_value) to call when the
+            subprocess exits.
+        """
         self.name = name
         self.pid = pid
         self.rv = None
@@ -418,7 +472,19 @@ class Job(object):
         return 'Job(%s,%d)' % (self.name, self.pid)
 
 
-def start_job(reason, jobfunc, donefunc):
+def start(reason, jobfunc, donefunc):
+    """Start a new job.  Must only be run with has_token() true.
+
+    Args:
+      reason: the reason the job is running.  Usually the filename of a
+        target being built.
+      jobfunc: the function() to execute, **in a subprocess**, to run the job.
+        Usually this calls os.execve().  It is an error for this function to
+        ever return.  If it does, we return a non-zero exit code to the parent
+        process (the one which ran start()).
+      donefunc: the function(reason, return_value) to call **in the parent**
+        when the subprocess exits.
+    """
     assert state.is_flushed()
     assert _mytokens <= 1
     assert _mytokens == 1
@@ -429,12 +495,12 @@ def start_job(reason, jobfunc, donefunc):
     pid = os.fork()
     if pid == 0:
         # child
-        os.close(r)
         rv = 201
         try:
+            os.close(r)
             try:
-                rv = jobfunc() or 0
-                _debug('jobfunc completed (%r, %r)\n' % (jobfunc, rv))
+                rv = jobfunc()
+                assert 0, 'jobfunc returned?! (%r, %r)' % (jobfunc, rv)
             except Exception:  # pylint: disable=broad-except
                 import traceback
                 traceback.print_exc()
