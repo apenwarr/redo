@@ -4,7 +4,7 @@
 # For the full version, visit http://github.com/apenwarr/redo
 #
 # The author disclaims copyright to this source file and hereby places it in
-# the public domain. (2010 12 14; updated 2018 12 11)
+# the public domain. (2010 12 14; updated 2018 12 13)
 #
 USAGE="
 usage: do [-d] [-x] [-v] [-c] <targets...>
@@ -77,6 +77,7 @@ if [ -z "$DO_BUILT" -a "$_cmd" != "redo-whichdo" ]; then
 	if [ "$#" -eq 0 ] && [ "$_cmd" = "do" -o "$_cmd" = "redo" ]; then
 		set all  # only toplevel redo has a default target
 	fi
+	export DO_STARTDIR="$PWD"
 	export DO_BUILT="$PWD/.do_built"
 	if [ -z "$_do_opt_clean" -a -e "$DO_BUILT" ]; then
 		echo "do: Incremental mode. Use -c for clean rebuild." >&2
@@ -89,7 +90,7 @@ if [ -z "$DO_BUILT" -a "$_cmd" != "redo-whichdo" ]; then
 	done <"$DO_BUILT.new" |
 	xargs -0 rm -f 2>/dev/null
 	mv "$DO_BUILT.new" "$DO_BUILT"
-	DO_PATH=$DO_BUILT.dir
+	export DO_PATH="$DO_BUILT.dir"
 	export PATH="$DO_PATH:$PATH"
 	rm -rf "$DO_PATH"
 	mkdir "$DO_PATH"
@@ -128,11 +129,23 @@ _endswith()
 }
 
 
+# Prints $1 if it's absolute, or $2/$1 if $1 is not absolute.
+_abspath()
+{
+	local here="$2" there="$1"
+	if _startswith "$1" "/"; then
+		echo "$1"
+	else
+		echo "$2/$1"
+	fi
+}
+
+
 # Prints $1 as a path relative to $PWD (not starting with /).
 # If it already doesn't start with a /, doesn't change the string.
 _relpath()
 {
-	local here="$(command pwd)" there="$1" out= hadslash=
+	local here="$2" there="$1" out= hadslash=
 	#echo "RP start '$there' hs='$hadslash'" >&2
 	_startswith "$there" "/" || { echo "$there" && return; }
 	[ "$there" != "/" ] && _endswith "$there" "/" && hadslash=/
@@ -158,12 +171,12 @@ _relpath()
 # For example, a/b/../c will be reduced to just a/c.
 _normpath()
 (
-	local path="$1" out= isabs=
+	local path="$1" relto="$2" out= isabs=
 	#echo "NP start '$path'" >&2
 	if _startswith "$path" "/"; then
 		isabs=1
 	else
-		path="${PWD%/}/$path"
+		path="${relto%/}/$path"
 	fi
 	set -f
 	IFS=/
@@ -180,7 +193,7 @@ _normpath()
 	if [ -n "$isabs" ]; then
 		echo "${out:-/}"
 	else
-		_relpath "${out:-/}"
+		_relpath "${out:-/}" "$relto"
 	fi
 )
 
@@ -222,7 +235,7 @@ _find_dofiles()
 		[ -n "$dodir" ] && dodir=${dodir%/}/
 		#echo "_find_dofiles: '$dodir' '$dofile'" >&2
 		_find_dofiles_pwd "$dodir" "$dofile" && return 0
-		newdir=$(_normpath "${dodir}..")
+		newdir=$(_normpath "${dodir}.." "$PWD")
 		[ "$newdir" = "$dodir" ] && break
 		dodir=$newdir
 	done
@@ -257,25 +270,26 @@ _run_dofile()
 	cmd=${line1#"#!/"}
 	if [ "$cmd" != "$line1" ]; then
 		set -$_do_opt_verbose$_do_opt_exec
-		exec /$cmd "$PWD/$dofile" "$@" >"$tmp.tmp2"
+		exec /$cmd "$PWD/$dofile" "$@"
 	else
 		set -$_do_opt_verbose$_do_opt_exec
-		:; . "$PWD/$dofile" >"$tmp.tmp2"
+		:; . "$PWD/$dofile"
 	fi
 }
 
 
-# Find and run the right .do file, starting in dir $1, for target $2, using
-# filename $3 as the temporary output file.  Renames the temp file to $2 when
+# Find and run the right .do file, starting in dir $1, for target $2,
+# providing a temporary output file as $3.  Renames the temp file to $2 when
 # done.
 _do()
 {
-	local dir="$1" target="$2" tmp="$3" dopath= dodir= dofile= ext=
+	local dir="$1" target="$1$2" tmp="$1$2.redo.tmp"
+	local dopath= dodir= dofile= ext=
 	if [ "$_cmd" = "redo" ] ||
 	    ( [ ! -e "$target" -o -d "$target" ] &&
 	      [ ! -e "$target.did" ] ); then
 		printf '%sdo  %s%s%s%s\n' \
-			"$green" "$DO_DEPTH" "$bold" "$dir$target" "$plain" >&2
+			"$green" "$DO_DEPTH" "$bold" "$target" "$plain" >&2
 		dopath=$(_find_dofile "$target")
 		if [ ! -e "$dopath" ]; then
 			echo "do: $target: no .do file ($PWD)" >&2
@@ -292,56 +306,60 @@ _do()
 		target=$PWD/$target
 		tmp=$PWD/$tmp
 		cd "$dodir" || return 99
-		target=$(_relpath "$target") || return 98
-		tmp=$(_relpath "$tmp") || return 97
+		target=$(_relpath "$target" "$PWD") || return 98
+		tmp=$(_relpath "$tmp" "$PWD") || return 97
 		base=${target%$ext}
 		[ ! -e "$DO_BUILT" ] || [ ! -d "$(dirname "$target")" ] ||
 		: >>"$target.did.tmp"
-		( _run_dofile "$target" "$base" "$tmp.tmp" )
-		rv=$?
-		if [ $rv != 0 ]; then
-			printf "do: %s%s\n" "$DO_DEPTH" \
-				"$dir$target: got exit code $rv" >&2
-			rm -f "$tmp.tmp" "$tmp.tmp2" "$target.did"
-			return $rv
-		fi
-		echo "$PWD/$target" >>"$DO_BUILT"
-		mv "$tmp.tmp" "$target" 2>/dev/null ||
-		! test -s "$tmp.tmp2" ||
-		mv "$tmp.tmp2" "$target" 2>/dev/null
+		# $qtmp is a temporary file used to capture stdout.
+		# Since it might be accidentally deleted as a .do file
+		# does its work, we create it, then open two fds to it,
+		# then immediately delete the name.  We use one fd to
+		# redirect to stdout, and the other to read from after,
+		# because there's no way to fseek(fd, 0) in sh.
+		qtmp=$DO_PATH/do.$$.tmp
+		(
+			rm -f "$qtmp"
+			( _run_dofile "$target" "$base" "$tmp" >&3 3>&- 4<&- )
+			rv=$?
+			if [ $rv != 0 ]; then
+				printf "do: %s%s\n" "$DO_DEPTH" \
+					"$target: got exit code $rv" >&2
+				rm -f "$tmp.tmp" "$tmp.tmp2" "$target.did"
+				return $rv
+			fi
+			echo "$PWD/$target" >>"$DO_BUILT"
+			if [ ! -e "$tmp" ]; then
+				# if $3 wasn't created, copy from stdout file
+				cat <&4 >$tmp
+				# if that's zero length too, forget it
+				[ -s "$tmp" ] || rm -f "$tmp"
+			fi
+		) 3>$qtmp 4<$qtmp || return
+		mv "$tmp" "$target" 2>/dev/null
 		[ -e "$target.did.tmp" ] &&
 		mv "$target.did.tmp" "$target.did" ||
 		: >>"$target.did"
-		rm -f "$tmp.tmp2"
 	else
 		_debug "do  $DO_DEPTH$target exists." >&2
 	fi
 }
 
 
-# Make corrections for directories that don't actually exist yet.
-_dir_shovel()
-{
-	local dir base
-	xdir=$1 xbase=$2 xbasetmp=$2
-	while [ ! -d "$xdir" -a -n "$xdir" ]; do
-		_dirsplit "${xdir%/}"
-		xbasetmp=${_dirsplit_base}__$xbasetmp
-		xdir=$_dirsplit_dir xbase=$_dirsplit_base/$xbase
-	done
-	_debug "xbasetmp='$xbasetmp'" >&2
-}
-
-
 # Implementation of the "redo" command.
 _redo()
 {
+	local i startdir="$PWD" dir base
 	set +e
 	for i in "$@"; do
-		_dirsplit "$i"
-		_dir_shovel "$_dirsplit_dir" "$_dirsplit_base"
-		dir=$xdir base=$xbase basetmp=$xbasetmp
-		( cd "$dir" && _do "$dir" "$base" "$basetmp" )
+		i=$(_abspath "$i" "$startdir")
+		(
+			cd "$DO_STARTDIR" || return 99
+			i=$(_normpath "$(_relpath "$i" "$PWD")" "$PWD")
+			_dirsplit "$i"
+			dir=$_dirsplit_dir base=$_dirsplit_base
+			_do "$dir" "$base"
+		)
 		[ "$?" = 0 ] || return 1
 	done
 }

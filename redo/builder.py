@@ -1,5 +1,5 @@
 """Code for parallel-building a set of targets, if needed."""
-import sys, os, errno, stat, signal, time
+import errno, os, stat, signal, sys, tempfile, time
 from . import cycles, env, jobserver, logs, state, paths
 from .helpers import unlink, close_on_exec
 from .logs import debug2, err, warn, meta
@@ -120,20 +120,14 @@ class _BuildJob(object):
     def __init__(self, t, sf, lock, shouldbuildfunc, donefunc):
         self.t = t  # original target name, not relative to env.v.BASE
         self.sf = sf
-        tmpbase = t
-        while not os.path.isdir(os.path.dirname(tmpbase) or '.'):
-            ofs = tmpbase.rfind('/')
-            assert ofs >= 0
-            tmpbase = tmpbase[:ofs] + '__' + tmpbase[ofs+1:]
-        self.tmpname1 = '%s.redo1.tmp' % tmpbase
-        self.tmpname2 = '%s.redo2.tmp' % tmpbase
+        self.tmpname = None
         self.lock = lock
         self.shouldbuildfunc = shouldbuildfunc
         self.donefunc = donefunc
         self.before_t = _try_stat(self.t)
 
         # attributes of the running process
-        self.f = None
+        self.outfile = None
 
     def start(self):
         """Actually start running this job in a subproc, if needed."""
@@ -195,11 +189,32 @@ class _BuildJob(object):
             else:
                 err('no rule to redo %r\n' % t)
                 return self._finalize(1)
-        unlink(self.tmpname1)
-        unlink(self.tmpname2)
-        ffd = os.open(self.tmpname1, os.O_CREAT|os.O_RDWR|os.O_EXCL, 0666)
+        # There is no good place for us to pre-create a temp file for
+        # stdout.  The target dir might not exist yet, or it might currently
+        # exist but get wiped by the .do script.  Other dirs, like the one
+        # containing the .do file, might be mounted readonly.  We can put it
+        # in the system temp dir, but then we can't necessarily rename it to
+        # the target filename because it might cross filesystem boundaries.
+        # Also, if redo is interrupted, it would leave a temp file lying
+        # around.  To avoid all this, use mkstemp() to create a temp file
+        # wherever it wants to, and immediately unlink it, but keep a file
+        # handle open.  When the .do script finishes, we can copy the
+        # content out of that nameless file handle into a file in the same
+        # dir as the target (which by definition must now exist, if you
+        # wanted the target to exist).
+        #
+        # On the other hand, the $3 temp filename can be hardcoded to be in
+        # the target directory, even if that directory does not exist.
+        # It's not *redo*'s job to create that file.  The .do file will
+        # create it, if it wants, and it's the .do file's job to first ensure
+        # that the directory exists.
+        tmpbase = os.path.join(dodir, basename + ext)
+        self.tmpname = tmpbase + '.redo.tmp'
+        unlink(self.tmpname)
+        ffd, fname = tempfile.mkstemp(prefix='redo.', suffix='.tmp')
         close_on_exec(ffd, True)
-        self.f = os.fdopen(ffd, 'w+')
+        os.unlink(fname)
+        self.outfile = os.fdopen(ffd, 'w+')
         # this will run in the dofile's directory, so use only basenames here
         arg1 = basename + ext  # target name (including extension)
         arg2 = basename        # target name (without extension)
@@ -207,8 +222,8 @@ class _BuildJob(object):
                 dofile,
                 arg1,
                 arg2,
-                # temp output file name
-                state.relpath(os.path.abspath(self.tmpname2), dodir),
+                # $3 temp output file name
+                state.relpath(os.path.abspath(self.tmpname), dodir),
                ]
         if env.v.VERBOSE:
             argv[1] += 'v'
@@ -287,8 +302,8 @@ class _BuildJob(object):
         cycles.add(self.lock.fid)
         if dodir:
             os.chdir(dodir)
-        os.dup2(self.f.fileno(), 1)
-        os.close(self.f.fileno())
+        os.dup2(self.outfile.fileno(), 1)
+        os.close(self.outfile.fileno())
         close_on_exec(1, False)
         if env.v.LOG:
             cur_inode = str(os.fstat(2).st_ino)
@@ -340,21 +355,12 @@ class _BuildJob(object):
         (like writing directly to $1 instead of $3).  We also have to record
         the new file stamp data for the completed target.
         """
-        f = self.f
+        outfile = self.outfile
         before_t = self.before_t
         after_t = _try_stat(t)
-        st1 = os.fstat(f.fileno())
-        st1b = _try_stat(self.tmpname1)
-        st2 = _try_stat(self.tmpname2)
-        if not st1.st_size and not st1b:
-            warn("%s: %s deleted %s; don't do that.\n"
-                 % (_nice(t), argv[2], self.tmpname1))
-            # not fatal, continue
-        if st1.st_size > 0 and not st1b:
-            err('%s: %s wrote to stdout but deleted %s.\n'
-                % (_nice(t), argv[2], self.tmpname1))
-            rv = 207
-        elif (after_t and
+        st1 = os.fstat(outfile.fileno())
+        st2 = _try_stat(self.tmpname)
+        if (after_t and
                 (not before_t or before_t.st_mtime != after_t.st_mtime) and
                 not stat.S_ISDIR(after_t.st_mode)):
             err('%s modified %s directly!\n' % (argv[2], t))
@@ -368,9 +374,11 @@ class _BuildJob(object):
             # FIXME: race condition here between updating stamp/is_generated
             # and actually renaming the files into place.  There needs to
             # be some kind of two-stage commit, I guess.
-            if st2:
+            if st1.st_size > 0:
+                # script wrote to stdout.  Copy its contents to the tmpfile.
+                unlink(self.tmpname)
                 try:
-                    os.rename(self.tmpname2, t)
+                    newf = open(self.tmpname, 'w')
                 except OSError, e:
                     dnt = os.path.dirname(t)
                     if not os.path.exists(dnt):
@@ -380,23 +388,32 @@ class _BuildJob(object):
                     else:
                         # I don't know why this would happen, so raise the
                         # full exception if it ever does.
-                        err('%s: rename %s: %s\n' % (t, self.tmpname2, e))
+                        err('%s: save stdout to %s: %s\n'
+                            % (t, self.tmpname, e))
                         raise
-                unlink(self.tmpname1)
-            elif st1.st_size > 0:
+                else:
+                    self.outfile.seek(0)
+                    while 1:
+                        b = self.outfile.read(1024*1024)
+                        if not b:
+                            break
+                        newf.write(b)
+                    newf.close()
+                    st2 = _try_stat(self.tmpname)
+            if st2:
+                # either $3 file was created *or* stdout was written to.
+                # therefore tmpfile now exists.
                 try:
-                    os.rename(self.tmpname1, t)
+                    # Atomically replace the target file
+                    os.rename(self.tmpname, t)
                 except OSError, e:
-                    if e.errno == errno.ENOENT:
-                        unlink(t)
-                    else:
-                        err('%s: can\'t save stdout to %r: %s\n' %
-                            (argv[2], t, e.strerror))
-                        rv = 1000
-                if st2:
-                    os.unlink(self.tmpname2)
+                    # Nowadays self.tmpname is in the same directory as
+                    # t, so there's no very good reason for this to
+                    # fail. Thus, raise the full exception if it ever
+                    # does.
+                    err('%s: rename %s: %s\n' % (t, self.tmpname, e))
+                    raise
             else: # no output generated at all; that's ok
-                unlink(self.tmpname1)
                 unlink(t)
             sf = self.sf
             sf.refresh()
@@ -412,13 +429,12 @@ class _BuildJob(object):
                 sf.update_stamp()
                 sf.set_changed()
         else:
-            unlink(self.tmpname1)
-            unlink(self.tmpname2)
+            unlink(self.tmpname)
             sf = self.sf
             sf.set_failed()
         sf.zap_deps2()
         sf.save()
-        f.close()
+        outfile.close()
         meta('done', '%d %s' % (rv, state.target_relpath(self.t)))
         return rv
 

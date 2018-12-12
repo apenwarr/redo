@@ -102,31 +102,32 @@ check_s "" "$_dirsplit_base"
 
 
 SECTION _relpath
-check "a/b/c"  _relpath "$PWD/a/b/c"
-check "../a/b/c"  _relpath "$PWD/../a/b/c"
-check ""  _relpath "$PWD"
-(cd / && check "a/b/c"  _relpath a/b/c)
-(cd / && check "a/b/c"  _relpath /a/b/c)
-(cd / && check ""  _relpath /)
-(cd /usr/bin && check "../lib"  _relpath /usr/lib)
-(cd /usr/bin && check "../lib/"  _relpath /usr/lib/)
-(cd /usr/bin && check "../.."  _relpath /)
-(cd fakedir && check ".."  _relpath ..)
-(cd fakedir && check "../"  _relpath ../)
-(cd fakedir && check "../fakedir"  _relpath ../fakedir)
+x=$PWD/x
+check "a/b/c"  _relpath "$x/a/b/c" "$x"
+check "../a/b/c"  _relpath "$x/../a/b/c" "$x"
+check ""  _relpath "$x" "$x"
+check "a/b/c"  _relpath a/b/c "/"
+check "a/b/c"  _relpath /a/b/c "/"
+check ""  _relpath / "/"
+check "../lib"  _relpath /usr/lib "/usr/bin"
+check "../lib/"  _relpath /usr/lib/ "/usr/bin"
+check "../.."  _relpath / "/usr/bin"
+check ".."  _relpath .. "$PWD/fakedir"
+check "../"  _relpath ../ "$PWD/fakedir"
+check "../fakedir"  _relpath ../fakedir "$PWD/fakedir"
 
 
 SECTION _normpath
-check "/usr/lib"  _normpath /usr/../usr/bin/../lib
-check "/"  _normpath /a/b/c/../../..
-check "/"  _normpath /
-check "../a" _normpath ../a
-(cd fakedir && check "../a/b"  _normpath ../a/b)
-(cd fakedir && check ".." _normpath ..)
-(cd / && check "tuv"  _normpath a/b/../../tuv)
-(cd / && check ""  _normpath a/b/../..)
-check ".." _normpath ../
-check ".." _normpath ..
+check "/usr/lib"  _normpath /usr/../usr/bin/../lib "$x"
+check "/"  _normpath /a/b/c/../../.. "$x"
+check "/"  _normpath / "$x"
+check "../a" _normpath ../a "$x"
+check "../a/b"  _normpath ../a/b "$x/fakedir"
+check ".." _normpath .. "$x/fakedir"
+check "tuv"  _normpath a/b/../../tuv "/"
+check ""  _normpath a/b/../.. "/"
+check ".." _normpath ../ "$x"
+check ".." _normpath .. "$x"
 
 
 SECTION _find_dofile

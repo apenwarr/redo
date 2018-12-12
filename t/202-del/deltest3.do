@@ -10,7 +10,7 @@ cat >destruct2.do <<-EOF
 	echo 'stdout'
 EOF
 
-# deleting unused stdout file is a warning only
+# deleting unused stdout file is a warning at most
 redo destruct1 2>destruct1.log || exit 11
 [ "$(cat destruct1)" = "redir" ] || exit 12
 
