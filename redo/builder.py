@@ -344,8 +344,17 @@ class _BuildJob(object):
         before_t = self.before_t
         after_t = _try_stat(t)
         st1 = os.fstat(f.fileno())
+        st1b = _try_stat(self.tmpname1)
         st2 = _try_stat(self.tmpname2)
-        if (after_t and
+        if not st1.st_size and not st1b:
+            warn("%s: %s deleted %s; don't do that.\n"
+                 % (_nice(t), argv[2], self.tmpname1))
+            # not fatal, continue
+        if st1.st_size > 0 and not st1b:
+            err('%s: %s wrote to stdout but deleted %s.\n'
+                % (_nice(t), argv[2], self.tmpname1))
+            rv = 207
+        elif (after_t and
                 (not before_t or before_t.st_mtime != after_t.st_mtime) and
                 not stat.S_ISDIR(after_t.st_mode)):
             err('%s modified %s directly!\n' % (argv[2], t))
@@ -365,11 +374,15 @@ class _BuildJob(object):
                 except OSError, e:
                     dnt = os.path.dirname(t)
                     if not os.path.exists(dnt):
+                        # This could happen, so report a simple error message
+                        # that gives a hint for how to fix your .do script.
                         err('%s: target dir %r does not exist!\n' % (t, dnt))
                     else:
+                        # I don't know why this would happen, so raise the
+                        # full exception if it ever does.
                         err('%s: rename %s: %s\n' % (t, self.tmpname2, e))
                         raise
-                os.unlink(self.tmpname1)
+                unlink(self.tmpname1)
             elif st1.st_size > 0:
                 try:
                     os.rename(self.tmpname1, t)

@@ -1,1 +1,1 @@
-redo deltest deltest2
+redo deltest deltest2 deltest3
