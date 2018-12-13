@@ -374,23 +374,22 @@ class _BuildJob(object):
             # FIXME: race condition here between updating stamp/is_generated
             # and actually renaming the files into place.  There needs to
             # be some kind of two-stage commit, I guess.
-            if st1.st_size > 0:
+            if st1.st_size > 0 and not st2:
                 # script wrote to stdout.  Copy its contents to the tmpfile.
                 unlink(self.tmpname)
                 try:
                     newf = open(self.tmpname, 'w')
-                except OSError, e:
-                    dnt = os.path.dirname(t)
+                except IOError, e:
+                    dnt = os.path.dirname(os.path.abspath(t))
                     if not os.path.exists(dnt):
                         # This could happen, so report a simple error message
                         # that gives a hint for how to fix your .do script.
                         err('%s: target dir %r does not exist!\n' % (t, dnt))
                     else:
-                        # I don't know why this would happen, so raise the
-                        # full exception if it ever does.
-                        err('%s: save stdout to %s: %s\n'
-                            % (t, self.tmpname, e))
-                        raise
+                        # This could happen for, eg. a permissions error on
+                        # the target directory.
+                        err('%s: copy stdout: %s\n' % (t, e))
+                    rv = 209
                 else:
                     self.outfile.seek(0)
                     while 1:
@@ -407,12 +406,10 @@ class _BuildJob(object):
                     # Atomically replace the target file
                     os.rename(self.tmpname, t)
                 except OSError, e:
-                    # Nowadays self.tmpname is in the same directory as
-                    # t, so there's no very good reason for this to
-                    # fail. Thus, raise the full exception if it ever
-                    # does.
+                    # This could happen for, eg. a permissions error on
+                    # the target directory.
                     err('%s: rename %s: %s\n' % (t, self.tmpname, e))
-                    raise
+                    rv = 209
             else: # no output generated at all; that's ok
                 unlink(t)
             sf = self.sf

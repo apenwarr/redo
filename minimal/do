@@ -36,7 +36,7 @@ _dirsplit()
 }
 
 # Like /usr/bin/dirname, but avoids a fork and uses _dirsplit semantics.
-dirname()
+qdirname()
 (
 	_dirsplit "$1"
 	dir=${_dirsplit_dir%/}
@@ -283,7 +283,7 @@ _run_dofile()
 # done.
 _do()
 {
-	local dir="$1" target="$1$2" tmp="$1$2.redo.tmp"
+	local dir="$1" target="$1$2" tmp="$1$2.redo.tmp" tdir=
 	local dopath= dodir= dofile= ext=
 	if [ "$_cmd" = "redo" ] ||
 	    ( [ ! -e "$target" -o -d "$target" ] &&
@@ -309,7 +309,8 @@ _do()
 		target=$(_relpath "$target" "$PWD") || return 98
 		tmp=$(_relpath "$tmp" "$PWD") || return 97
 		base=${target%$ext}
-		[ ! -e "$DO_BUILT" ] || [ ! -d "$(dirname "$target")" ] ||
+		tdir=$(qdirname "$target")
+		[ ! -e "$DO_BUILT" ] || [ ! -w "$tdir/." ] ||
 		: >>"$target.did.tmp"
 		# $qtmp is a temporary file used to capture stdout.
 		# Since it might be accidentally deleted as a .do file
