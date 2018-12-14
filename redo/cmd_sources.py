@@ -1,3 +1,4 @@
+"""redo-sources: list the known source (not target) files."""
 import sys, os
 from . import env, logs, state
 

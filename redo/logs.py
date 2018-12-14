@@ -1,3 +1,4 @@
+"""Code for writing log-formatted messages to stderr."""
 import os, re, sys, time
 from . import env
 
@@ -24,6 +25,8 @@ def _check_tty(tty, color):
 
 
 class RawLog(object):
+    """A log printer for machine-readable logs, suitable for redo-log."""
+
     def __init__(self, tty):
         self.file = tty
 
@@ -39,6 +42,8 @@ REDO_RE = re.compile(r'@@REDO:([^@]+)@@ (.*)$')
 
 
 class PrettyLog(object):
+    """A log printer for human-readable logs."""
+
     def __init__(self, tty):
         self.topdir = os.getcwd()
         self.file = tty
@@ -53,6 +58,7 @@ class PrettyLog(object):
                      BOLD if color else '', s, PLAIN, '\n']))
 
     def write(self, s):
+        """Write the string 's' to the log."""
         assert '\n' not in s
         sys.stdout.flush()
         sys.stderr.flush()

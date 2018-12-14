@@ -1,3 +1,4 @@
+"""redo-ifcreate: build the current target if these targets are created."""
 import sys, os
 from . import env, logs, state
 from .logs import err

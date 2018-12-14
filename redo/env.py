@@ -1,3 +1,4 @@
+"""Manage redo-related environment variables."""
 import os, sys
 from .atoi import atoi
 

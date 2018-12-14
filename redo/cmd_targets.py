@@ -1,3 +1,4 @@
+"""redo-targets: list the known targets (not sources)."""
 import sys, os
 from . import env, logs, state
 

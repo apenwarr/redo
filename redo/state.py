@@ -1,3 +1,4 @@
+"""Code for manipulating redo's state database."""
 import sys, os, errno, stat, fcntl, sqlite3
 from . import cycles, env
 from .helpers import unlink, close_on_exec, join
@@ -31,6 +32,7 @@ _lockfile = None
 
 _db = None
 def db():
+    """Initialize the state database and return its object."""
     global _db, _lockfile
     if _db:
         return _db
@@ -151,6 +153,7 @@ def check_sane():
 
 _cwd = None
 def relpath(t, base):
+    """Given a relative or absolute path t, express it relative to base."""
     global _cwd
     if not _cwd:
         _cwd = os.getcwd()
@@ -210,6 +213,8 @@ _file_cols = ['rowid', 'name', 'is_generated', 'is_override',
               'checked_runid', 'changed_runid', 'failed_runid',
               'stamp', 'csum']
 class File(object):
+    """An object representing a source or target in the redo database."""
+
     # use this mostly to avoid accidentally assigning to typos
     __slots__ = ['id'] + _file_cols[1:]
 
@@ -324,6 +329,7 @@ class File(object):
             self.set_changed()
 
     def is_source(self):
+        """Returns true if this object represents a source (not a target)."""
         if self.name.startswith('//'):
             return False  # special name, ignore
         newstamp = self.read_stamp()
@@ -341,6 +347,7 @@ class File(object):
         return True
 
     def is_target(self):
+        """Returns true if this object represents a target (not a source)."""
         if not self.is_generated:
             return False
         if self.is_source():
@@ -357,6 +364,7 @@ class File(object):
         return self.failed_runid and self.failed_runid >= env.v.RUNID
 
     def deps(self):
+        """Return the list of objects that this object depends on."""
         if self.is_override or not self.is_generated:
             return
         q = ('select Deps.mode, Deps.source, %s '
@@ -370,10 +378,21 @@ class File(object):
             yield mode, File(cols=cols)
 
     def zap_deps1(self):
+        """Mark the list of dependencies of this object as deprecated.
+
+        We do this when starting a new build of the current target.  We don't
+        delete them right away, because if the build fails, we still want to
+        know the old deps.
+        """
         debug2('zap-deps1: %r\n' % self.name)
         _write('update Deps set delete_me=? where target=?', [True, self.id])
 
     def zap_deps2(self):
+        """Delete any deps that were *not* referenced in the current run.
+
+        Dependencies of a given target can change from one build to the next.
+        We forget old dependencies only after a build completes successfully.
+        """
         debug2('zap-deps2: %r\n' % self.name)
         _write('delete from Deps where target=? and delete_me=1', [self.id])
 
@@ -438,7 +457,10 @@ def logname(fid):
 # The makes debugging a bit harder.  When we someday port to C, we can do that.
 _locks = {}
 class Lock(object):
+    """An object representing a lock on a redo target file."""
+
     def __init__(self, fid):
+        """Initialize a lock, given the target's state.File.id."""
         self.owned = False
         self.fid = fid
         assert _lockfile >= 0
@@ -451,10 +473,12 @@ class Lock(object):
             self.unlock()
 
     def check(self):
+        """Check that this lock is in a sane state."""
         assert not self.owned
         cycles.check(self.fid)
 
     def trylock(self):
+        """Non-blocking try to acquire our lock; returns true if it worked."""
         self.check()
         assert not self.owned
         try:
@@ -469,6 +493,12 @@ class Lock(object):
         return self.owned
 
     def waitlock(self, shared=False):
+        """Try to acquire our lock, and wait if it's currently locked.
+
+        If shared=True, acquires a shared lock (which can be shared with
+        other shared locks; used by redo-log).  Otherwise, acquires an
+        exclusive lock.
+        """
         self.check()
         assert not self.owned
         fcntl.lockf(
@@ -478,6 +508,7 @@ class Lock(object):
         self.owned = True
 
     def unlock(self):
+        """Release the lock, which we must currently own."""
         if not self.owned:
             raise Exception("can't unlock %r - we don't own it"
                             % self.fid)

@@ -1,3 +1,4 @@
+"""redo-stamp: tell redo to use a checksum when considering this target."""
 import sys, os
 from . import env, logs, state
 from .logs import debug2

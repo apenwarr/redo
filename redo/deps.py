@@ -1,3 +1,4 @@
+"""Code for checking redo target dependencies."""
 import os
 from . import cycles, env, state
 from .logs import debug
@@ -10,6 +11,29 @@ def isdirty(f, depth, max_changed,
             is_checked=state.File.is_checked,
             set_checked=state.File.set_checked_save,
             log_override=state.warn_override):
+    """Determine if the given state.File needs to be built.
+
+    Args:
+      f: a state.File representing the target to check.
+      depth: a string of whitespace representing the recursion depth
+        (initially '')
+      max_changed: initially the current runid.  If a target is newer than
+        this, anything that depends on it is considered outdated.
+      already_checked: initially [].  A list of dependencies already
+        checked in this recursive cycle, to avoid infinite loops.
+      is_checked: a function that returns whether a given state.File has
+        already been checked for dirtiness.
+      set_checked: a function that marks a given state.File as having now
+        been checked for dirtiness.
+      log_override: a function that logs a "manual override" warning when
+        needed.  (redo-ood replaces this with a no-op.)
+
+    Returns:
+      [targets...] if we won't be sure until the given list of targets has
+        been built.
+      DIRTY if the given target is definitely dirty.
+      CLEAN if the given target is definitely not dirty.
+    """
     if f.id in already_checked:
         raise cycles.CyclicDependencyError()
     # make a copy of the list, so upon returning, our parent's copy

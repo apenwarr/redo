@@ -1,3 +1,4 @@
+"""redo-unlocked: internal tool for building dependencies."""
 import sys, os
 from . import env, logs, state
 

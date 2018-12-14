@@ -1,3 +1,4 @@
+"""Some helper functions that don't fit anywhere else."""
 import os, errno, fcntl
 
 

@@ -1,3 +1,4 @@
+"""redo: build the listed targets whether they need it or not."""
 #
 # Copyright 2010-2018 Avery Pennarun and contributors
 #

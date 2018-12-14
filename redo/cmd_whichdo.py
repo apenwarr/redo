@@ -1,3 +1,4 @@
+"""redo-whichdo: list the set of .do files considered to build a target."""
 import sys, os
 from . import env, logs, paths
 from .logs import err

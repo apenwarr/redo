@@ -1,3 +1,4 @@
+"""Code for manipulating file paths."""
 import os
 from . import env
 from .logs import debug2
@@ -14,6 +15,7 @@ def _default_do_files(filename):
 
 
 def possible_do_files(t):
+    """Yield a list of tuples describing the .do file needed to build t."""
     dirname, filename = os.path.split(t)
     yield (os.path.join(env.v.BASE, dirname), "%s.do" % filename,
            '', filename, '')

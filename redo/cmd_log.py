@@ -1,3 +1,4 @@
+"""redo-log: print past build logs. """
 import errno, fcntl, os, re, struct, sys, time
 import termios
 from .atoi import atoi
@@ -60,6 +61,10 @@ def _rel(top, mydir, path):
 
 
 def catlog(t):
+    """Copy the given log content to our current log output device.
+
+    Note: this function's behaviour depends on global command-line options.
+    """
     global total_lines, status
     if t in already:
         return

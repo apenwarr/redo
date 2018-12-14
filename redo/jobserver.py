@@ -1,5 +1,4 @@
-#
-# Implementation of a GNU make-compatible jobserver.
+"""Implementation of a GNU make-compatible jobserver."""
 #
 # The basic idea is that both ends of a pipe (tokenfds) are shared with all
 # subprocesses.  At startup, we write one "token" into the pipe for each
@@ -201,6 +200,7 @@ def _try_read_all(fd, n):
 
 
 def setup(maxjobs):
+    """Start the jobserver (if it isn't already) with the given token count."""
     global _tokenfds, _cheatfds, _toplevel
     assert maxjobs > 0
     assert not _tokenfds

@@ -1,3 +1,4 @@
+"""Code for manipulating the Unix process title."""
 import os, sys
 
 # FIXME: setproctitle module is only usable if *not* using python -S,

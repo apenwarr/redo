@@ -1,3 +1,4 @@
+"""redo-always: tell redo that the current target is always out of date."""
 import sys, os
 from . import env, logs, state
 

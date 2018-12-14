@@ -1,3 +1,4 @@
+"""redo-ood: list out-of-date (ood) targets."""
 import sys, os
 from . import deps, env, logs, state
 
