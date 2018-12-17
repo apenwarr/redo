@@ -273,6 +273,8 @@ _run_dofile()
 		exec /$cmd "$PWD/$dofile" "$@"
 	else
 		set -$_do_opt_verbose$_do_opt_exec
+		# If $dofile is empty, "." might not change $? at
+		# all, so we clear it first with ":".
 		:; . "$PWD/$dofile"
 	fi
 }
@@ -336,7 +338,12 @@ _do()
 				# if that's zero length too, forget it
 				[ -s "$tmp" ] || rm -f "$tmp"
 			fi
-		) 3>$qtmp 4<$qtmp || return
+		) 3>$qtmp 4<$qtmp  # can't use "|| return" here...
+		# ...because "|| return" would mess up "set -e" inside the ()
+		# on some shells.  Running commands in "||" context, even
+		# deep inside, will stop "set -e" from functioning.
+		rv=$?
+		[ "$rv" = 0 ] || return "$rv"
 		mv "$tmp" "$target" 2>/dev/null
 		[ -e "$target.did.tmp" ] &&
 		mv "$target.did.tmp" "$target.did" ||
