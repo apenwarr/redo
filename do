@@ -66,6 +66,11 @@ case $target in
 		build && bin/redo $args "$target"
 		;;
 	test)
+		# Be intentionally confusing about paths, to try to
+		# detect bugs.
+		rm -f 't/symlink path'
+		ln -s .. 't/symlink path' || die 'failed to make test dir.'
+		cd 't/symlink path/t/symlink path'
 		# First test minimal/do
 		build
 		# Add ./redo to PATH so we launch with redo/sh as the shell

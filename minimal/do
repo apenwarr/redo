@@ -204,6 +204,38 @@ _normpath()
 )
 
 
+# Prints a "real" path, with all symlinks resolved where possible.
+_realpath()
+{
+	local path="$1" relto="$2" isabs= rest=
+	if _startswith "$path" "/"; then
+		isabs=1
+	else
+		path="${relto%/}/$path"
+	fi
+	(
+		for d in $(seq 100); do
+			#echo "Trying: $PWD--$path" >&2
+			if cd -P "$path" 2>/dev/null; then
+				# success
+				pwd=$(/bin/pwd)
+				#echo "  chdir ok: $pwd--$rest" >&2
+				np=$(_normpath "${pwd%/}/$rest" "$relto")
+				if [ -n "$isabs" ]; then
+					echo "$np"
+				else
+					_relpath "$np" "$relto"
+				fi
+				break
+			fi
+			_dirsplit "${path%/}"
+			path=$_dirsplit_dir
+			rest="$_dirsplit_base/$rest"
+		done
+	)
+}
+
+
 # List the possible names for default*.do files in dir $1 matching the target
 # pattern in $2.  We stop searching when we find the first one that exists.
 _find_dofiles_pwd()
@@ -241,7 +273,7 @@ _find_dofiles()
 		[ -n "$dodir" ] && dodir=${dodir%/}/
 		#echo "_find_dofiles: '$dodir' '$dofile'" >&2
 		_find_dofiles_pwd "$dodir" "$dofile" && return 0
-		newdir=$(_normpath "${dodir}.." "$PWD")
+		newdir=$(_realpath "${dodir}.." "$PWD")
 		[ "$newdir" = "$dodir" ] && break
 		dodir=$newdir
 	done
@@ -369,7 +401,7 @@ _redo()
 		i=$(_abspath "$i" "$startdir")
 		(
 			cd "$DO_STARTDIR" || return 99
-			i=$(_normpath "$(_relpath "$i" "$PWD")" "$PWD")
+			i=$(_realpath "$(_relpath "$i" "$PWD")" "$PWD")
 			_dirsplit "$i"
 			dir=$_dirsplit_dir base=$_dirsplit_base
 			_do "$dir" "$base"

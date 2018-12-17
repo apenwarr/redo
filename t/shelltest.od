@@ -474,6 +474,12 @@ set x y z
 x=$(printf "a%-5sc" "b")
 [ "$x" = "ab    c" ] || warn 119
 
+# Make sure cd supports -L and -P options properly
+rm -f shlink
+ln -s . shlink
+(cd -L shlink/shlink/shlink/../shlink) || fail 120
+(cd -P shlink/shlink/shlink/../shlink) && fail 121
+
 [ -e shelltest.failed ] && exit 41
 [ -e shelltest.warned ] && exit 42
 exit 40

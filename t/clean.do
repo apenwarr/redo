@@ -2,6 +2,6 @@
 sed 's/\.do$//' |
 xargs redo
 
-rm -f broken shellfile shellfail shelltest.warned shelltest.failed \
-	*~ .*~ stress.log flush-cache
+rm -f broken shellfile shellfail shelltest.warned shelltest.failed shlink \
+	*~ .*~ stress.log flush-cache 'symlink path'
 rm -rf 'space home dir'

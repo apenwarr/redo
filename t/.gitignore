@@ -3,5 +3,7 @@
 /shellfail
 /shelltest.warned
 /shelltest.failed
+/shlink
 /stress.log
+/symlink path
 /flush-cache

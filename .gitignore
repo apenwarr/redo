@@ -3,6 +3,7 @@
 /.do_built.dir
 /minimal/.do_built
 /minimal/.do_built.dir
+/minimal/y
 *~
 *.tmp
 *.did

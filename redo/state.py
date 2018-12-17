@@ -151,14 +151,28 @@ def check_sane():
     return not _insane
 
 
+def _realdirpath(t):
+    """Like realpath(), but don't follow symlinks for the last element.
+
+    redo needs this because targets can be symlinks themselves, and we want
+    to talk about the symlink, not what it points at.  However, all the path
+    elements along the way could result in pathname aliases for a *particular*
+    target, so we want to resolve it to one unique name.
+    """
+    dname, fname = os.path.split(t)
+    if dname:
+        dname = os.path.realpath(dname)
+    return os.path.join(dname, fname)
+
+
 _cwd = None
 def relpath(t, base):
     """Given a relative or absolute path t, express it relative to base."""
     global _cwd
     if not _cwd:
         _cwd = os.getcwd()
-    t = os.path.normpath(os.path.join(_cwd, t))
-    base = os.path.normpath(base)
+    t = os.path.normpath(_realdirpath(os.path.join(_cwd, t)))
+    base = os.path.normpath(_realdirpath(base))
     tparts = t.split('/')
     bparts = base.split('/')
     for tp, bp in zip(tparts, bparts):
@@ -172,7 +186,9 @@ def relpath(t, base):
     return join('/', tparts)
 
 
-# Return a path for t, if cwd were the dirname of env.v.TARGET.
+# Return a relative path for t that will work after we do
+# chdir(dirname(env.v.TARGET)).
+#
 # This is tricky!  STARTDIR+PWD is the directory for the *dofile*, when
 # the dofile was started.  However, inside the dofile, someone may have done
 # a chdir to anywhere else.  env.v.TARGET is relative to the dofile path, so
