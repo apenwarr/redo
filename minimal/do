@@ -44,7 +44,9 @@ qdirname()
 )
 
 _dirsplit "$0"
-REDO=$(cd "${_dirsplit_dir:-.}" && echo "$PWD/$_dirsplit_base")
+REDO=$(cd "$(/bin/pwd)" &&
+	cd "${_dirsplit_dir:-.}" &&
+	echo "$PWD/$_dirsplit_base")
 export REDO
 _cmd=$_dirsplit_base
 
@@ -77,7 +79,11 @@ if [ -z "$DO_BUILT" -a "$_cmd" != "redo-whichdo" ]; then
 	if [ "$#" -eq 0 ] && [ "$_cmd" = "do" -o "$_cmd" = "redo" ]; then
 		set all  # only toplevel redo has a default target
 	fi
-	export DO_STARTDIR="$PWD"
+	export DO_STARTDIR="$(/bin/pwd)"
+	# If starting /bin/pwd != $PWD, this will fix it.
+	# That can happen when $PWD contains symlinks that the shell is
+	# trying helpfully (but unsuccessfully) to hide from the user.
+	cd "$DO_STARTDIR" || exit 99
 	export DO_BUILT="$PWD/.do_built"
 	if [ -z "$_do_opt_clean" -a -e "$DO_BUILT" ]; then
 		echo "do: Incremental mode. Use -c for clean rebuild." >&2
