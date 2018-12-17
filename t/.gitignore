@@ -1,4 +1,6 @@
 /broken
 /shellfile
+/shelltest.warned
+/shelltest.failed
 /stress.log
 /flush-cache

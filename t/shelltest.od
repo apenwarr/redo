@@ -2,7 +2,7 @@
 # Most of these tests were inspired by:
 # http://www.gnu.org/software/hello/manual/autoconf/Shell-Substitutions.html
 #
-# Note that this file isn't really a test for POSIX compliance.  It's a test
+# Note that this file isn't exactly a test for POSIX compliance.  It's a test
 # for usefulness-compliance, that is, interpreting POSIX in a particular way
 # for consistency, so that users of redo can depend on all the following
 # functionality.
@@ -15,18 +15,18 @@
 exec >&2
 set +e
 
-FAIL=
+rm -f shelltest.failed shelltest.warned
 
 fail()
 {
 	echo "  failed: $1"
-	FAIL=41
+	: >shelltest.failed
 }
 
 warn()
 {
 	echo "  warning: $1"
-	[ -n "$FAIL" ] || FAIL=42
+	: >shelltest.warned
 }
 
 quiet_stderr()
@@ -417,5 +417,6 @@ set x y z
 x=$(printf "a%-5sc" "b")
 [ "$x" = "ab    c" ] || warn 119
 
-[ -n "$FAIL" ] || exit 40
-exit $FAIL
+[ -e shelltest.failed ] && exit 41
+[ -e shelltest.warned ] && exit 42
+exit 40

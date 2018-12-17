@@ -13,7 +13,7 @@ WARN=
 # use some non-portable feature.
 for sh in dash /usr/xpg4/bin/sh ash posh mksh ksh ksh88 ksh93 pdksh \
 		zsh bash busybox /bin/sh; do
-	printf "%-30s" "Testing $sh..."
+	printf " %-22s" "$sh..."
 	FOUND=`which $sh 2>/dev/null` || { echo "missing"; continue; }
 	
 	# It's important for the file to actually be named 'sh'.  Some
