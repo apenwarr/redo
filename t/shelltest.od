@@ -29,6 +29,12 @@ warn()
 	: >shelltest.warned
 }
 
+# For things that should be a warning, but which are just too common
+skip()
+{
+	echo "  skip: $1"
+}
+
 quiet_stderr()
 {
 	if [ -n "$SHELLTEST_QUIET" ]; then
@@ -185,17 +191,20 @@ c"
 [ "$t2" = "$WANT" ] || fail 45
 
 
-# Arguably, 'export' and 'local' shouldn't change variable assignment quoting
-# rules, but in almost all shells (except bash), they do, and POSIX doesn't say
-# anything about it.  So let's not bother testing this, other than just letting
-# it check our syntax.
-#
+# Arguably, 'export' and 'local' shouldn't change variable assignment
+# quoting rules, but in many shells they do, and POSIX doesn't say anything
+# about it.  This leads to really confusing whitespace bugs in some shells,
+# where
+#     local x; x=$a
+# and
+#     local x=$a
+# mean two different things when $a contains whitespace.
 bob="a b *"
 bob=$(quiet_stderr eval 'export bob=$bob:hello'; echo "$bob")
-#[ "$bob" = "a b *:hello" ] || warn 46
+[ "$bob" = "a b *:hello" ] || skip 46
 bob="a b *"
 nob=$(eval 'f() { local nob=$bob:hello; echo "$nob"; }'; quiet_stderr f)
-#[ "$nob" = "a b *:hello" ] || warn 47
+[ "$nob" = "a b *:hello" ] || skip 47
 
 
 # Someone pointed out that temporary variable assignments aren't
@@ -247,14 +256,14 @@ echo "`printf 'foo\r\n'`"" bar" | diff -q - broken || fail 59
 
 
 #
-# This one is too obnoxious.  dash and ash pass the test, but most shells don't,
-# and this case is just too dumb to care about.  Just don't do that!
+# This one is too obnoxious.  dash and ash pass the test, but most shells
+# don't, and this case is just too dumb to care about.  Just don't do that!
 #
-#t=`echo $(case x in x) echo hello;; esac)`
-#[ "$t" = "hello" ] || fail 60
+t=`echo $(case x in x) echo hello;; esac)`
+[ "$t" = "hello" ] || skip 60
 #
-# Note that with the little-known optional left-paren, this *does* work.  Let's
-# try it to make sure that remains true.
+# Note that with the little-known optional left-paren, this *does* work.
+# Let's try it to make sure that remains true.
 t=`echo $(case x in (x) echo hello;; esac)`
 [ "$t" = "hello" ] || fail 60
 
@@ -328,6 +337,53 @@ rv=$?
 [ "$rv" = 0 ] || fail 89
 
 
+rm -f shellfail
+echo "false; true" >shellfail
+
+# 'false' should *not* abort because outer context has "||".
+# Then 'true' gives success.
+set +e
+(
+	set -e
+	false
+	true
+) || fail 89a
+
+# 'false' still should not abort even in a subshell.
+set +e
+(
+	set -e
+	( false; true )
+	[ "$?" = 0 ] || fail 89b1
+	true
+) || fail 89b
+
+# Check whether "." scripts inherit "set -e" setting *and* the outer "||"
+# context.
+set +e
+(
+	set -e
+	( . ./shellfail )
+	# There seems to be widespread disagreement on what should happen
+	# here.  All shells seem to inherit "set -e" into a "." script, but
+	# they disagree about whether the outer "||" context (which
+	# effectively disables "set -e") should be inherited.  ksh93, bash,
+	# and zsh inherit it, while ash, dash, and mksh (among others) throw
+	# it away, causing "set -e" to abort.
+	#
+	# Honestly, the latter behaviour seems a lot more like what I'd
+	# expect (a separate script doesn't want its "set -e" behaviour
+	# to depend on whether it's deep in a context with an "||" somewhere
+	# outside it), so let's warn on the former.  But I'm willing to hear
+	# arguments either way.  -- apenwarr
+	[ "$?" = 0 ] && warn 89c
+	# even if "." aborted and returned nonzero, our own context should
+	# not have aborted, so we expect to get here and avoid the outer
+	# fail below.
+	true
+) || fail 89c1
+
+
 # http://www.gnu.org/software/hello/manual/autoconf/Limitations-of-Builtins.html
 . /dev/null || fail 90
 (! : | :) && fail 91 || true
@@ -338,7 +394,7 @@ case frog.c in
 	(*) t3=all ;;
 esac
 [ "$t3" = "c" ] || fail 93
-t4=$(echo '\n' | wc -l)
+t4=$(echo '\n' | wc -l)  # echo should *not* be parsing backslash-escapes
 [ "$t4" -eq 1 ] || warn 94
 f5() {
 	for arg; do
@@ -400,9 +456,10 @@ false
 # this is actually a bash/kshism, but is allowed by POSIX: the parameters to
 # '.' should be passed to the sub-script.
 #
-# We used to require this, because it's so useful despite being optional in POSIX.
-# But unfortunately, too many shells (including dash) can't do it, so we ended up
-# always using bash, which leads people to write .do scripts with bashisms.
+# We used to require this, because it's so useful despite being optional in
+# POSIX.  But unfortunately, too many shells (including dash) can't do it,
+# so we ended up always using bash, which leads people to write .do scripts
+# with bashisms.
 set x y z
 # dotparams.od might warn 115
 . ./dotparams.od a b || fail 117

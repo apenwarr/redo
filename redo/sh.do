@@ -36,9 +36,11 @@ for sh in dash /usr/xpg4/bin/sh ash posh \
 		#echo "line: '$line'" >&2
 		stripw=${line#warning: }
 		stripf=${line#failed: }
+		strips=${line#skip: }
 		crash=$line
 		[ "$line" = "$stripw" ] || msgs="$msgs W$stripw"
 		[ "$line" = "$stripf" ] || msgs="$msgs F$stripf"
+		[ "$line" = "$strips" ] || msgs="$msgs s$strips"
 	done <shelltest.tmp
 	rm -f shelltest.tmp
 	msgs=${msgs# }
