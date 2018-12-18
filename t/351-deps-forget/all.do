@@ -61,9 +61,9 @@ truth="
 	src del nil   ran  ran    no   0 1 0
 	src del add   ran  ran    no   0 1 0
 
-	src add err   skip skip   no   1 0 0   # source updated
-	src add nil   skip skip   no   1 0 0
-	src add add   skip skip   no   1 0 0
+	src add err   ran  skip   no   1 0 0   # source updated
+	src add nil   ran  skip   no   1 0 0
+	src add add   ran  skip   no   1 0 0
 
 	# File was initially a target that produced nil
 	nil nop err   skip ran    no   0 0 0   # content forgotten
@@ -74,9 +74,9 @@ truth="
 	nil del nil   ran  ran    no   0 1 0
 	nil del add   ran  ran    no   0 1 0
 
-	nil add err   skip skip   warn 1 0 0   # content overridden
-	nil add nil   skip skip   warn 1 0 0
-	nil add add   skip skip   warn 1 0 0
+	nil add err   ran  skip   warn 1 0 0   # content overridden
+	nil add nil   ran  skip   warn 1 0 0
+	nil add add   ran  skip   warn 1 0 0
 
 	# File was initially a target that produced output
 	add nop err   skip ran    no   0 1 1   # update failed
@@ -87,9 +87,9 @@ truth="
 	add del nil   ran  ran    no   0 1 0
 	add del add   ran  ran    no   0 1 0
 
-	add add err   skip skip   warn 1 0 0   # content overridden
-	add add nil   skip skip   warn 1 0 0
-	add add add   skip skip   warn 1 0 0
+	add add err   ran  skip   warn 1 0 0   # content overridden
+	add add nil   ran  skip   warn 1 0 0
+	add add add   ran  skip   warn 1 0 0
 "
 
 echo "$truth" |
@@ -150,7 +150,7 @@ while read pre update post   subran ran   warn   src targ ood XX; do
 	case $update in
 	  nop) ;;
 	  del) rm -f bork; skip=1 ;;
-	  add) echo override >>bork ;;
+	  add) echo override >>bork; skip=1 ;;
 	  *) exit 91 ;;
 	esac
 
