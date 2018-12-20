@@ -15,6 +15,8 @@
 exec >&2
 set +e
 
+: ${SHELLTEST_QUIET:=}
+
 rm -f shelltest.failed shelltest.warned
 
 fail()
@@ -206,6 +208,32 @@ bob="a b *"
 nob=$(eval 'f() { local nob=$bob:hello; echo "$nob"; }'; quiet_stderr f)
 [ "$nob" = "a b *:hello" ] || skip 47
 
+
+# 'local' should clear the variable being declared, and 'set -u' should
+# abort if you try to substitute an unset variable.
+x=5
+f() (
+	unset y1 y2 g
+	local x y1= y2
+	# dash, ksh, and FreeBSD sh fail this one, so we have to let it slide.
+	# That means in scripts, you should always initialize your locals with
+	# eg. "local x=" instead of just "local x"
+	[ -z "$x" ] || skip 47a
+	set -u
+	eval ': "$y1"' || fail 47b
+	# zsh (tested debian version 5.3.1) fails this, because it considers
+	# a variable to have been "set" when it's declared with 'local'.
+	# Other shells don't.  This is a relatively minor bug, since if you
+	# declare a local variable, it's probably not a typo.
+	zz=$(quiet_stderr eval 'printf s; echo x"$y2"')
+	[ "$zz" = "s" ] || warn 47c
+	# zsh does *not* fail the following, however.  It seems to work on
+	# all shells I tried, so we can make it fatal if it fails.
+	zz=$(quiet_stderr eval 'printf s; echo x"$g"')
+	[ "$zz" = "s" ] || fail 47d
+)
+f
+: "$not_set"
 
 # Someone pointed out that temporary variable assignments aren't
 # temporary anymore, if the thing you're calling is a function or builtin.
@@ -487,8 +515,8 @@ x=$(printf "a%-5sc" "b")
 # Make sure cd supports -L and -P options properly
 rm -f shlink
 ln -s . shlink
-(cd -L shlink/shlink/shlink/../shlink) || fail 120
-(cd -P shlink/shlink/shlink/../shlink) && fail 121
+(quiet_stderr cd -L shlink/shlink/shlink/../shlink) || fail 120
+(quiet_stderr cd -P shlink/shlink/shlink/../shlink) && fail 121
 
 [ -e shelltest.failed ] && exit 41
 [ -e shelltest.warned ] && exit 42
