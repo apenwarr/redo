@@ -259,8 +259,11 @@ echo "`printf 'foo\r\n'`"" bar" | diff -q - broken || fail 59
 # This one is too obnoxious.  dash and ash pass the test, but most shells
 # don't, and this case is just too dumb to care about.  Just don't do that!
 #
-t=`echo $(case x in x) echo hello;; esac)`
-[ "$t" = "hello" ] || skip 60
+# Where "that" is a right-paren-only clause in a case statement inside $().
+#
+t=
+tt=$(quiet_stderr eval 't=`echo $(case x in x) echo hello;; esac)`'; echo "$t")
+[ "$tt" = "hello" ] || skip 60
 #
 # Note that with the little-known optional left-paren, this *does* work.
 # Let's try it to make sure that remains true.
@@ -292,12 +295,15 @@ foo=`exit 1`; [ "$?" != 0 ] || fail 72
 f1() { echo 1; }
 f2(){ echo 2;}
 f3()(echo 3)
-f4()if true; then echo 4; fi
+f4() { :; }
+: $(quiet_stderr eval 'f4()if true; then echo 4; fi')
 f5() ( exit 5 )
 [ "$(f1)" = 1 ] || fail 81
 [ "$(f2)" = 2 ] || fail 82
 [ "$(f3)" = 3 ] || fail 83
-[ "$(f4)" = 4 ] || fail 84
+# only posh fails this one, and it's not something real people write,
+# so let's just make it a warning.
+[ "$(f4)" = 4 ] || warn 84
 f5 && fail 85
 f6() (
 	f6b() { return 1; }
@@ -420,7 +426,8 @@ read -r t8a t8b <shellfile
 test -e shellfile || fail 99
 [ "-a" = "-a" ] || fail 100
 [ "-a" != "-b" ] || fail 101
-[ "-a" -a "!" ] || fail 102
+f() { [ "-a" -a "!" ] || fail 102; }
+quiet_stderr f
 (unset foo && unset foo && unset foo) || fail 103
 
 # http://www.gnu.org/software/hello/manual/autoconf/Limitations-of-Usual-Tools.html
