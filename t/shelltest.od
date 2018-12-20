@@ -359,7 +359,10 @@ set +e
 ) || fail 89b
 
 # Check whether "." scripts inherit "set -e" setting *and* the outer "||"
-# context.
+# context.  This doesn't seem to be explicitly specified by POSIX.
+# References:
+#  http://www.austingroupbugs.net/view.php?id=52
+#  https://www.in-ulm.de/~mascheck/various/set-e/
 set +e
 (
 	set -e
