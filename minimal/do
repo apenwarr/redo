@@ -105,7 +105,7 @@ if [ -z "$DO_BUILT" -a "$_cmd" != "redo-whichdo" ]; then
 	done
 	for d in redo-ifcreate redo-stamp redo-always redo-ood \
 	    redo-targets redo-sources; do
-	        echo : > "$DO_PATH/$d"
+	        echo "#!/bin/sh" >"$DO_PATH/$d"
 		chmod a+rx "$DO_PATH/$d"
 	done
 fi
