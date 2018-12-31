@@ -287,18 +287,17 @@ def _wait(want_token, max_delay):
             _debug("done: %r\n" % pd.name)
             # redo subprocesses are expected to die without releasing their
             # tokens, so things are less likely to get confused if they
-            # die abnormally.  That means a token has 'disappeared' and we
-            # now need to recreate it.
+            # die abnormally.  Since a child has died, that means a token has
+            # 'disappeared' and we now need to recreate it.
             b = _try_read(_cheatfds[0], 1)
-            _debug('GOT cheatfd\n')
-            if b is None:
+            if b:
+                # someone exited with _cheats > 0, so we need to compensate
+                # by *not* re-creating a token now.
+                _debug('EAT cheatfd %r\n' % b)
+            else:
                 _create_tokens(1)
                 if has_token():
                     _release_except_mine()
-            else:
-                # someone exited with _cheats > 0, so we need to compensate
-                # by *not* re-creating a token now.
-                pass
             os.close(fd)
             del _waitfds[fd]
             rv = os.waitpid(pd.pid, 0)
@@ -347,7 +346,6 @@ def _ensure_token(reason, max_delay=None):
             break
         assert _mytokens < 1
         b = _try_read(_tokenfds[0], 1)
-        _debug('GOT tokenfd\n')
         if b == '':
             raise Exception('unexpected EOF on token read')
         if b:
@@ -407,10 +405,16 @@ def wait_all():
     _debug("%d,%d -> wait_all\n" % (_mytokens, _cheats))
     assert state.is_flushed()
     while 1:
-        while _mytokens >= 1:
-            release_mine()
+        while _mytokens >= 2:
+            _release(1)
         if not running():
             break
+        # We should only release our last token if we have remaining
+        # children.  A terminating redo process should try to terminate while
+        # holding a token, and if we have no children left, we might be
+        # about to terminate.
+        if _mytokens >= 1:
+            release_mine()
         _debug("wait_all: wait()\n")
         _wait(want_token=0, max_delay=None)
     _debug("wait_all: empty list\n")
@@ -418,6 +422,8 @@ def wait_all():
         # If we're the toplevel and we're sure no child processes remain,
         # then we know we're totally idle.  Self-test to ensure no tokens
         # mysteriously got created/destroyed.
+        if _mytokens >= 1:
+            release_mine()
         tokens = _try_read_all(_tokenfds[0], 8192)
         cheats = _try_read_all(_cheatfds[0], 8192)
         _debug('toplevel: GOT %d tokens and %d cheats\n'
@@ -426,8 +432,8 @@ def wait_all():
             raise Exception('on exit: expected %d tokens; found %r-%r'
                             % (_toplevel, len(tokens), len(cheats)))
         os.write(_tokenfds[1], tokens)
-    # note: when we return, we have *no* tokens, not even our own!
-    # If caller wants to continue, they have to obtain one right away.
+    # note: when we return, we may have *no* tokens, not even our own!
+    # If caller wants to continue, they might have to obtain one first.
 
 
 def force_return_tokens():

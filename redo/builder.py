@@ -550,7 +550,7 @@ def run(targets, shouldbuildfunc):
     while locked or jobserver.running():
         state.commit()
         jobserver.wait_all()
-        assert jobserver._mytokens == 0  # pylint: disable=protected-access
+        assert jobserver._mytokens <= 1  # pylint: disable=protected-access
         jobserver.ensure_token_or_cheat('self', cheat)
         # at this point, we don't have any children holding any tokens, so
         # it's okay to block below.
