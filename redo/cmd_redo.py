@@ -79,7 +79,7 @@ def main():
         state.init(targets)
         if env.is_toplevel and not targets:
             targets = ['all']
-        j = atoi(opt.jobs or 1)
+        j = atoi(opt.jobs)
         if env.is_toplevel and (env.v.LOG or j > 1):
             builder.close_stdin()
         if env.is_toplevel and env.v.LOG:
@@ -98,7 +98,7 @@ def main():
                           'not redoing.\n') % f.nicename())
         state.rollback()
 
-        if j < 1 or j > 1000:
+        if j < 0 or j > 1000:
             err('invalid --jobs value: %r\n' % opt.jobs)
         jobserver.setup(j)
         try:

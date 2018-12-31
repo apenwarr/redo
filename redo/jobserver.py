@@ -73,7 +73,7 @@
 # simpler :)
 #
 import sys, os, errno, select, fcntl, signal
-from . import state, env
+from . import env, state, logs
 from .atoi import atoi
 from .helpers import close_on_exec
 
@@ -200,9 +200,16 @@ def _try_read_all(fd, n):
 
 
 def setup(maxjobs):
-    """Start the jobserver (if it isn't already) with the given token count."""
+    """Start the jobserver (if it isn't already) with the given token count.
+
+    Args:
+      maxjobs: if nonzero, create a new jobserver with separate tokens from
+        the one we inherited (if any).  If zero and we inherited a jobserver,
+        just use that.  If zero and we didn't inherit a jobserver, create
+        one with a default number of tokens (currently always 1).
+    """
     global _tokenfds, _cheatfds, _toplevel
-    assert maxjobs > 0
+    assert maxjobs >= 0
     assert not _tokenfds
     _debug('setup(%d)\n' % maxjobs)
 
@@ -231,9 +238,22 @@ def setup(maxjobs):
                                  'prefix your Makefile rule with a "+"')
             else:
                 raise
-        _tokenfds = (a, b)
+        if maxjobs == 1:
+            # user requested exactly one token, which means they want to
+            # serialize us, even if the parent redo is running in parallel.
+            # That's pretty harmless, so allow it without a warning.
+            pass
+        elif maxjobs:
+            # user requested more than one token, even though we have a parent
+            # jobserver, which is fishy.  Warn about it, like make does.
+            logs.warn(('warning: -j%d forced in sub-redo; ' +
+                       'starting new jobserver.\n') % maxjobs)
+        else:
+            # user requested zero tokens, which means use the parent jobserver
+            # if it exists.
+            _tokenfds = (a, b)
 
-    cheats = os.getenv('REDO_CHEATFDS', '')
+    cheats = os.getenv('REDO_CHEATFDS', '') if not maxjobs else ''
     if cheats:
         (a, b) = cheats.split(',', 1)
         a = atoi(a)
@@ -243,19 +263,19 @@ def setup(maxjobs):
         _cheatfds = (a, b)
     else:
         _cheatfds = _make_pipe(102)
-        os.putenv('REDO_CHEATFDS', '%d,%d' % (_cheatfds[0], _cheatfds[1]))
+        os.environ['REDO_CHEATFDS'] = ('%d,%d' % (_cheatfds[0], _cheatfds[1]))
 
     if not _tokenfds:
         # need to start a new server
-        _toplevel = maxjobs
+        realmax = maxjobs or 1
+        _toplevel = realmax
         _tokenfds = _make_pipe(100)
-        _create_tokens(maxjobs - 1)
+        _create_tokens(realmax - 1)
         _release_except_mine()
-        os.putenv('MAKEFLAGS',
-                  '%s -j --jobserver-auth=%d,%d --jobserver-fds=%d,%d' %
-                  (os.getenv('MAKEFLAGS', ''),
-                   _tokenfds[0], _tokenfds[1],
-                   _tokenfds[0], _tokenfds[1]))
+        os.environ['MAKEFLAGS'] = (
+            ' -j --jobserver-auth=%d,%d --jobserver-fds=%d,%d' %
+            (_tokenfds[0], _tokenfds[1],
+             _tokenfds[0], _tokenfds[1]))
 
 
 def _wait(want_token, max_delay):
@@ -277,8 +297,9 @@ def _wait(want_token, max_delay):
         rfds.append(_tokenfds[0])
     assert rfds
     assert state.is_flushed()
+    _debug('_tokenfds=%r; jfds=%r\n' % (_tokenfds, _waitfds))
     r, w, x = select.select(rfds, [], [], max_delay)
-    _debug('_tokenfds=%r; wfds=%r; readable: %r\n' % (_tokenfds, _waitfds, r))
+    _debug('readable: %r\n' % (r,))
     for fd in r:
         if fd == _tokenfds[0]:
             pass

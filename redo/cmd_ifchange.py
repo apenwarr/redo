@@ -36,7 +36,7 @@ def main():
         else:
             f = me = None
             debug2('redo-ifchange: not adding depends.\n')
-        jobserver.setup(1)
+        jobserver.setup(0)
         try:
             if f:
                 for t in targets:
