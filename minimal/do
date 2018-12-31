@@ -103,10 +103,10 @@ if [ -z "$DO_BUILT" -a "$_cmd" != "redo-whichdo" ]; then
 	for d in redo redo-ifchange redo-whichdo; do
 		ln -s "$REDO" "$DO_PATH/$d"
 	done
-	[ -e /bin/true ] && TRUE=/bin/true || TRUE=/usr/bin/true
 	for d in redo-ifcreate redo-stamp redo-always redo-ood \
 	    redo-targets redo-sources; do
-		ln -s $TRUE "$DO_PATH/$d"
+	        echo "#!/bin/sh" >"$DO_PATH/$d"
+		chmod a+rx "$DO_PATH/$d"
 	done
 fi
 
