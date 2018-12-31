@@ -13,7 +13,7 @@ if [ "$DESTDIR" = "NONE" ]; then
 	exit 99
 fi
 
-redo-ifchange _all redo/whichpython
+redo-ifchange all redo/whichpython
 read py <redo/whichpython
 
 echo "Installing to: $DESTDIR$PREFIX"

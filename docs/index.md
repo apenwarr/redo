@@ -33,8 +33,7 @@ easier that way.
 I also provide an extremely minimal pure-POSIX-sh implementation, called
 `do`, in the `minimal/` directory of this repository.
 
-(Want to discuss redo?  See the bottom of this file for
-information about our mailing list.)
+(Want to discuss redo?  Join [our mailing list](Contributing/#mailing-list).)
 
 
 # What's so special about redo?
