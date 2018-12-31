@@ -12,7 +12,12 @@ run() {
     redo y
 
     rm -f *.out
-    redo -j10 y
+    # Capture output to y.log because we know this intentionally generates
+    # a scary-looking redo warning (overriding the jobserver).
+    if ! redo -j10 y 2>y.log; then
+        cat y.log
+        exit 99
+    fi
 }
 
 run

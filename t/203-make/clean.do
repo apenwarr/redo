@@ -1,1 +1,1 @@
-rm -f *~ .*~ *.out whichmake
+rm -f *~ .*~ *.out whichmake *.log
