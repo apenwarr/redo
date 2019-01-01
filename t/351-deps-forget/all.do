@@ -196,7 +196,17 @@ while read pre update post   subran ran   warn   src targ ood XX; do
 	if [ "$ood" = 1 ]; then
 		is_ood || exit 35
 	else
-		! is_ood || exit 36
+		# FIXME: can't test this, as running ../flush-cache causes
+		# bork to always be out of date (since it is redo-always),
+		# and other parallel tests might run ../flush-cache
+		# at any time.
+		#
+		# We can fix this when we have a more granular flush-cache
+		# so that other tests can only flush their own targets, not
+		# ours.
+		#
+		# ! is_ood || exit 36
+		:
 	fi
 
 	# FIXME: I'd like to not depend on the specific wording of warning
