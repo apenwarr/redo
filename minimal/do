@@ -44,7 +44,7 @@ qdirname()
 )
 
 _dirsplit "$0"
-REDO=$(cd "$(/bin/pwd)" &&
+REDO=$(cd "$(pwd -P)" &&
 	cd "${_dirsplit_dir:-.}" &&
 	echo "$PWD/$_dirsplit_base")
 export REDO
@@ -79,7 +79,7 @@ if [ -z "$DO_BUILT" -a "$_cmd" != "redo-whichdo" ]; then
 	if [ "$#" -eq 0 ] && [ "$_cmd" = "do" -o "$_cmd" = "redo" ]; then
 		set all  # only toplevel redo has a default target
 	fi
-	export DO_STARTDIR="$(/bin/pwd)"
+	export DO_STARTDIR="$(pwd -P)"
 	# If starting /bin/pwd != $PWD, this will fix it.
 	# That can happen when $PWD contains symlinks that the shell is
 	# trying helpfully (but unsuccessfully) to hide from the user.
@@ -218,7 +218,7 @@ _realpath()
 			#echo "Trying: $PWD--$path" >&2
 			if cd -P "$path" 2>/dev/null; then
 				# success
-				pwd=$(/bin/pwd)
+				pwd=$(pwd -P)
 				#echo "  chdir ok: $pwd--$rest" >&2
 				np=$(_normpath "${pwd%/}/$rest" "$relto")
 				if [ -n "$isabs" ]; then
