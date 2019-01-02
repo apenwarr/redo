@@ -10,7 +10,9 @@ def main():
         sys.exit(1)
 
     env.init_no_state()
-    logs.setup(tty=sys.stderr, pretty=env.v.PRETTY, color=env.v.COLOR)
+    logs.setup(
+        tty=sys.stderr, parent_logs=env.v.LOG,
+        pretty=env.v.PRETTY, color=env.v.COLOR)
 
     want = sys.argv[1]
     if not want:

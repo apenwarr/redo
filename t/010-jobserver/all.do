@@ -6,6 +6,11 @@ redo -j1 serialtest
 
 # Capture log output to parallel.log to hide the (intentional since we're
 # testing it) scary warning from redo about overriding the jobserver.
+if [ -n "$REDO_LOCKS_BROKEN" ]; then
+	echo "Locks are broken on this OS; skipping parallel tests." >&2
+	exit 0
+fi
+
 echo 'parallel test...' >&2
 if ! redo -j10 paralleltest 2>parallel.log; then
 	cat parallel.log >&2

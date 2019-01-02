@@ -17,7 +17,12 @@ LOG_LOCK_MAGIC = 0x10000000  # fid offset for "log locks"
 def _connect(dbfile):
     _db = sqlite3.connect(dbfile, timeout=TIMEOUT)
     _db.execute("pragma synchronous = off")
-    _db.execute("pragma journal_mode = WAL")
+    # Some old/broken versions of pysqlite on MacOS work badly with journal
+    # mode PERSIST.  But WAL fails on Windows WSL due to WSL's totally broken
+    # locking.  On WSL, at least PERSIST works in single-threaded mode, so
+    # if we're careful we can use it, more or less.
+    jmode = 'PERSIST' if env.v.LOCKS_BROKEN else 'WAL'
+    _db.execute("pragma journal_mode = %s" % (jmode,))
     _db.text_factory = str
     return _db
 
@@ -50,6 +55,8 @@ def db():
     _lockfile = os.open(os.path.join(env.v.BASE, '.redo/locks'),
                         os.O_RDWR | os.O_CREAT, 0666)
     close_on_exec(_lockfile, True)
+    if env.is_toplevel and detect_broken_locks():
+        env.mark_locks_broken()
 
     must_create = not os.path.exists(dbfile)
     if not must_create:
@@ -110,6 +117,8 @@ def db():
 def init(targets):
     env.init(targets)
     db()
+    if env.is_toplevel and detect_broken_locks():
+        env.mark_locks_broken()
 
 
 _wrote = 0
@@ -530,3 +539,46 @@ class Lock(object):
                             % self.fid)
         fcntl.lockf(_lockfile, fcntl.LOCK_UN, 1, self.fid)
         self.owned = False
+
+
+def detect_broken_locks():
+    """Detect Windows WSL's completely broken fcntl() locks.
+
+    Symptom: locking a file always returns success, even if other processes
+    also think they have it locked. See
+    https://github.com/Microsoft/WSL/issues/1927 for more details.
+
+    Bug exists at least in WSL "4.4.0-17134-Microsoft #471-Microsoft".
+
+    Returns true if broken, false otherwise.
+    """
+    pl = Lock(0)
+    # We wait for the lock here, just in case others are doing
+    # this test at the same time.
+    pl.waitlock(shared=False)
+    pid = os.fork()
+    if pid:
+        # parent
+        _, rv = os.waitpid(pid, 0)
+        ok = os.WIFEXITED(rv) and not os.WEXITSTATUS(rv)
+        return not ok
+    else:
+        # child
+        try:
+            # Doesn't actually unlock, since child process doesn't own it
+            pl.unlock()
+            del pl
+            cl = Lock(0)
+            # parent is holding lock, which should prevent us from getting it.
+            owned = cl.trylock()
+            if owned:
+                # Got the lock? Yikes, the locking system is broken!
+                os._exit(1)
+            else:
+                # Failed to get the lock? Good, the parent owns it.
+                os._exit(0)
+        except Exception:  # pylint: disable=broad-except
+            import traceback
+            traceback.print_exc()
+        finally:
+            os._exit(99)

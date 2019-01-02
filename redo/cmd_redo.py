@@ -64,16 +64,12 @@ def main():
         os.environ['REDO_DEBUG_LOCKS'] = '1'
     if opt.debug_pids:
         os.environ['REDO_DEBUG_PIDS'] = '1'
-
-    # This is slightly tricky: the log and pretty options default to true.  We
-    # want to inherit that 'true' value from parent processes *unless* someone
-    # explicitly specifies the reverse.
-    if opt.no_log:
-        os.environ['REDO_LOG'] = '0'
-        if opt.no_pretty:
-            os.environ['REDO_PRETTY'] = '0'
-        if opt.no_color:
-            os.environ['REDO_COLOR'] = '0'
+    # These might get overridden in subprocesses in builder.py
+    def _set_defint(name, val):
+        os.environ[name] = os.environ.get(name, str(int(val)))
+    _set_defint('REDO_LOG', opt.log)
+    _set_defint('REDO_PRETTY', opt.pretty)
+    _set_defint('REDO_COLOR', opt.color)
 
     try:
         state.init(targets)
@@ -85,10 +81,17 @@ def main():
         if env.is_toplevel and env.v.LOG:
             builder.start_stdin_log_reader(
                 status=opt.status, details=opt.details,
-                pretty=opt.pretty, color=opt.color,
+                pretty=env.v.PRETTY, color=env.v.COLOR,
                 debug_locks=opt.debug_locks, debug_pids=opt.debug_pids)
         else:
-            logs.setup(tty=sys.stderr, pretty=env.v.PRETTY, color=env.v.COLOR)
+            logs.setup(
+                tty=sys.stderr, parent_logs=env.v.LOG,
+                pretty=env.v.PRETTY, color=env.v.COLOR)
+        if (env.is_toplevel or j > 1) and env.v.LOCKS_BROKEN:
+            warn('detected broken fcntl locks; parallelism disabled.\n')
+            warn('  ...details: https://github.com/Microsoft/WSL/issues/1927\n')
+            if j > 1:
+                j = 1
 
         for t in targets:
             if os.path.exists(t):

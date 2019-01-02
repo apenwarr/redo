@@ -60,7 +60,7 @@ def start_stdin_log_reader(status, details, pretty, color,
         os.dup2(w, 1)
         os.dup2(w, 2)
         os.close(w)
-        logs.setup(tty=sys.stderr, pretty=False, color=False)
+        logs.setup(tty=sys.stderr, parent_logs=True, pretty=False, color=False)
     else:
         # child
         try:
@@ -313,9 +313,9 @@ class _BuildJob(object):
                 # *does* redirect stderr, that redirection should be inherited
                 # by subprocs, so we'd do nothing.
                 logf = open(state.logname(self.sf.id), 'w')
-                new_inode = str(os.fstat(logf.fileno()).st_ino)
+                new_inode = os.fstat(logf.fileno()).st_ino
                 os.environ['REDO_LOG'] = '1'  # .do files can check this
-                os.environ['REDO_LOG_INODE'] = new_inode
+                os.environ['REDO_LOG_INODE'] = str(new_inode)
                 os.dup2(logf.fileno(), 2)
                 close_on_exec(2, False)
                 logf.close()

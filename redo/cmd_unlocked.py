@@ -9,7 +9,9 @@ def main():
         sys.exit(1)
 
     env.inherit()
-    logs.setup(tty=sys.stderr, pretty=env.v.PRETTY, color=env.v.COLOR)
+    logs.setup(
+        tty=sys.stderr, parent_logs=env.v.LOG,
+        pretty=env.v.PRETTY, color=env.v.COLOR)
 
     target = sys.argv[1]
     deps = sys.argv[2:]

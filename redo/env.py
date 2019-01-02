@@ -31,14 +31,14 @@ class Env(object):
         self.DEBUG = atoi(_get('REDO_DEBUG', ''))
         self.DEBUG_LOCKS = _get_bool('REDO_DEBUG_LOCKS', '')
         self.DEBUG_PIDS = _get_bool('REDO_DEBUG_PIDS', '')
+        self.LOCKS_BROKEN = _get_bool('REDO_LOCKS_BROKEN', '')
         self.VERBOSE = _get_bool('REDO_VERBOSE', '')
         self.XTRACE = _get_bool('REDO_XTRACE', '')
         self.KEEP_GOING = _get_bool('REDO_KEEP_GOING', '')
-        self.LOG = _get_int('REDO_LOG', 1)  # defaults on
+        self.LOG = _get_int('REDO_LOG', '')
         self.LOG_INODE = _get('REDO_LOG_INODE', '')
-        self.COLOR = _get_int('REDO_COLOR', 1)  # defaults on
-        # subprocesses mustn't pretty-print if a parent is running redo-log
-        self.PRETTY = (not self.LOG) and _get_int('REDO_PRETTY', 1)
+        self.COLOR = _get_int('REDO_COLOR', '')
+        self.PRETTY = _get_int('REDO_PRETTY', '')
         self.SHUFFLE = _get_bool('REDO_SHUFFLE', '')
         self.STARTDIR = _get('REDO_STARTDIR', '')
         self.RUNID = _get_int('REDO_RUNID', '') or None
@@ -114,4 +114,13 @@ def init(targets):
         os.environ['REDO_BASE'] = base
         os.environ['REDO_STARTDIR'] = os.getcwd()
 
+    inherit()
+
+
+def mark_locks_broken():
+    """If file locking is broken, update the environment accordingly."""
+    os.environ['REDO_LOCKS_BROKEN'] = '1'
+    # FIXME: redo-log doesn't work when fcntl locks are broken.
+    # We can probably work around that someday.
+    os.environ['REDO_LOG'] = '0'
     inherit()

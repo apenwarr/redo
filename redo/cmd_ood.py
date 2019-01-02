@@ -23,7 +23,9 @@ def main():
         sys.exit(1)
 
     state.init([])
-    logs.setup(tty=sys.stderr, pretty=env.v.PRETTY, color=env.v.COLOR)
+    logs.setup(
+        tty=sys.stderr, parent_logs=env.v.LOG,
+        pretty=env.v.PRETTY, color=env.v.COLOR)
     cwd = os.getcwd()
     for f in state.files():
         if f.is_target():

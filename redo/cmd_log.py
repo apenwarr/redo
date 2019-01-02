@@ -230,7 +230,9 @@ def main():
         state.init(targets)
         if opt.status < 2 and not os.isatty(2):
             opt.status = False
-        logs.setup(tty=sys.stdout, pretty=opt.pretty, color=opt.color)
+        logs.setup(
+            tty=sys.stdout, parent_logs=False,
+            pretty=opt.pretty, color=opt.color)
         if opt.debug_locks:
             env.v.DEBUG_LOCKS = 1
         if opt.debug_pids:

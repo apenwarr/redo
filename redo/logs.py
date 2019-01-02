@@ -110,9 +110,9 @@ class PrettyLog(object):
 
 _log = None
 
-def setup(tty, pretty, color):
+def setup(tty, parent_logs, pretty, color):
     global _log
-    if pretty:
+    if pretty and not parent_logs:
         _check_tty(tty, color=color)
         _log = PrettyLog(tty=tty)
     else:

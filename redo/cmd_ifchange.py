@@ -26,7 +26,9 @@ def main():
                 status=True, details=True,
                 pretty=True, color=True, debug_locks=False, debug_pids=False)
         else:
-            logs.setup(tty=sys.stderr, pretty=env.v.PRETTY, color=env.v.COLOR)
+            logs.setup(
+                tty=sys.stderr, parent_logs=env.v.LOG,
+                pretty=env.v.PRETTY, color=env.v.COLOR)
         if env.v.TARGET and not env.v.UNLOCKED:
             me = os.path.join(env.v.STARTDIR,
                               os.path.join(env.v.PWD, env.v.TARGET))

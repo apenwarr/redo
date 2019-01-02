@@ -3,5 +3,5 @@
 # sharing with other tests, we can't be sure that parallel2 will run while
 # parallel is running, and the race condition will make this test at least
 # be flakey instead of pass, which means there's a bug.)
-rm -f *.sub *.spin *.x *.log parallel *.start *.end
+rm -f *.sub *.spin *.x parallel *.start *.end
 redo parallel parallel2

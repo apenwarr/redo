@@ -15,7 +15,9 @@ def main():
         sys.exit(1)
 
     env.inherit()
-    logs.setup(tty=sys.stderr, pretty=env.v.PRETTY, color=env.v.COLOR)
+    logs.setup(
+        tty=sys.stderr, parent_logs=env.v.LOG,
+        pretty=env.v.PRETTY, color=env.v.COLOR)
 
     # hashlib is only available in python 2.5 or higher, but the 'sha'
     # module produces a DeprecationWarning in python 2.6 or higher.  We want
