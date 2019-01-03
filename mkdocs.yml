@@ -12,6 +12,11 @@ extra_css:
 plugins:
   - exclude:
       glob:
+        - cookbook/container/simple/*
+        - cookbook/container/debdownload/*
+        - cookbook/container/debootstrap/*
+        - cookbook/container/debian/*
+        - cookbook/container/*.fakeroot
         - "t/*"
         - "*.tmp"
         - "*.gz"
@@ -29,8 +34,9 @@ nav:
   - Roadmap.md
   - Cookbook:
     - Hello World (hello.do, redo-ifchange): cookbook/hello/index.md
-    - Text processing example (default.do, redo-whichdo, redo-always, redo-stamp): cookbook/defaults/index.md
-    - R plots and LaTeX to pdf (side effects, multiple outputs, autodepends): cookbook/latex/index.md
+    - Text substitution (default.do, redo-always, redo-stamp): cookbook/defaults/index.md
+    - R plots and LaTeX to pdf (side effects, multiple outputs): cookbook/latex/index.md
+    - Docker and kvm containers (from scratch): cookbook/container/index.md
   - FAQ:
     - Basics: FAQBasics.md
     - Semantics: FAQSemantics.md

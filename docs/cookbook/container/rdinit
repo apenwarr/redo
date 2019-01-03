@@ -1,0 +1,5 @@
+#!/bin/sh
+busybox mount -t devtmpfs none /dev
+/init >/dev/ttyS1
+echo $? >/dev/ttyS2
+busybox poweroff -f

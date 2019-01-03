@@ -1,5 +1,5 @@
-*.1
+/*.1
 /md-to-man
-*.html
-*.man.md
-*.list
+/*.html
+/*.man.md
+/*.list

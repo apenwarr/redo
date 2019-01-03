@@ -1,0 +1,17 @@
+debdownload
+debootstrap
+debian
+libs
+simple
+*.dockjson
+*.fakeroot
+*.fs
+*.gz
+*.image
+*.initrd
+*.layer
+*.list
+*.runkvm
+*.runlocal
+*.rundocker
+*.sha256

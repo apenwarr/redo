@@ -1,0 +1,3 @@
+--variant=minbase
+--include=busybox
+stretch
