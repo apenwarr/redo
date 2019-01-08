@@ -9,8 +9,20 @@ extra_javascript:
   - fetchcode.js
 extra_css:
   - extra_style.css
+plugins:
+  - exclude:
+      glob:
+        - "t/*"
+        - "*.tmp"
+        - "*.gz"
+        - "*.tar"
+        - "*.pdf"
+        - "*.ps"
+        - "*.1"
+      regex:
+        - ".*~"
 
-pages:
+nav:
   - Introduction: index.md
   - Getting Started: GettingStarted.md
   - Contributing.md
