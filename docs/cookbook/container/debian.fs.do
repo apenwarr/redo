@@ -1,9 +1,9 @@
-exec >&2
 fs=${1%.fs}
 rm -rf "$fs" "$fs.fakeroot"
 
 redo-ifchange debootstrap.fs
-fakeroot -i debootstrap.fakeroot -s "$fs.fakeroot" cp -a debootstrap/. "$fs"
+fakeroot -i debootstrap.fakeroot -s "$fs.fakeroot" \
+	cp -a debootstrap/. "$fs" >&2
 
 # Work around bug (in fakechroot?) where /lib64 symlink ends up pointing
 # at an absolute path including $PWD, rather than inside the chroot.

@@ -1,5 +1,3 @@
-exec >&2
-
 # We can pull in the 'hello' binary built in an earlier
 # example.  Notice that it's safe to have dependencies
 # that cross directory boundaries, even when we're building

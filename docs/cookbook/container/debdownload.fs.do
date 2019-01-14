@@ -1,4 +1,3 @@
-exec >&2
 fs=${1%.fs}
 
 # let's *not* delete this directory; it's okay if previously-downloaded
@@ -10,5 +9,5 @@ debootstrap \
 	--download-only \
 	--keep-debootstrap-dir \
 	$(cat debootstrap.options) \
-	"$fs"
+	"$fs" >&2
 redo-ifchange "$fs/debootstrap/debootstrap.log"

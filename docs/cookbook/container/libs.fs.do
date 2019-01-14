@@ -1,5 +1,3 @@
-exec >&2
-
 fs=${1%.fs}
 redo-ifchange simple.fs
 

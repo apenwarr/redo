@@ -1,4 +1,3 @@
-exec >&2
 fs=${1%.fs}
 rm -rf "$fs" "$fs.fakeroot"
 
@@ -7,7 +6,7 @@ cp -a debdownload/. "$fs"
 eatmydata \
 	fakechroot \
 	fakeroot -s "$fs.fakeroot" \
-	debootstrap $(cat debootstrap.options) "$fs"
+	debootstrap $(cat debootstrap.options) "$fs" >&2
 
 # Clean up installed package files
 rm -f "$fs"/var/cache/apt/archives/*.deb \

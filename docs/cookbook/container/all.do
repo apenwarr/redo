@@ -1,4 +1,4 @@
-exec >&2
+exec >&2   # any output we produce is a log message
 no_simple=
 no_debian=
 no_runlocal=
