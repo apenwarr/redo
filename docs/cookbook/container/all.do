@@ -13,6 +13,10 @@ if ! ./need.sh debootstrap eatmydata; then
 	echo "skipping debian image."
 	no_debian=1
 fi
+if ! ./need.sh cpio; then
+	echo "skipping tarball generation."
+	no_image=1
+fi
 if ! ./need.sh fakeroot fakechroot ||
    ! ./try_fakeroot.sh "x" true 2>/dev/null; then
 	echo "skipping chroot test."
@@ -26,11 +30,17 @@ if ! ./need.sh unshare ||
 	echo "skipping chroot test."
 	no_runlocal=1
 fi
-if ! ./need.sh busybox kvm; then
+if ! ./need.sh busybox kvm cpio; then
 	echo "skipping kvm test."
 	no_runkvm=1
 fi
-if ! ./need.sh docker ||
+kernel="/boot/vmlinuz-$(uname -r)"
+if ! [ -e "$kernel" ]; then
+	echo " -- missing kernel: $kernel"
+	echo "skipping kvm test."
+	no_runkvm=1
+fi
+if ! ./need.sh docker cpio ||
    ! docker images >/dev/null; then
 	echo "skipping docker test."
 	no_docker=1
@@ -43,12 +53,12 @@ fi
 
 add() { targets="$targets $*"; }
 
-[ -z "$no_simple" ] && add simple.image.gz
+[ -z "$no_simple$no_image" ] && add simple.image.gz
 [ -z "$no_simple$no_runlocal" ] && add libs.runlocal
 [ -z "$no_simple$no_runkvm" ] && add libs.runkvm
 [ -z "$no_simple$no_docker" ] && add simple.rundocker
 
-[ -z "$no_debian" ] && add debian.image
+[ -z "$no_debian$no_image" ] && add debian.image
 [ -z "$no_debian$no_runlocal" ] && add debian.runlocal
 [ -z "$no_debian$no_runkvm" ] && add debian.runkvm
 [ -z "$no_debian$no_docker" ] && add debian.rundocker
