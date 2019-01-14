@@ -199,7 +199,7 @@ $ du libs
 1660	libs/lib
 3752	libs
 
-cat libs.runlocal
+$ cat libs.runlocal
 Hello, world!
 ```
 
