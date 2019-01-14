@@ -247,7 +247,7 @@ implementations are unmaintained, slightly incompatible with the "standard"
 redo semantics, and/or have few or no automated tests.
 
 At the time of this writing, none of them except apenwarr/redo (ie.  this
-project) support parallel builds (`redo -j`) or log linearization
+project) correctly support parallel builds (`redo -j`) or log linearization
 (`redo-log`).  For large projects, parallel builds are usually considered
 essential.
 

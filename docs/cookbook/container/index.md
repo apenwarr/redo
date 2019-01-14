@@ -61,6 +61,10 @@ parallelism management makes it easy to build multiple container types in
 parallel, share code between different builds, and use different container
 types (each with different tradeoffs) for different sorts of testing.
 
+You can follow along by [checking out the redo source](../../GettingStarted/)
+and looking in the
+[docs/cookbook/container/](https://github.com/apenwarr/redo/tree/master/docs/cookbook/container)
+directory.
 
 ### A Hello World container
 
@@ -89,12 +93,15 @@ purposes, the all-purpose [busybox](https://busybox.net/about.html) program.
 Here's a .do script that will build our simple container filesystem:
 <pre><code lang='sh' src='simple.fs.do'></code></pre>
 
-There's a catch here.  Did you see it above?  In current versions of redo,
+There's a little surprise here.  Did you see it above?
+In current versions of redo,
 the semantics of a .do script producing a directory as its output are
 undefined.  That's because the redo authors haven't yet figured out quite
 what ought to happen when a .do file creates a directory.  Or rather,
-what happens *after* you create a directory?  Can people `redo-ifchange` on
-a file inside that newly created directory?  What if the new directory
+what should happen *after* you create a directory?
+
+Can people `redo-ifchange` on
+a file inside that newly created directory?  If so, what if the new directory
 contains .do files?  What if you `redo-ifchange` one of the sub-files before
 you `redo-ifchange` the directory that contains it, so that the sub-file's
 .do doesn't exist yet?  And so on.  We don't know.  So for now, to stop you
@@ -103,9 +110,10 @@ from depending on this behaviour, we intentionally made it not work.
 Instead of that, you can have a .do script that produces a *different*
 directory as a side effect.  So above, `simple.fs.do` produces a directory
 called `simple` when you run `redo simple.fs`.  `simple.fs` is the
-(incidentally empty) output, which is managed by redo and which other
-scripts can depend upon using `redo-ifchange simple.fs`.  The `simple`
-directory just happens to materialize, and redo doesn't know anything about
+(incidentally empty) target file, which is remembered by redo as a node in
+the dependency tree, so that other
+scripts can depend upon it using `redo-ifchange simple.fs`.  The `simple`
+directory happens to materialize too, and redo doesn't know anything about
 it, which means it doesn't try to do anything about it, and you don't have
 to care what redo's semantics for it might someday be.  In other words,
 maybe someday we'll find a more elegant way to handle .do files that create
