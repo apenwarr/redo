@@ -404,7 +404,7 @@ b65ae6e742f8946fdc3fbdccb326378162641f540e606d56e1e638c7988a5b95/layer.tar
 
 We could use redo to build a Docker image by simply making a single
 `layer.tar` of the filesystem (like we did with initrd), adding a VERSION
-and json file, and putting those three things into an outer taball.  But if
+and json file, and putting those three things into an outer tarball.  But if
 we want a system that works as well as a Dockerfile, we'll have to make use
 of multiple layers.
 
@@ -448,7 +448,7 @@ as "compare two sorted files" or "show common lines between two files."  But
 it actually does more than just showing common lines: it can show the lines
 that are only in file #1, or only in file #2, or in both files.  `comm -1
 -3` *suppresses* the output of lines that are only in #1 or that are in
-both, so that it will print only the lines in the second file.
+both, so that it will print the lines that are only in the second file.
 
 If we want to make a `libs.layer` that contains only the files that are
 *not* in `simple`, then we can use `comm -1 -3` to compare `simple` with
