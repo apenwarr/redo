@@ -2,8 +2,10 @@
 import os, errno, fcntl
 
 
-def join(between, l):
-    return between.join(l)
+class ImmediateReturn(Exception):
+    def __init__(self, rv):
+        Exception.__init__(self, "immediate return with exit code %d" % rv)
+        self.rv = rv
 
 
 def unlink(f):
@@ -25,3 +27,11 @@ def close_on_exec(fd, yes):
     if yes:
         fl |= fcntl.FD_CLOEXEC
     fcntl.fcntl(fd, fcntl.F_SETFD, fl)
+
+
+def fd_exists(fd):
+    try:
+        fcntl.fcntl(fd, fcntl.F_GETFD)
+    except IOError:
+        return False
+    return True

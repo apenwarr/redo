@@ -73,9 +73,8 @@
 # simpler :)
 #
 import sys, os, errno, select, fcntl, signal
-from . import env, state, logs
+from . import env, helpers, logs, state
 from .atoi import atoi
-from .helpers import close_on_exec
 
 _toplevel = 0
 _mytokens = 1
@@ -228,16 +227,15 @@ def setup(maxjobs):
         a = atoi(a)
         b = atoi(b)
         if a <= 0 or b <= 0:
-            raise ValueError('invalid --jobserver-auth: %r' % arg)
-        try:
-            fcntl.fcntl(a, fcntl.F_GETFL)
-            fcntl.fcntl(b, fcntl.F_GETFL)
-        except IOError, e:
-            if e.errno == errno.EBADF:
-                raise ValueError('broken --jobserver-auth from make; ' +
-                                 'prefix your Makefile rule with a "+"')
-            else:
-                raise
+            logs.err('invalid --jobserver-auth: %r\n' % arg)
+            raise helpers.ImmediateReturn(200)
+        if not helpers.fd_exists(a) or not helpers.fd_exists(b):
+            logs.err('broken --jobserver-auth from parent process:\n')
+            logs.err('  using GNU make? prefix your Makefile rule with "+"\n')
+            logs.err(
+                '  otherwise, see ' +
+                'https://redo.rtfd.io/en/latest/FAQParallel/#MAKEFLAGS\n')
+            raise helpers.ImmediateReturn(200)
         if maxjobs == 1:
             # user requested exactly one token, which means they want to
             # serialize us, even if the parent redo is running in parallel.
@@ -254,6 +252,7 @@ def setup(maxjobs):
             _tokenfds = (a, b)
 
     cheats = os.getenv('REDO_CHEATFDS', '') if not maxjobs else ''
+    _cheatfds = None
     if cheats:
         (a, b) = cheats.split(',', 1)
         a = atoi(a)
@@ -261,7 +260,13 @@ def setup(maxjobs):
         if a <= 0 or b <= 0:
             raise ValueError('invalid REDO_CHEATFDS: %r' % cheats)
         _cheatfds = (a, b)
-    else:
+        if not helpers.fd_exists(a) or not helpers.fd_exists(b):
+            # This can happen if we're called by a parent process who closes
+            # all "unknown" file descriptors (which is anti-social behaviour,
+            # but oh well, we'll warn about it if they close the jobserver
+            # fds in MAKEFLAGS, so just ignore it if it also happens here).
+            _cheatfds = None
+    if not _cheatfds:
         _cheatfds = _make_pipe(102)
         os.environ['REDO_CHEATFDS'] = ('%d,%d' % (_cheatfds[0], _cheatfds[1]))
 
@@ -534,7 +539,7 @@ def start(reason, jobfunc, donefunc):
         finally:
             _debug('exit: %d\n' % rv)
             os._exit(rv)
-    close_on_exec(r, True)
+    helpers.close_on_exec(r, True)
     os.close(w)
     pd = Job(reason, pid, donefunc)
     _waitfds[r] = pd

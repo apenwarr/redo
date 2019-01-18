@@ -156,3 +156,56 @@ Yes.  Put this in your .do script:
 	
 The child makes will then not have access to the jobserver,
 so will build serially instead.
+
+
+<a name='MAKEFLAGS'></a>
+# What does the "broken --jobserver-auth" error mean?
+
+redo (and GNU make) use the `MAKEFLAGS` environment variable to pass
+information about the parallel build environment from one process to the
+next.  Inside `MAKEFLAGS` is a string that looks like either
+`--jobserver-auth=X,Y` or `--jobserver-fds=X,Y`, depending on the version of
+make.
+
+If redo finds one of these strings, but the file descriptors named by `X`
+and `Y` are *not* available in the subprocess, that means some ill-behaved
+parent process has closed them.  This prevents parallelism from working, so
+redo aborts to let you know something is seriously wrong.
+
+GNU make will intentionally close these file descriptors if you write a
+Makefile rule that contains *neither* the exact string `$(MAKE)` nor a
+leading `+` character.  So you might have had a Makefile rule that looked
+like this:
+
+	subdir/all:
+		$(MAKE) -C subdir all
+
+and that worked as expected: the sub-make inherited your parallelism
+settings.  But people are sometimes surprised to find that this doesn't work
+as expected:
+
+	subdir/all:
+		make -C subdir all
+
+In that case, the sub-make does *not* inherit the jobserver file
+descriptors, so it runs serially.  If for some reason you don't want to use
+`$(MAKE)` but you do want parallelism, you need to write something like this
+instead:
+
+	subdir/all:
+		+make -C subdir all
+
+And similarly, if you recurse into redo instead of make, you need the same
+trick:
+
+	subdir/all:
+		+redo subdir/all
+
+There are a few other programs that also close file descriptors.  For
+example, if your .do file starts with `#!/usr/bin/env xonsh`, you might
+run into [a bug in xonsh where it closes file descriptors
+incorrectly](https://github.com/xonsh/xonsh/issues/2984).
+
+If you really can't stop your program from closing file descriptors that it
+shouldn't, you can work around the problem by unsetting `MAKEFLAGS`.  This
+will let your program build, but will disable parallelism.

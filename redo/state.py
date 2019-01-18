@@ -1,7 +1,7 @@
 """Code for manipulating redo's state database."""
 import sys, os, errno, stat, fcntl, sqlite3
 from . import cycles, env
-from .helpers import unlink, close_on_exec, join
+from .helpers import unlink, close_on_exec
 from .logs import warn, debug2, debug3
 
 SCHEMA_VER = 2
@@ -192,7 +192,7 @@ def relpath(t, base):
     while bparts:
         tparts.insert(0, '..')
         bparts.pop(0)
-    return join('/', tparts)
+    return '/'.join(tparts)
 
 
 # Return a relative path for t that will work after we do
@@ -247,7 +247,7 @@ class File(object):
     # initialized, which we should fix, and then re-enable warning.
     # pylint: disable=attribute-defined-outside-init
     def _init_from_idname(self, fid, name, allow_add):
-        q = ('select %s from Files ' % join(', ', _file_cols))
+        q = ('select %s from Files ' % ', '.join(_file_cols))
         if fid != None:
             q += 'where rowid=?'
             l = [fid]
@@ -294,7 +294,7 @@ class File(object):
         self._init_from_idname(self.id, None, allow_add=False)
 
     def save(self):
-        cols = join(', ', ['%s=?'%i for i in _file_cols[2:]])
+        cols = ', '.join(['%s=?'%i for i in _file_cols[2:]])
         _write('update Files set '
                '    %s '
                '    where rowid=?' % cols,
@@ -395,7 +395,7 @@ class File(object):
         q = ('select Deps.mode, Deps.source, %s '
              '  from Files '
              '    join Deps on Files.rowid = Deps.source '
-             '  where target=?' % join(', ', _file_cols[1:]))
+             '  where target=?' % ', '.join(_file_cols[1:]))
         for row in db().execute(q, [self.id]).fetchall():
             mode = row[0]
             cols = row[1:]
@@ -465,7 +465,7 @@ class File(object):
 
 
 def files():
-    q = ('select %s from Files order by name' % join(', ', _file_cols))
+    q = ('select %s from Files order by name' % ', '.join(_file_cols))
     for cols in db().execute(q).fetchall():
         yield File(cols=cols)
 

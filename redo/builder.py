@@ -1,7 +1,6 @@
 """Code for parallel-building a set of targets, if needed."""
 import errno, os, stat, signal, sys, tempfile, time
-from . import cycles, env, jobserver, logs, state, paths
-from .helpers import unlink, close_on_exec
+from . import cycles, env, helpers, jobserver, logs, paths, state
 from .logs import debug2, err, warn, meta
 
 
@@ -110,12 +109,6 @@ def await_log_reader():
         os.waitpid(log_reader_pid, 0)
 
 
-class ImmediateReturn(Exception):
-    def __init__(self, rv):
-        Exception.__init__(self, "immediate return with exit code %d" % rv)
-        self.rv = rv
-
-
 class _BuildJob(object):
     def __init__(self, t, sf, lock, shouldbuildfunc, donefunc):
         self.t = t  # original target name, not relative to env.v.BASE
@@ -137,13 +130,13 @@ class _BuildJob(object):
                 is_target, dirty = self.shouldbuildfunc(self.t)
             except cycles.CyclicDependencyError:
                 err('cyclic dependency while checking %s\n' % _nice(self.t))
-                raise ImmediateReturn(208)
+                raise helpers.ImmediateReturn(208)
             if not dirty:
                 # target doesn't need to be built; skip the whole task
                 if is_target:
                     meta('unchanged', state.target_relpath(self.t))
                 return self._finalize(0)
-        except ImmediateReturn, e:
+        except helpers.ImmediateReturn, e:
             return self._finalize(e.rv)
 
         if env.v.NO_OOB or dirty == True:  # pylint: disable=singleton-comparison
@@ -209,9 +202,9 @@ class _BuildJob(object):
         # that the directory exists.
         tmpbase = os.path.join(dodir, basename + ext)
         self.tmpname = tmpbase + '.redo.tmp'
-        unlink(self.tmpname)
+        helpers.unlink(self.tmpname)
         ffd, fname = tempfile.mkstemp(prefix='redo.', suffix='.tmp')
-        close_on_exec(ffd, True)
+        helpers.close_on_exec(ffd, True)
         os.unlink(fname)
         self.outfile = os.fdopen(ffd, 'w+')
         # this will run in the dofile's directory, so use only basenames here
@@ -303,7 +296,7 @@ class _BuildJob(object):
             os.chdir(dodir)
         os.dup2(self.outfile.fileno(), 1)
         os.close(self.outfile.fileno())
-        close_on_exec(1, False)
+        helpers.close_on_exec(1, False)
         if env.v.LOG:
             cur_inode = str(os.fstat(2).st_ino)
             if not env.v.LOG_INODE or cur_inode == env.v.LOG_INODE:
@@ -317,7 +310,7 @@ class _BuildJob(object):
                 os.environ['REDO_LOG'] = '1'  # .do files can check this
                 os.environ['REDO_LOG_INODE'] = str(new_inode)
                 os.dup2(logf.fileno(), 2)
-                close_on_exec(2, False)
+                helpers.close_on_exec(2, False)
                 logf.close()
         else:
             if 'REDO_LOG_INODE' in os.environ:
@@ -375,7 +368,7 @@ class _BuildJob(object):
             # be some kind of two-stage commit, I guess.
             if st1.st_size > 0 and not st2:
                 # script wrote to stdout.  Copy its contents to the tmpfile.
-                unlink(self.tmpname)
+                helpers.unlink(self.tmpname)
                 try:
                     newf = open(self.tmpname, 'w')
                 except IOError, e:
@@ -410,7 +403,7 @@ class _BuildJob(object):
                     err('%s: rename %s: %s\n' % (t, self.tmpname, e))
                     rv = 209
             else: # no output generated at all; that's ok
-                unlink(t)
+                helpers.unlink(t)
             sf = self.sf
             sf.refresh()
             sf.is_generated = True
@@ -425,7 +418,7 @@ class _BuildJob(object):
                 sf.update_stamp()
                 sf.set_changed()
         else:
-            unlink(self.tmpname)
+            helpers.unlink(self.tmpname)
             sf = self.sf
             sf.set_failed()
         sf.zap_deps2()

@@ -1,13 +1,13 @@
 """redo-ifchange: build the given targets if they have changed."""
 import os, sys, traceback
-from . import env, builder, deps, jobserver, logs, state
+from . import env, builder, deps, helpers, jobserver, logs, state
 from .logs import debug2, err
 
 
 def should_build(t):
     f = state.File(name=t)
     if f.is_failed():
-        raise builder.ImmediateReturn(32)
+        raise helpers.ImmediateReturn(32)
     dirty = deps.isdirty(f, depth='', max_changed=env.v.RUNID,
                          already_checked=[])
     return f.is_generated, dirty == [f] and deps.DIRTY or dirty
@@ -56,7 +56,7 @@ def main():
                     traceback.print_exc(100, sys.stderr)
                     err('unexpected error: %r\n' % e)
                     rv = 1
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, helpers.ImmediateReturn):
         if env.is_toplevel:
             builder.await_log_reader()
         sys.exit(200)

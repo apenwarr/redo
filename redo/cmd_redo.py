@@ -15,7 +15,7 @@
 # limitations under the License.
 #
 import sys, os, traceback
-from . import builder, env, jobserver, logs, options, state
+from . import builder, env, helpers, jobserver, logs, options, state
 from .atoi import atoi
 from .logs import warn, err
 
@@ -121,7 +121,7 @@ def main():
         if env.is_toplevel:
             builder.await_log_reader()
         sys.exit(retcode)
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, helpers.ImmediateReturn):
         if env.is_toplevel:
             builder.await_log_reader()
         sys.exit(200)
