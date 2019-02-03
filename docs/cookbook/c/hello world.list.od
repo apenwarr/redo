@@ -1,0 +1,30 @@
+# This script is run from the output dir,
+# which contains a src/ symlink to the source dir.
+
+. ./redoconf.rc
+rc_include all.rc
+
+(
+	cd "$S"
+	echo "main.c"
+	echo "monotime.c"
+	echo "when.c"      # auto-generated source
+	echo "flagtest.c"  # source with different compiler flags
+
+	if [ -n "$CXX" ]; then
+		echo "slow.cc"
+	fi
+	
+	# This is unnecessarily fancy.
+	# We're just using it as an example of
+	# how to dynamically generate a .list
+	# file.
+	for d in lib*/*.list lib*/*.list.od; do
+		[ -e "$d" ] && echo "${d%%.*}.so"
+	done | uniq
+
+	printf '%s\n' "$LIBGTK2" "$LIBQT4"
+) >$3
+
+redo-always
+redo-stamp <$3

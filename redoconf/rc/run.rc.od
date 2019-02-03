@@ -1,0 +1,27 @@
+. ./redoconf.rc
+rc_include rc/CC.rc rc/windows.h.rc
+
+consider() {
+	echo "Considering RUN=$(shquote "$1")" >&2
+	if [ -z "$1" ] || type "$1" >/dev/null 2>&1; then
+		rc_undo
+		rc_replaceln RUN "$1"
+		if RUN="$RUN" rc_compile cc run ""; then
+			rc_replaceln CAN_RUN 1
+			rc_save
+			exit 0
+		fi
+	fi
+}
+
+consider ""
+if [ -n "$HAVE_WINDOWS_H" ]; then
+	consider "wine64"
+	consider "wine"
+	consider "wine32"
+fi
+
+rc_undo
+rc_replaceln RUN ""
+rc_replaceln CAN_RUN ""
+rc_save

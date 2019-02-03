@@ -1,0 +1,22 @@
+. ./redoconf.rc
+rc_include _all.rc
+
+# Tricky quoting: see _compile.od for details.
+cat >$3 <<-EOF
+	#!/bin/sh -e
+	LINK=$(shquote "$LINK")
+	LDFLAGS=$(shquote "$LDFLAGS")
+	OPTFLAGS=$(shquote "$OPTFLAGS")
+	LIBS=$(shquote "$LIBS")
+	o="\$1"
+	shift
+	IFS="$NL"
+	set -f
+	\$LINK -o "\$o" \\
+	  -Wl,-rpath,'\$ORIGIN' \\
+	  \$LDFLAGS \$OPTFLAGS \\
+	  "\$@" \\
+	  \$LIBS
+EOF
+chmod a+x "$3"
+redo-stamp <$3

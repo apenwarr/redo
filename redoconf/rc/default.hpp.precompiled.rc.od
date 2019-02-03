@@ -1,0 +1,23 @@
+. ./redoconf.rc
+rc_include rc/CXX.rc
+
+base="${1#rc/}"
+src="${base%.hpp.precompiled.rc}"
+
+# The existence of the specific gcc warning about
+# precompiled headers is a pretty good indicator
+# that they are supported in the way we expect.
+appendln CXXFLAGS "-Winvalid-pch"
+if rc_compile cxx nolink; then
+    rc_appendln CXXFLAGS "$x"
+
+    rc_appendln CXXFLAGS_PCH "-include$NL$src.hpp"
+    rc_appendln CXXFLAGS_PCH_FPIC "-include$NL$src.hpp.fpic"
+
+    rc_appendln PRE_CXX_TARGETS "$src.hpp.gch"
+    rc_appendln PRE_CXX_TARGETS_FPIC "$src.hpp.fpic.gch"
+    rc_save
+else
+    echo "Precompiled C++ headers not supported." >&2
+    rc_undo
+fi

@@ -1,0 +1,16 @@
+exec >&2
+redo-always
+redo-ifchange all run
+if [ -x ./run ]; then
+	echo "Running: ./run ./hello\\ world"
+	./run './hello world' >"$1.out" 2>&1
+	cat "$1.out"
+	if grep -F -q 'Hello, world!' "$1.out"; then
+		echo "-- Test successful."
+	else
+		echo "-- Test failed."
+		exit 1
+	fi
+else
+	echo "Non-native platform: test skipped."
+fi

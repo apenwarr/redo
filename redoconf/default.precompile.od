@@ -1,0 +1,31 @@
+# Run the extra steps necessary before compiling
+# C/C++ programs of the specified type.
+#
+# Notably, we have to precompile any precompiled
+# headers.  We also generate redoconf.h in case
+# programs want to include it.
+. ./redoconf.rc
+rc_include _all.rc
+
+case ${1%.precompile} in
+	cc)       pch_files="$PRE_CC_TARGETS" ;;
+	cc-fpic)  pch_files="$PRE_CC_TARGETS_FPIC" ;;
+	cxx)      pch_files="$PRE_CXX_TARGETS" ;;
+	cxx-fpic) pch_files="$PRE_CXX_TARGETS_FPIC" ;;
+	*)        exit 42 ;;
+esac
+
+IFS="$NL"
+set -f
+redo-ifchange "redoconf.h" $pch_files
+
+# Subtle:
+# Don't consider this target to have changed unless
+# the precompiled header's stamp has changed.
+# We generate redoconf.h, in case
+# a C program wants to include it, but we
+# don't care if it has changed, because the C program
+# will have its own dependency on that file.
+for d in $t; do
+	cat "$d.stamp"
+done | redo-stamp

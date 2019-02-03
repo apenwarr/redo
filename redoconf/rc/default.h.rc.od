@@ -1,0 +1,13 @@
+. ./redoconf.rc
+rc_include rc/CC.rc
+
+base="${1#*/}"
+h="${base%.rc}"
+H=$(echo "$h" | tr 'a-z.' 'A-Z_')
+
+if rc_compile cc nolink "#include <$h>"; then
+	rc_replaceln "HAVE_$H" 1
+else
+	rc_replaceln "HAVE_$H" ""
+fi
+rc_save

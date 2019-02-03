@@ -1,0 +1,16 @@
+. ./redoconf.rc
+rc_include rc/CC.rc
+
+prog='
+#include <time.h>
+
+struct timespec x;
+'
+
+x=
+if ! rc_compile cc link "$prog"; then
+    x="-D_XOPEN_SOURCE=500"
+    rc_appendln CPPFLAGS "$x"
+    rc_compile cc link "$prog"
+fi
+rc_save

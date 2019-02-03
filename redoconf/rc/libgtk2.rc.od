@@ -1,0 +1,12 @@
+. ./redoconf.rc
+rc_include rc/CC.rc rc/pkg-config.rc
+
+prog='
+#include <gtk/gtk.h>
+int x = GTK_MAJOR_VERSION;
+void f() { gtk_widget_child_focus(0, 0); }
+'
+
+rc_pkg_detect LIBGTK2 "gtk+-2.0 gio-2.0 gdk-2.0 gdk-pixbuf-2.0" \
+	rc_compile cc link "$prog"
+rc_save

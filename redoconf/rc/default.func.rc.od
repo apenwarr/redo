@@ -1,0 +1,13 @@
+. ./redoconf.rc
+rc_include rc/CC.rc
+
+base="${1#*/}"
+f="${base%.func.rc}"
+F=$(echo "$f" | tr 'a-z.' 'A-Z_')
+
+if rc_compile cc link "void $f(); void test() { $f(); }"; then
+	rc_replaceln "HAVE_$F" 1
+else
+	rc_replaceln "HAVE_$F" ""
+fi
+rc_save

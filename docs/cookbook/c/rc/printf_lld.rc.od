@@ -1,0 +1,16 @@
+. ./redoconf.rc
+rc_include rc/CC.rc rc/windows.h.rc rc/Wall.rc
+
+appendln CPPFLAGS "-Werror"  # abort if any warnings
+prog='
+#include <stdio.h>
+void test() { printf("%lld", (long long)1); }
+'
+
+x=
+if ! rc_compile cc link "$prog"; then
+    x="-D__USE_MINGW_ANSI_STDIO=1"
+    rc_appendln CPPFLAGS "$x"
+    rc_compile cc link "$prog"
+fi
+rc_save

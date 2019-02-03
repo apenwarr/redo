@@ -1,0 +1,23 @@
+. ./redoconf.rc
+rc_include rc/CC.rc
+
+base="${1#rc/}"
+src="${base%.h.precompiled.rc}"
+
+# The existence of the specific gcc warning about
+# precompiled headers is a pretty good indicator
+# that they are supported in the way we expect.
+rc_appendln CFLAGS "-Winvalid-pch"
+if rc_compile cc nolink; then
+    rc_appendln CFLAGS "$x"
+
+    rc_appendln CFLAGS_PCH "-include$NL$src.h"
+    rc_appendln CFLAGS_PCH_FPIC "-include$NL$src.h.fpic"
+
+    rc_appendln PRE_CC_TARGETS "$src.h.gch"
+    rc_appendln PRE_CC_TARGETS_FPIC "$src.h.fpic.gch"
+    rc_save
+else
+    echo "Precompiled C headers not supported." >&2
+    rc_undo
+fi

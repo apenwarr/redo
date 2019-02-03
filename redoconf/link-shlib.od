@@ -1,0 +1,36 @@
+. ./redoconf.rc
+rc_include _all.rc rc/shlib.rc
+
+# Tricky quoting: see _compile.od for details.
+if [ "$HAVE_SHLIB" = 1 ]; then
+	cat >$3 <<-EOF
+		#!/bin/sh -e
+		LINK=$(shquote "$LINK")
+		LDFLAGS=$(shquote "$LDFLAGS")
+		OPTFLAGS=$(shquote "$OPTFLAGS")
+		LIBS=$(shquote "$LIBS")
+		o="\$1"
+		ob="\${o#*/}"
+		shift
+		IFS="$NL"
+		set -f
+		\$LINK -shared -o "\$o" \\
+		  -Wl,-soname,"\$ob" \\
+		  \$LDFLAGS \$OPTFLAGS \\
+		  "\$@" \\
+		  \$LIBS
+	EOF
+else
+	# If no shared library support and we try to build one,
+	# compensate by building a static library instead in the
+	# same place.
+	cat >$3 <<-EOF
+		#!/bin/sh -e
+		o="\$1"
+		shift
+		rm -f "\$o"
+		ar q "\$o" "\$@"
+	EOF
+fi
+chmod a+x "$3"
+redo-stamp <$3

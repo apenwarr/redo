@@ -1,0 +1,21 @@
+. ./redoconf.rc
+rc_include rc/CC.rc
+
+appendln CFLAGS "-fPIC"
+appendln LDFLAGS "-shared"
+
+prog='
+#include <stdlib.h>
+void f() { atoi(""); }
+'
+
+if [ -n "$STATIC" ]; then
+	echo "--enable-static specified; not building shared libraries." >&2
+	rc_replaceln HAVE_SHLIB ""
+elif RCC_NO_MAIN=1 rc_compile cc link "$prog"; then
+	rc_replaceln HAVE_SHLIB 1
+else
+	echo "Not building shared libraries on this platform." >&2
+	rc_replaceln HAVE_SHLIB ""
+fi
+rc_save

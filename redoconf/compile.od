@@ -1,0 +1,51 @@
+. ./redoconf.rc
+rc_include _all.rc
+redo-ifchange _compile
+
+# Subtle:
+#  - un-backslashed $ expansions ($foo, $(cmd)) are
+#    done *now*, while writing the script contents. 
+#  - backslashed $ expansions (\$foo) are written
+#    verbatim into the script, to be interpreted at
+#    the time the script is run.
+#
+# We want to insert the variable contents into the
+# script near the top, making sure they are not
+# split or interpreted at that point (hence the
+# $(shquote)).
+#
+# Further down, we want to disable wildcard expansion
+# (set -f) and split on $NL (so we change $IFS),
+# so we use backslash escapes but *not* quoting.
+
+cat >$3 <<-EOF
+	#!/bin/sh -e
+	# Run the C/++ compiler.
+	t="\$1" d="\$2" i="\$3"
+	CPPFLAGS=$(shquote "$CPPFLAGS")
+	OPTFLAGS=$(shquote "$OPTFLAGS")
+	case \$i in
+	  *.c|*.h)
+	    CC=$(shquote "$CC")
+	    CFLAGS=$(shquote "$CFLAGS")
+	    CXXFLAGS=
+	    PCH1=$(shquote "$CFLAGS_PCH")
+	    PCH2=$(shquote "$CFLAGS_PCH_FPIC")
+	    ;;
+	  *)
+	    CC=$(shquote "$CXX")
+	    [ -n "\$CC" ] || (echo "No C++ compiler available." >&2; exit 1)
+	    CFLAGS=
+	    CXXFLAGS=$(shquote "$CXXFLAGS")
+	    PCH1=$(shquote "$CXXFLAGS_PCH")
+	    PCH2=$(shquote "$CXXFLAGS_PCH_FPIC")
+	    ;;
+	esac
+	case \$PCH in
+	  1) FLAGS_PCH=\$PCH1 ;;
+	  2) FLAGS_PCH=\$PCH2 ;;
+	esac
+	. ./_compile
+EOF
+chmod a+x "$3"
+redo-stamp <$3

@@ -1,0 +1,23 @@
+. ./redoconf.rc
+rc_include \
+	rc/CC.rc \
+	rc/CXX.rc \
+	rc/libqt4.rc \
+	rc/libgtk2.rc \
+	rc/Wextra.rc \
+	rc/Wall.rc \
+	rc/libm.rc \
+	rc/rt.autolib.rc \
+	rc/libpng.rc \
+	rc/clock_gettime.func.rc \
+	rc/mach_time.h.rc \
+	rc/windows.h.rc \
+	rc/posix.rc \
+	rc/printf_lld.rc \
+	rc/extra.rc \
+	rc/all.h.precompiled.rc \
+	rc/all.hpp.precompiled.rc
+
+rc_appendln LIBS "$LIBRT"
+rc_appendln LIBS "$LIBM"
+rc_save

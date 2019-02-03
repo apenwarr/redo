@@ -1,0 +1,10 @@
+. ./redoconf.rc
+rc_include rc/CXX.rc rc/pkg-config.rc
+
+prog='
+#include <QVector>
+'
+
+rc_pkg_detect LIBQT4 QtCore \
+	rc_compile cxx link "$prog"
+rc_save
