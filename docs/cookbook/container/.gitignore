@@ -3,6 +3,7 @@ debootstrap
 debian
 libs
 simple
+*.code
 *.dockjson
 *.fakeroot
 *.fs
@@ -11,6 +12,7 @@ simple
 *.initrd
 *.layer
 *.list
+*.out
 *.runkvm
 *.runlocal
 *.rundocker
