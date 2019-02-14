@@ -37,6 +37,7 @@ def start_stdin_log_reader(status, details, pretty, color,
     After this, be sure to run await_log_reader() before exiting.
     """
     global log_reader_pid
+    global stderr_fd
     r, w = os.pipe()    # main pipe to redo-log
     ar, aw = os.pipe()  # ack pipe from redo-log --ack-fd
     sys.stdout.flush()
@@ -45,6 +46,7 @@ def start_stdin_log_reader(status, details, pretty, color,
     if pid:
         # parent
         log_reader_pid = pid
+        stderr_fd = os.dup(2) # save our stderr for after the log pipe gets closed
         os.close(r)
         os.close(aw)
         b = os.read(ar, 8)
@@ -95,6 +97,7 @@ def start_stdin_log_reader(status, details, pretty, color,
 
 def await_log_reader():
     """Await the redo-log instance we redirected stderr to, if any."""
+    global stderr_fd
     if not env.v.LOG:
         return
     if log_reader_pid > 0:
@@ -103,9 +106,8 @@ def await_log_reader():
         # Since our stdout/stderr are attached to redo-log's stdin,
         # this will notify redo-log that it's time to die (after it finishes
         # reading the logs)
-        out = open('/dev/tty', 'w')
-        os.dup2(out.fileno(), 1)
-        os.dup2(out.fileno(), 2)
+        os.dup2(stderr_fd, 1)
+        os.dup2(stderr_fd, 2)
         os.waitpid(log_reader_pid, 0)
 
 
