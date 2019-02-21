@@ -21,10 +21,15 @@ kvm \
 	-serial chardev:char0 \
 	-serial chardev:char1 \
 	-serial chardev:char2 >&2
-read rv <$1.code || true
-[ -z "$rv" ] && exit 99
+fix_cr() {
+	# serial devices use crlf (\r\n) as line
+	# endings instead of just lf (\n).
+	sed -e 's/\r//g'
+}
+rv=$(fix_cr <"$1.code")
+[ -n "$rv" ] || exit 99
 if [ "$rv" -eq 0 ]; then
-	sed -e 's/\r//g' "$1.out" >$3
+	fix_cr <"$1.out" >$3
 	echo "ok." >&2
 else
 	echo "kvm program returned error: $rv" >&2
