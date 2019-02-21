@@ -22,7 +22,12 @@ plugins:
         - cookbook/container/debdownload/*
         - cookbook/container/debootstrap/*
         - cookbook/container/debian/*
+        - cookbook/container/libs/*
         - cookbook/container/*.fakeroot
+        - cookbook/container/*.image
+        - cookbook/container/*.initrd
+        - cookbook/container/*.layer
+        - cookbook/container/*.list
         - "t/*"
         - "*.tmp"
         - "*.gz"
