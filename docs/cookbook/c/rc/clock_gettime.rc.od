@@ -1,0 +1,17 @@
+. ./redoconf.rc
+rc_include rc/CC.rc rc/rt.autolib.rc rc/posix.rc
+
+prog="
+#include <time.h>
+
+void test() { clock_gettime(CLOCK_MONOTONIC, NULL); }
+"
+
+rc_appendln LIBS "$LIBRT"
+if rc_compile cc link "$prog"; then
+	rc_replaceln "HAVE_CLOCK_GETTIME" 1
+else
+	rc_undo
+	rc_replaceln "HAVE_CLOCK_GETTIME" ""
+fi
+rc_save

@@ -9,7 +9,7 @@ rc_include \
 	rc/libm.rc \
 	rc/rt.autolib.rc \
 	rc/libpng.rc \
-	rc/clock_gettime.func.rc \
+	rc/clock_gettime.rc \
 	rc/mach_time.h.rc \
 	rc/windows.h.rc \
 	rc/posix.rc \
