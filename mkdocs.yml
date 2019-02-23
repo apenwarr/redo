@@ -29,11 +29,13 @@ plugins:
         - cookbook/container/*.layer
         - cookbook/container/*.list
         - "t/*"
-        - "*.tmp"
+        - "*.eps"
         - "*.gz"
-        - "*.tar"
+        - "*.log"
         - "*.pdf"
         - "*.ps"
+        - "*.tar"
+        - "*.tmp"
         - "*.1"
       regex:
         - ".*~"
