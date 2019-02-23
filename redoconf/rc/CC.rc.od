@@ -57,7 +57,7 @@ for d in "$@"; do
 		x="${x#-}"
 		[ -n "$x" ] && x="$x-"
 		rc_replaceln ARCH "$x"
-
+		rc_replaceln HAVE_CC 1
 		rc_save
 		exit 0
 	fi
@@ -65,4 +65,5 @@ done
 
 echo "Can't find a working C compiler." >&2
 rc_undo
-exit 1
+rc_replaceln CC ""
+rc_save

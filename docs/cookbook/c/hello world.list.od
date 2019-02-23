@@ -1,8 +1,8 @@
-# This script is run from the output dir,
-# which contains a src/ symlink to the source dir.
-
+# This script is run from the output dir.
+# The source dir is at $S.
 . ./redoconf.rc
 rc_include all.rc
+redo-ifchange "$S/sources"
 
 (
 	cd "$S"
@@ -26,5 +26,4 @@ rc_include all.rc
 	printf '%s\n' "$LIBGTK2" "$LIBQT4"
 ) >$3
 
-redo-always
 redo-stamp <$3

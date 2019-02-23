@@ -13,10 +13,10 @@ redo-ifchange "$REDOCONF/rc.sh" "$REDOCONF/utils.sh"
 _rc_exit_check() {
 	if [ -z "$RC_INCLUDE_RAN" ]; then
 		echo "Fatal: used redoconf/rc.sh but didn't call rc_include." >&2
-		exit 99
+		exit 91
 	elif [ -n "$RC_QUEUE" ]; then
 		echo "Fatal: must call rc_save or rc_undo before ending." >&2
-		exit 99
+		exit 92
 	fi
 }
 trap _rc_exit_check EXIT

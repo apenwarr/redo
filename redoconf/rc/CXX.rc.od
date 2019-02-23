@@ -23,6 +23,7 @@ for d in "$@"; do
 		# it to include -lstdc++, etc.
 		# A future .rc could override this again.
 		rc_replaceln LINK "$d"
+		rc_replaceln HAVE_CXX 1
 		rc_save
 		exit 0
 	fi
@@ -32,4 +33,3 @@ echo "Warning: Can't find a working C++ compiler." >&2
 rc_undo
 rc_replaceln CXX ""
 rc_save
-exit 0

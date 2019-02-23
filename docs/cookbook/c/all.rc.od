@@ -1,6 +1,6 @@
 . ./redoconf.rc
 rc_include \
-	rc/CC.rc \
+	rc/CC.required.rc \
 	rc/CXX.rc \
 	rc/libqt4.rc \
 	rc/libgtk2.rc \

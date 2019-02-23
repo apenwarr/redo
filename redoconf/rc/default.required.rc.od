@@ -1,0 +1,13 @@
+. ./redoconf.rc
+
+base=${1%.required.rc}
+name=${base#*/}
+NAME=$(echo "$name" | tr 'a-z.' 'A-Z_')
+
+rc_include "$base.rc"
+
+eval v="\$$NAME"
+if [ -z "$v" ]; then
+	echo "$NAME is required in order to build." >&2
+	exit 1
+fi

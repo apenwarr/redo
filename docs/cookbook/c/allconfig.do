@@ -8,9 +8,13 @@ config() {
 	(
 		cd "$dir" &&
 		../configure --host="$arch" "$@" &&
-		redo-ifchange rc/CC.rc &&
+		( set --;
+		  . ./redoconf.rc &&
+		  rc_include rc/CC.rc &&
+		  [ -n "$HAVE_CC" ]
+		) &&
 		echo "$dir"
-	) || :
+	) || (echo "Skipping arch '$arch' $*" >&2)
 }
 
 for d in $(cat arches); do
@@ -22,6 +26,6 @@ for d in $(cat arches); do
 	config "out.$d" "$arch" &
 	config "out.$d.static" "$arch" "--enable-static" &
 	config "out.$d.opt" "$arch" "--enable-optimization" &
-done
+done >$3
 
 wait
