@@ -65,13 +65,18 @@ _pick_src() {
 }
 
 _objlist() {
-	local suffix="$1" list="$2" base="${2##*/}"
+	local suffix="$1" list="$2"
+	local base="${2##*/}"
 	local dir="${2%"$base"}"
-	sed -Ee 's/\.(c|cc|cpp|cxx|C|c\+\+)$/'"$suffix/" <"$2" |
 	while read -r d; do
-		[ "$d" = "${d#-}" ] || continue
-		echo "$dir$d"
-	done
+		case $d in
+			-*) ;;
+			*.c|*.cc|*.cpp|*.cxx|*.C|*.c++)
+				echo "$dir${d%.*}$suffix"
+				;;
+			*) echo "$dir$d" ;;
+		esac
+	done <"$list"
 }
 
 _flaglist() {
