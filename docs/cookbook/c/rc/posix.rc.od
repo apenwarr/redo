@@ -8,9 +8,13 @@ struct timespec x;
 '
 
 x=
+rc_replaceln HAS_POSIX 1
 if ! rc_compile cc link "$prog"; then
-    x="-D_XOPEN_SOURCE=500"
-    rc_appendln CPPFLAGS "$x"
-    rc_compile cc link "$prog"
+	x="-D_XOPEN_SOURCE=500"
+	rc_appendln CPPFLAGS "$x"
+	if ! rc_compile cc link "$prog"; then
+		rc_undo
+		rc_replaceln HAS_POSIX ""
+	fi
 fi
 rc_save

@@ -15,7 +15,7 @@ _rc_exit_check() {
 		echo "Fatal: used redoconf/rc.sh but didn't call rc_include." >&2
 		exit 91
 	elif [ -n "$RC_QUEUE" ]; then
-		echo "Fatal: must call rc_save or rc_undo before ending." >&2
+		echo "Fatal: script exited without rc_save or rc_undo." >&2
 		exit 92
 	fi
 }
