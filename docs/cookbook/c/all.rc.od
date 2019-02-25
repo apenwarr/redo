@@ -10,7 +10,7 @@ rc_include \
 	rc/rt.autolib.rc \
 	rc/libpng.rc \
 	rc/clock_gettime.rc \
-	rc/mach_time.h.rc \
+	rc/mach__mach_time.h.rc \
 	rc/windows.h.rc \
 	rc/posix.rc \
 	rc/printf_lld.rc \

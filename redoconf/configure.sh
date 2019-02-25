@@ -50,7 +50,8 @@ usage() {
 
     --prefix=       Change installation prefix (usually /usr/local)
     --host=         Architecture prefix for output (eg. i686-w64-mingw32-)
-    --enable-static               Link libraries and binaries statically
+    --enable-static               Link binaries statically
+    --disable-shared              Do not build shared libraries
     --{dis,en}able-optimization   Disable/enable optimization for C/C++
     --{dis,en}able-debug          Disable/enable debugging flags for C/C++
     -h, --help      This help message
@@ -114,6 +115,9 @@ for d in "$@"; do
 			;;
 		--enable-static)
 			emit "STATIC" "1"
+			;;
+		--disable-shared)
+			emit "NOSHARED" "1"
 			;;
 		--enable-optimization)
 			emit_append OPTFLAGS "-O2"

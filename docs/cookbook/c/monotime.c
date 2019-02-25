@@ -23,7 +23,7 @@ long long monotime(void) {
 	return !result ? 1 : result;
 }
 
-#elif HAVE_MACH_TIME_H
+#elif HAVE_MACH__MACH_TIME_H
 
 #include <mach/mach.h>
 #include <mach/mach_time.h>

@@ -2,7 +2,7 @@
 rc_include _all.rc rc/shlib.rc
 
 # Tricky quoting: see _compile.od for details.
-if [ "$HAVE_SHLIB" = 1 ]; then
+if [ "$HAVE_SHLIB" = UNIX ]; then
 	cat >$3 <<-EOF
 		#!/bin/sh -e
 		LINK=$(shquote "$LINK")
@@ -16,6 +16,25 @@ if [ "$HAVE_SHLIB" = 1 ]; then
 		set -f
 		\$LINK -shared -o "\$o" \\
 		  -Wl,-soname,"\$ob" \\
+		  \$LDFLAGS \$OPTFLAGS \\
+		  "\$@" \\
+		  \$LIBS
+	EOF
+elif [ "$HAVE_SHLIB" = MACOS ]; then
+	cat >$3 <<-EOF
+		#!/bin/sh -e
+		LINK=$(shquote "$LINK")
+		LDFLAGS=$(shquote "$LDFLAGS")
+		OPTFLAGS=$(shquote "$OPTFLAGS")
+		LIBS=$(shquote "$LIBS")
+		LIBDIR=$(shquote "$LIBDIR")
+		o="\$1"
+		ob="\${o#*/}"
+		shift
+		IFS="$NL"
+		set -f
+		\$LINK -dynamiclib -o "\$o" \\
+		  -install_name "\$ob" \\
 		  \$LDFLAGS \$OPTFLAGS \\
 		  "\$@" \\
 		  \$LIBS
