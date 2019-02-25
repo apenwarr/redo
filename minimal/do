@@ -4,7 +4,7 @@
 # For the full version, visit http://github.com/apenwarr/redo
 #
 # The author disclaims copyright to this source file and hereby places it in
-# the public domain. (2010 12 14; updated 2018 12 13)
+# the public domain. (2010 12 14; updated 2019 02 24)
 #
 USAGE="
 usage: do [-d] [-x] [-v] [-c] <targets...>
@@ -28,16 +28,23 @@ if [ -n "$TERM" -a "$TERM" != "dumb" ] && tty <&2 >/dev/null 2>&1; then
 	plain="$(printf '\033[m')"
 fi
 
+# The 'seq' command is not available on all platforms.
+_seq() {
+	local x=0 max="$1"
+	while [ "$x" -lt "$max" ]; do
+		x=$((x + 1))
+		echo "$x"
+	done
+}
+
 # Split $1 into a dir part ($_dirsplit_dir) and base filename ($_dirsplit_base)
-_dirsplit()
-{
+_dirsplit() {
 	_dirsplit_base=${1##*/}
 	_dirsplit_dir=${1%$_dirsplit_base}
 }
 
 # Like /usr/bin/dirname, but avoids a fork and uses _dirsplit semantics.
-qdirname()
-(
+qdirname() (
 	_dirsplit "$1"
 	dir=${_dirsplit_dir%/}
 	echo "${dir:-.}"
@@ -214,7 +221,7 @@ _realpath()
 		path="${relto%/}/$path"
 	fi
 	(
-		for d in $(seq 100); do
+		for d in $(_seq 100); do
 			#echo "Trying: $PWD--$path" >&2
 			if cd -P "$path" 2>/dev/null; then
 				# success
@@ -269,7 +276,7 @@ _find_dofiles()
 	dofile=$_dirsplit_base
 	[ -n "$dodir" ] && dodir=${dodir%/}/
 	[ -e "$dodir$dofile" ] && return 0
-	for i in $(seq 100); do
+	for i in $(_seq 100); do
 		[ -n "$dodir" ] && dodir=${dodir%/}/
 		#echo "_find_dofiles: '$dodir' '$dofile'" >&2
 		_find_dofiles_pwd "$dodir" "$dofile" && return 0
