@@ -4,13 +4,20 @@ rc_include rc/CC.rc
 base="${1#rc/}"
 src="${base%.h.precompiled.rc}"
 
+# Check whether the compiler supports forcing
+# the language type.  Some versions of gcc
+# need this in order to precompile headers
+# named *.hpp.
+x="-x${NL}c-header"
+if (appendln CFLAGS "$x" && rc_compile cc nolink); then
+	rc_appendln CFLAGS_PCH_LANG "$x"
+fi
+
 # The existence of the specific gcc warning about
 # precompiled headers is a pretty good indicator
 # that they are supported in the way we expect.
 rc_appendln CFLAGS "-Winvalid-pch"
 if rc_compile cc nolink; then
-    rc_appendln CFLAGS "$x"
-
     rc_appendln CFLAGS_PCH "-include$NL$src.h"
     rc_appendln CFLAGS_PCH_FPIC "-include$NL$src.h.fpic"
 

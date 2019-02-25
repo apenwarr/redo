@@ -6,9 +6,10 @@ cat >$3 <<-EOF
 	t="\$1" d="\$2" i="\$3"
 	IFS="$NL"
 	set -f
-	\$CC -o "\$t" -c "\$i" \\
+	\$CC -o "\$t" \\
 	  -MMD -MF "\$d" \\
-	  \$CPPFLAGS \$CFLAGS \$CXXFLAGS \$FLAGS_PCH \$xCFLAGS \$OPTFLAGS
+	  \$CPPFLAGS \$CFLAGS \$CXXFLAGS \$FLAGS_PCH \$xCFLAGS \$OPTFLAGS \\
+	  -c "\$i"
 EOF
 chmod a+x "$3"
 redo-stamp <$3

@@ -116,14 +116,14 @@ case $1 in
 	;;
     *.h.fpic.gch|*.hpp.fpic.gch)
 	src="$S/${1%.fpic.gch}"
-	xCFLAGS="-fPIC" PCH="" dep="" compile "$@"
+	xCFLAGS="-fPIC" PCH="3" dep="" compile "$@"
 	# precompiled header is "unchanged" if its component
 	# headers are unchanged.
 	cat ${deps#*:} | tee $1.stamp | redo-stamp
 	;;
     *.h.gch|*.hpp.gch)
 	src="$S/${1%.gch}"
-	xCFLAGS="" PCH="" dep="" compile "$@"
+	xCFLAGS="" PCH="3" dep="" compile "$@"
 	# precompiled header is "unchanged" if its component
 	# headers are unchanged.
 	cat ${deps#*:} | tee $1.stamp | redo-stamp

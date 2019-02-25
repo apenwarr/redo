@@ -31,6 +31,7 @@ cat >$3 <<-EOF
 	    CXXFLAGS=
 	    PCH1=$(shquote "$CFLAGS_PCH")
 	    PCH2=$(shquote "$CFLAGS_PCH_FPIC")
+	    PCH3=$(shquote "$CFLAGS_PCH_LANG")
 	    ;;
 	  *)
 	    CC=$(shquote "$CXX")
@@ -39,11 +40,13 @@ cat >$3 <<-EOF
 	    CXXFLAGS=$(shquote "$CXXFLAGS")
 	    PCH1=$(shquote "$CXXFLAGS_PCH")
 	    PCH2=$(shquote "$CXXFLAGS_PCH_FPIC")
+	    PCH3=$(shquote "$CXXFLAGS_PCH_LANG")
 	    ;;
 	esac
 	case \$PCH in
 	  1) FLAGS_PCH=\$PCH1 ;;
 	  2) FLAGS_PCH=\$PCH2 ;;
+	  3) FLAGS_PCH=\$PCH3 ;;
 	esac
 	. ./_compile
 EOF
