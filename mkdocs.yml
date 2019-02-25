@@ -28,6 +28,7 @@ plugins:
         - cookbook/container/*.initrd
         - cookbook/container/*.layer
         - cookbook/container/*.list
+        - cookbook/c/out.*
         - "t/*"
         - "*.eps"
         - "*.gz"
