@@ -2,6 +2,7 @@
 rc_include \
 	rc/CC.required.rc \
 	rc/CXX.rc \
+	rc/shlib.rc \
 	rc/libqt4.rc \
 	rc/libgtk2.rc \
 	rc/Wextra.rc \

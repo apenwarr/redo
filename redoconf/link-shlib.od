@@ -1,5 +1,5 @@
 . ./redoconf.rc
-rc_include _all.rc rc/shlib.rc
+rc_include _all.rc
 
 # Tricky quoting: see _compile.od for details.
 if [ "$HAVE_SHLIB" = UNIX ]; then
@@ -40,6 +40,12 @@ elif [ "$HAVE_SHLIB" = MACOS ]; then
 		  \$LIBS
 	EOF
 else
+	if [ -z "$HAVE_SHLIB" ]; then
+		echo "link-shlib.od: fatal:" \
+			"must include rc/shlib.rc to use shared libraries." >&2
+		exit 90
+	fi
+
 	# If no shared library support and we try to build one,
 	# compensate by building a static library instead in the
 	# same place.

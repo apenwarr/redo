@@ -27,17 +27,29 @@ try_macos_style() {
 
 if [ -n "$STATIC" ]; then
 	echo "--enable-static specified; not building shared libraries." >&2
-	rc_replaceln HAVE_SHLIB ""
+	rc_replaceln HAVE_SHLIB "STATIC"
 elif [ -n "$NOSHARED" ]; then
 	echo "--disable-shared specified; not building shared libraries." >&2
-	rc_replaceln HAVE_SHLIB ""
+	rc_replaceln HAVE_SHLIB "STATIC"
 elif try_unix_style; then
 	rc_replaceln HAVE_SHLIB UNIX
 elif try_macos_style; then
 	rc_replaceln HAVE_SHLIB MACOS
 else
 	echo "Not building shared libraries on this platform." >&2
-	rc_undo
-	rc_replaceln HAVE_SHLIB ""
+	rc_replaceln HAVE_SHLIB "STATIC"
 fi
+
+if [ "$HAVE_SHLIB" != "STATIC" ]; then
+	x='-Wl,-z,origin'
+	if (appendln LDFLAGS "$x" && rc_compile cc link); then
+		rc_appendln LDFLAGS "$x"
+	fi
+
+	x='-Wl,-rpath,$ORIGIN'
+	if (appendln LDFLAGS "$x" && rc_compile cc link); then
+		rc_appendln LDFLAGS "$x"
+	fi
+fi
+
 rc_save

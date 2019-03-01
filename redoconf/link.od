@@ -13,7 +13,6 @@ cat >$3 <<-EOF
 	IFS="$NL"
 	set -f
 	\$LINK -o "\$o" \\
-	  -Wl,-rpath,'\$ORIGIN' \\
 	  \$LDFLAGS \$OPTFLAGS \\
 	  "\$@" \\
 	  \$LIBS
