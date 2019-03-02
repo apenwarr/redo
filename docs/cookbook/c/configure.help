@@ -10,7 +10,7 @@ LIBS         Extra libraries to always link against (eg. -lsocket)
 STATIC       Link libraries and binaries statically
 CXX          C++ compiler name (c++)
 CXXFLAGS     Extra C++ compiler flags (eg. -O2 -g)
-LIBQT4       Extra linker options for 'QtCore'
+LIBQT4       Extra linker options for 'QtGui'
 LIBGTK2      Extra linker options for 'gtk+-2.0 gio-2.0 gdk-2.0 gdk-pixbuf-2.0'
 LIBM         Extra linker options for 'libm'
 LIBPNG       Extra linker options for 'libpng'

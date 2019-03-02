@@ -5,6 +5,14 @@ prog='
 #include <QVector>
 '
 
-rc_pkg_detect LIBQT4 QtCore \
+rc_pkg_detect LIBQT4 QtGui \
 	rc_compile cxx link "$prog"
+
+for d in "$MOC" moc-qt4 moc; do
+	if type "$d" >/dev/null 2>&1; then
+		rc_replaceln MOC "$d"
+		break
+	fi
+done
+
 rc_save

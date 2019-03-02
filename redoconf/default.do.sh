@@ -9,6 +9,11 @@ fi
 NL="
 "
 
+die() {
+    echo Error: "$@" >&2
+    exit 99
+}
+
 _mkdir_of() {
 	local dir="${1%/*}"
 	[ "$dir" = "$1" ] ||
@@ -23,8 +28,10 @@ _dir1=${1%"$_base1"}
 _missing=""
 for d in "$S/$1.od" \
          "$S/${_dir1}default.${_base1#*.}.od" \
+         "$S/default.${_base1#*.}.od" \
          "$REDOCONF/$1.od" \
-         "$REDOCONF/${_dir1}default.${_base1#*.}.od"; do
+         "$REDOCONF/${_dir1}default.${_base1#*.}.od" \
+         "$REDOCONF/default.${_base1#*.}.od"; do
 	if [ -e "$d" ]; then
 		redo-ifchange "$d"
 		_mkdir_of "$3"
@@ -60,7 +67,7 @@ _pick_src() {
 		[ -e "$src.do" ] && return
 		missing="$missing$NL$src"
 	done
-	echo "default.do.sh: _pick_src: no source file found for '$1.*'" >&2
+	die "default.do.sh: _pick_src: no source file found for '$1.*'"
 	return 1
 }
 
@@ -71,7 +78,7 @@ _objlist() {
 	while read -r d; do
 		case $d in
 			-*) ;;
-			*.c|*.cc|*.cpp|*.cxx|*.C|*.c++)
+			*.c|*.cc|*.cpp|*.cxx|*.C|*.c++|*.o)
 				echo "$dir${d%.*}$suffix"
 				;;
 			*) echo "$dir$d" ;;
@@ -86,7 +93,7 @@ _flaglist() {
 	done <"$1"
 }
 
-compile() {
+_compile() {
 	redo-ifchange compile "$src" $dep
 	rm -f "$1.deps"
 	_mkdir_of "$3"
@@ -101,29 +108,41 @@ compile() {
 	redo-ifchange ${deps#*:}
 }
 
+_link() {
+	(
+		local o="$1" listf="$2"
+		redo-ifchange link "$listf"
+		files=$(_objlist .o "$listf")
+		xLIBS=$(_flaglist "$listf")
+		IFS="$NL"
+		redo-ifchange $files
+		xLIBS="$xLIBS" ./link "$o" $files
+	)
+}
+
 case $1 in
     *.fpic.o)
 	_pick_src "$S/${1%.fpic.o}"
 	_add_missing
-	xCFLAGS="-fPIC" PCH="2" dep="$lang-fpic.precompile" compile "$@"
+	xCFLAGS="-fPIC" PCH="2" dep="$lang-fpic.precompile" _compile "$@"
 	exit  # fast path: exit as early as possible
 	;;
     *.o)
 	_pick_src "$S/${1%.o}"
 	_add_missing
-	xCFLAGS="" PCH="1" dep="$lang.precompile" compile "$@"
+	xCFLAGS="" PCH="1" dep="$lang.precompile" _compile "$@"
 	exit  # fast path: exit as early as possible
 	;;
     *.h.fpic.gch|*.hpp.fpic.gch)
 	src="$S/${1%.fpic.gch}"
-	xCFLAGS="-fPIC" PCH="3" dep="" compile "$@"
+	xCFLAGS="-fPIC" PCH="3" dep="" _compile "$@"
 	# precompiled header is "unchanged" if its component
 	# headers are unchanged.
 	cat ${deps#*:} | tee $1.stamp | redo-stamp
 	;;
     *.h.gch|*.hpp.gch)
 	src="$S/${1%.gch}"
-	xCFLAGS="" PCH="3" dep="" compile "$@"
+	xCFLAGS="" PCH="3" dep="" _compile "$@"
 	# precompiled header is "unchanged" if its component
 	# headers are unchanged.
 	cat ${deps#*:} | tee $1.stamp | redo-stamp
@@ -146,8 +165,9 @@ case $1 in
 	IFS="$NL"
 	redo-ifchange $files
 	xLIBS="$xLIBS" ./link-shlib "$1.$ver" $files
-	ln -s "$(basename "$1.$ver")" "$3"
-	ln -sf "$1.$ver" .
+	bname="$(basename "$1.$ver")"
+	ln -s "$bname" "$3"
+	[ "$1.$ver" = "$bname" ] || ln -sf "$1.$ver" .
 	;;
     *.list|*.ver)
 	if [ -e "$S/$1" ]; then
@@ -155,7 +175,7 @@ case $1 in
 		_mkdir_of "$3"
 		cp "$S/$1" "$3"
 	else
-		echo "default.do.sh: no rule to build '$1'" >&2
+		die "default.do.sh: no rule to build '$1'"
 		exit 99
 	fi
 	;;
@@ -172,14 +192,15 @@ case $1 in
 	bin="${1%.exe}"
 	if [ -e "$S/$bin.list" -o -e "$S/$bin.list.od" ]; then
 		# a final program binary
-		redo-ifchange link "$bin.list"
-		files=$(_objlist .o "$bin.list")
-		xLIBS=$(_flaglist "$bin.list")
-		IFS="$NL"
-		redo-ifchange $files
-		xLIBS="$xLIBS" ./link "$3" $files
+		_link "$3" "$bin.list"
+	elif [ -e "$S/default.od" ]; then
+		d="$S/default.od"
+		redo-ifchange "$d"
+		_mkdir_of "$3"
+		( PS4="$PS4[$d] "; . "$d" )
+		exit
 	else
-		echo "default.do.sh: no rule to build '$1' or '$1.list'" >&2
+		die "default.do.sh: no rule to build '$1' or '$1.list'"
 		exit 99
 	fi
 	;;

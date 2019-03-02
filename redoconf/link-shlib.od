@@ -18,7 +18,7 @@ if [ "$HAVE_SHLIB" = UNIX ]; then
 		  -Wl,-soname,"\$ob" \\
 		  \$LDFLAGS \$OPTFLAGS \\
 		  "\$@" \\
-		  \$LIBS
+		  \$xLIBS \$LIBS
 	EOF
 elif [ "$HAVE_SHLIB" = MACOS ]; then
 	cat >$3 <<-EOF
@@ -37,7 +37,7 @@ elif [ "$HAVE_SHLIB" = MACOS ]; then
 		  -install_name "\$ob" \\
 		  \$LDFLAGS \$OPTFLAGS \\
 		  "\$@" \\
-		  \$LIBS
+		  \$xLIBS \$LIBS
 	EOF
 else
 	if [ -z "$HAVE_SHLIB" ]; then

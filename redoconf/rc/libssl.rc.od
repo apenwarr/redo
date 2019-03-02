@@ -1,0 +1,10 @@
+. ./redoconf.rc
+rc_include rc/CC.rc rc/pkg-config.rc
+
+prog="
+#include <openssl/ssl.h>
+"
+
+rc_pkg_detect LIBSSL "libssl libcrypto" \
+	rc_compile cc link "$prog"
+rc_save

@@ -15,7 +15,7 @@ cat >$3 <<-EOF
 	\$LINK -o "\$o" \\
 	  \$LDFLAGS \$OPTFLAGS \\
 	  "\$@" \\
-	  \$LIBS
+	  \$xLIBS \$LIBS
 EOF
 chmod a+x "$3"
 redo-stamp <$3
