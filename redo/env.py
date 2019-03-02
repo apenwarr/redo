@@ -35,7 +35,7 @@ class Env(object):
         self.VERBOSE = _get_bool('REDO_VERBOSE', '')
         self.XTRACE = _get_bool('REDO_XTRACE', '')
         self.KEEP_GOING = _get_bool('REDO_KEEP_GOING', '')
-        self.LOG = _get_int('REDO_LOG', '')
+        self.LOG = _get_int('REDO_LOG', '1')
         self.LOG_INODE = _get('REDO_LOG_INODE', '')
         self.COLOR = _get_int('REDO_COLOR', '')
         self.PRETTY = _get_int('REDO_PRETTY', '')

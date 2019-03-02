@@ -1,1 +1,1 @@
-rm -f passfail *~ .*~
+rm -f passfail *~ .*~ */*~ */.*~ noargs/all
