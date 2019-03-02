@@ -170,7 +170,8 @@ class _BuildJob(object):
             # to produce hello.c, but we don't want that to happen if
             # hello.c was created by the end user.
             debug2("-- static (%r)\n" % t)
-            sf.set_static()
+            if not sf.is_override:
+                sf.set_static()
             sf.save()
             return self._finalize(0)
         sf.zap_deps1()
