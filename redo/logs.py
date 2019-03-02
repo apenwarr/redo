@@ -71,7 +71,8 @@ class PrettyLog(object):
             kind, pid, _ = words[0:3]
             pid = int(pid)
             if kind == 'unchanged':
-                self._pretty(pid, '', '%s (unchanged)' % text)
+                if env.v.LOG or env.v.DEBUG:
+                    self._pretty(pid, '', '%s (unchanged)' % text)
             elif kind == 'check':
                 self._pretty(pid, GREEN, '(%s)' % text)
             elif kind == 'do':
