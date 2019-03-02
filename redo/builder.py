@@ -183,6 +183,8 @@ class _BuildJob(object):
                 return self._finalize(0)
             else:
                 err('no rule to redo %r\n' % t)
+                sf.set_failed()
+                sf.save()
                 return self._finalize(1)
         # There is no good place for us to pre-create a temp file for
         # stdout.  The target dir might not exist yet, or it might currently

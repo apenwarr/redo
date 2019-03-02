@@ -32,7 +32,7 @@ def possible_do_files(t):
     # since t is an absolute path, dirbits[0] is always '', so we don't
     # need to count all the way down to i=0.
     for i in range(len(dirbits), 0, -1):
-        basedir = '/'.join(dirbits[:i])
+        basedir = '/'.join(dirbits[:i]) or '/'
         subdir = '/'.join(dirbits[i:])
         for dofile, basename, ext in _default_do_files(filename):
             yield (basedir, dofile,
