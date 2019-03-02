@@ -292,7 +292,7 @@ class _BuildJob(object):
         jobserver.start(self.t, jobfunc=subtask, donefunc=job_exited)
 
     def _subproc(self, dodir, basename, ext, argv):
-        """The function by jobserver.start to exec the build script.
+        """The function called by jobserver.start to exec the build script.
 
         This is run in the *child* process.
         """
@@ -306,6 +306,10 @@ class _BuildJob(object):
         os.environ['REDO_PWD'] = state.relpath(newp, env.v.STARTDIR)
         os.environ['REDO_TARGET'] = basename + ext
         os.environ['REDO_DEPTH'] = env.v.DEPTH + '  '
+        if env.v.XTRACE == 1:
+            os.environ['REDO_XTRACE'] = '0'
+        if env.v.VERBOSE == 1:
+            os.environ['REDO_VERBOSE'] = '0'
         cycles.add(self.lock.fid)
         if dodir:
             os.chdir(dodir)

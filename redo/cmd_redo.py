@@ -53,9 +53,9 @@ def main():
     if opt.debug:
         os.environ['REDO_DEBUG'] = str(opt.debug or 0)
     if opt.verbose:
-        os.environ['REDO_VERBOSE'] = '1'
+        os.environ['REDO_VERBOSE'] = str(opt.verbose)
     if opt.xtrace:
-        os.environ['REDO_XTRACE'] = '1'
+        os.environ['REDO_XTRACE'] = str(opt.xtrace)
     if opt.keep_going:
         os.environ['REDO_KEEP_GOING'] = '1'
     if opt.shuffle:

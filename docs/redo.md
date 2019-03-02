@@ -62,7 +62,9 @@ option is *not* given and `--no-log` is used.
     to stderr as it reads them.  Most shells will print the
     exact source line (eg. `echo $3`) and not the
     substituted value of variables (eg. `echo
-    mytarget.redo.tmp`).
+    mytarget.redo.tmp`).  Normally this option applies only
+    to targets you specify on the command line.  To recursively
+    enable verbose mode for sub targets, pass it twice (-vv).
     
 -x, --xtrace
 :   pass the -x option to /bin/sh when executing scripts. 
@@ -70,7 +72,9 @@ option is *not* given and `--no-log` is used.
     commands are being executed.  Most shells will print
     the substituted variables (eg. `echo
     mytarget.redo.tmp`) and not the original source line
-    (eg. `echo $3`).
+    (eg. `echo $3`).  Normally this option applies only
+    to targets you specify on the command line.  To recursively
+    enable xtrace mode for sub targets, pass it twice (-xx).
     
 -k, --keep-going
 :   keep building as many targets as possible even if some
