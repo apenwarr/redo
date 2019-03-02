@@ -229,10 +229,20 @@ class _BuildJob(object):
         firstline = open(os.path.join(dodir, dofile)).readline().strip()
         if firstline.startswith('#!/'):
             argv[0:2] = firstline[2:].split(' ')
-        # make sure to create the logfile *before* writing the meta() about it.
-        # that way redo-log won't trace into an obsolete logfile.
+        # make sure to create the logfile *before* writing the meta() about
+        # it.  that way redo-log won't trace into an obsolete logfile.
+        #
+        # We open a temp file and atomically rename it into place here.
+        # This guarantees that redo-log will never experience a file that
+        # gets truncated halfway through reading (eg.  if we build the same
+        # target more than once in a run).  Similarly, we don't want to
+        # actually unlink() the file in case redo-log is about to start
+        # reading a previous instance created during this session.  It
+        # should always see either the old or new instance.
         if env.v.LOG:
-            open(state.logname(self.sf.id), 'w')
+            lfd, lfname = tempfile.mkstemp(prefix='redo.', suffix='.log.tmp')
+            os.fdopen(lfd, 'w')
+            os.rename(lfname, state.logname(self.sf.id))
         dof = state.File(name=os.path.join(dodir, dofile))
         dof.set_static()
         dof.save()
