@@ -419,7 +419,8 @@ class _BuildJob(object):
                 sf.csum = None
                 sf.update_stamp()
                 sf.set_changed()
-        else:
+        # rv might have changed up above
+        if rv:
             helpers.unlink(self.tmpname)
             sf = self.sf
             sf.set_failed()
