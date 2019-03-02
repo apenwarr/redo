@@ -4,7 +4,6 @@
 # Notably, we have to precompile any precompiled
 # headers.  We also generate redoconf.h in case
 # programs want to include it.
-. ./redoconf.rc
 rc_include _all.rc
 
 case ${1%.precompile} in

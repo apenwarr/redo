@@ -1,7 +1,6 @@
 # Demonstrate how to compile .o files using nonstandard
 # compiler flags.  You could also do this for a whole
 # directory using default.o.od.
-. ./redoconf.rc
 rc_include all.rc
 
 src="$S/${1%.o}.c"

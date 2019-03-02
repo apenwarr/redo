@@ -1,4 +1,3 @@
-. ./redoconf.rc
 rc_include _all.rc
 redo-ifchange _compile
 

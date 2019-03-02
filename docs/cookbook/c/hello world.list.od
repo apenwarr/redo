@@ -1,6 +1,5 @@
 # This script is run from the output dir.
 # The source dir is at $S.
-. ./redoconf.rc
 rc_include all.rc
 redo-ifchange "$S/sources"
 

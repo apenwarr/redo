@@ -1,4 +1,3 @@
-. ./redoconf.rc
 rc_include rc/CC.rc
 
 prog='

@@ -14,6 +14,11 @@ die() {
     exit 99
 }
 
+rc_include() {
+	. ./redoconf.rc || exit 1  # redefines rc_include
+	rc_include "$@"
+}
+
 _mkdir_of() {
 	local dir="${1%/*}"
 	[ "$dir" = "$1" ] ||

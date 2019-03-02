@@ -1,5 +1,3 @@
-. ./redoconf.rc
-
 base=${1%.required.rc}
 name=${base#*/}
 NAME=$(echo "$name" | tr 'a-z.' 'A-Z_')
