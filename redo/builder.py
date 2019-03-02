@@ -170,7 +170,8 @@ class _BuildJob(object):
             # to produce hello.c, but we don't want that to happen if
             # hello.c was created by the end user.
             debug2("-- static (%r)\n" % t)
-            sf.set_static()
+            if not sf.is_override:
+                sf.set_static()
             sf.save()
             return self._finalize(0)
         sf.zap_deps1()
@@ -182,6 +183,8 @@ class _BuildJob(object):
                 return self._finalize(0)
             else:
                 err('no rule to redo %r\n' % t)
+                sf.set_failed()
+                sf.save()
                 return self._finalize(1)
         # There is no good place for us to pre-create a temp file for
         # stdout.  The target dir might not exist yet, or it might currently
@@ -226,10 +229,20 @@ class _BuildJob(object):
         firstline = open(os.path.join(dodir, dofile)).readline().strip()
         if firstline.startswith('#!/'):
             argv[0:2] = firstline[2:].split(' ')
-        # make sure to create the logfile *before* writing the meta() about it.
-        # that way redo-log won't trace into an obsolete logfile.
+        # make sure to create the logfile *before* writing the meta() about
+        # it.  that way redo-log won't trace into an obsolete logfile.
+        #
+        # We open a temp file and atomically rename it into place here.
+        # This guarantees that redo-log will never experience a file that
+        # gets truncated halfway through reading (eg.  if we build the same
+        # target more than once in a run).  Similarly, we don't want to
+        # actually unlink() the file in case redo-log is about to start
+        # reading a previous instance created during this session.  It
+        # should always see either the old or new instance.
         if env.v.LOG:
-            open(state.logname(self.sf.id), 'w')
+            lfd, lfname = tempfile.mkstemp(prefix='redo.', suffix='.log.tmp')
+            os.fdopen(lfd, 'w')
+            os.rename(lfname, state.logname(self.sf.id))
         dof = state.File(name=os.path.join(dodir, dofile))
         dof.set_static()
         dof.save()
@@ -419,7 +432,8 @@ class _BuildJob(object):
                 sf.csum = None
                 sf.update_stamp()
                 sf.set_changed()
-        else:
+        # rv might have changed up above
+        if rv:
             helpers.unlink(self.tmpname)
             sf = self.sf
             sf.set_failed()
@@ -473,6 +487,11 @@ def run(targets, shouldbuildfunc):
         selflock = state.Lock(state.LOG_LOCK_MAGIC + myfile.id)
     else:
         selflock = myfile = me = None
+
+    for t in targets:
+        if '\n' in t:
+            err('%r: filenames containing newlines are not allowed.\n' % t)
+            return 204
 
     def cheat():
         if not selflock:
