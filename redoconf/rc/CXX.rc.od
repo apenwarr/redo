@@ -1,0 +1,34 @@
+rc_include rc/CC.rc
+
+rc_helpmsg CXX "C++ compiler name (c++)"
+rc_helpmsg CXXFLAGS "Extra C++ compiler flags (eg. -O2 -g)"
+
+if [ -n "$CXX" ]; then
+	set -- "$CXX"
+else
+	# Note: $ARCH has already been set correctly by CC.rc
+	set -- \
+	    "${ARCH}c++" "${ARCH}g++" \
+	    "${ARCH}clang++" "/usr/bin/${ARCH}clang++"-[0-9]*
+fi
+
+for d in "$@"; do
+	[ -n "$d" ] || continue
+	echo "Trying C++ compiler: '$d'" >&2
+	if CC="" CXX="$d" LINK="$d" rc_compile cxx link 'class A {};'; then
+		rc_replaceln CXX "$d"
+		# If the project activates CXX.rc, then we
+		# replace the C linker with C++.  This causes
+		# it to include -lstdc++, etc.
+		# A future .rc could override this again.
+		rc_replaceln LINK "$d"
+		rc_replaceln HAVE_CXX 1
+		rc_save
+		exit 0
+	fi
+done
+
+echo "Warning: Can't find a working C++ compiler." >&2
+rc_undo
+rc_replaceln CXX ""
+rc_save

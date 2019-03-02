@@ -1,0 +1,10 @@
+rc_include rc/CC.rc
+
+x="-Wl,-z,defs"
+rc_appendln LDFLAGS "$x"
+if rc_compile cc link; then
+	rc_save
+else
+	echo "'$x' doesn't work on this platform; skipped." >&2
+	rc_undo
+fi

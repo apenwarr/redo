@@ -1,0 +1,54 @@
+rc_include rc/CC.rc
+
+prog='
+#include <stdlib.h>
+void f() { atoi(""); }
+'
+
+try_unix_style() {
+	(
+		appendln CFLAGS "-fPIC"
+		appendln LDFLAGS "-shared"
+		appendln LDFLAGS "-Wl,-soname,x.so"
+		RCC_NO_MAIN=1 rc_compile cc link "$prog"
+	)
+}
+
+try_macos_style() {
+	(
+		appendln CFLAGS "-fPIC"
+		appendln LDFLAGS "-dynamiclib"
+		appendln LDFLAGS "-current_version"
+		appendln LDFLAGS "1.0"
+		RCC_NO_MAIN=1 rc_compile cc link "$prog"
+	)
+}
+
+if [ -n "$STATIC" ]; then
+	echo "--enable-static specified; not building shared libraries." >&2
+	rc_replaceln HAVE_SHLIB "STATIC"
+elif [ -n "$NOSHARED" ]; then
+	echo "--disable-shared specified; not building shared libraries." >&2
+	rc_replaceln HAVE_SHLIB "STATIC"
+elif try_unix_style; then
+	rc_replaceln HAVE_SHLIB UNIX
+elif try_macos_style; then
+	rc_replaceln HAVE_SHLIB MACOS
+else
+	echo "Not building shared libraries on this platform." >&2
+	rc_replaceln HAVE_SHLIB "STATIC"
+fi
+
+if [ "$HAVE_SHLIB" != "STATIC" ]; then
+	x='-Wl,-z,origin'
+	if (appendln LDFLAGS "$x" && rc_compile cc link); then
+		rc_appendln LDFLAGS "$x"
+	fi
+
+	x='-Wl,-rpath,$ORIGIN'
+	if (appendln LDFLAGS "$x" && rc_compile cc link); then
+		rc_appendln LDFLAGS "$x"
+	fi
+fi
+
+rc_save

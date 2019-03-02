@@ -1,0 +1,68 @@
+rc_include
+
+rc_helpmsg ARCH "Architecture prefix for output (eg. i686-w64-mingw32-)"
+rc_helpmsg CC "C compiler name (cc)"
+rc_helpmsg CPPFLAGS "Extra C preprocessor flags (eg. -I... -D...)"
+rc_helpmsg CFLAGS "Extra C compiler flags (eg. -O2 -g)"
+rc_helpmsg OPTFLAGS "C/C++ compiler flag overrides (eg. -g0)"
+rc_helpmsg LINK "Linker name (cc)"
+rc_helpmsg LDFLAGS "Extra linker options (eg. -s -static)"
+rc_helpmsg LIBS "Extra libraries to always link against (eg. -lsocket)"
+rc_helpmsg STATIC "Link libraries and binaries statically"
+
+if [ -n "$CC" ]; then
+	set -- "$CC"
+else
+	if [ -n "$ARCH" ] && [ "$ARCH" = "${ARCH%-}" ]; then
+		# Make sure arch name includes trailing dash if nonempty
+		ARCH="$ARCH-"
+	fi
+	set -- \
+	    "${ARCH}cc" "${ARCH}gcc" \
+	    "${ARCH}clang" "/usr/bin/${ARCH}clang"-[0-9]* \
+	    "${ARCH}c++" "${ARCH}g++" \
+	    "${ARCH}clang++" "/usr/bin/${ARCH}clang++"-[0-9]*
+fi
+
+rc_appendln CPPFLAGS "-I."
+[ -n "$STATIC" ] && rc_appendln LDFLAGS "-static"
+
+for d in "$@"; do
+	echo "Trying C compiler: '$d'" >&2
+	if CC="$d" CXX="" LINK="$d" rc_compile cc link 'extern int i;'; then
+		rc_replaceln CC "$d"
+		rc_replaceln LINK "$d"
+
+		# mingw32 (not mingw64) generates binaries that need
+		# a dynamic libgcc at runtime for certain operations
+		# (like 64-bit integer division), which is non-obvious.
+		# Include it statically if possible, but only on Windows,
+		# which we'll detect by whether windows.h exists.
+		#
+		# If adding the option fails, maybe it's some
+		# compiler other than gcc, so that's fine.
+		x="-static-libgcc$NL-static-libstdc++"
+		appendln LDFLAGS "$x"
+		prog='#include <windows.h>'
+		if CC="$d" LINK="$d" rc_compile cc link "$prog"; then
+			rc_appendln LDFLAGS "$x"
+		fi
+
+		# Set ARCH= to the right compiler prefix, either empty
+		# (use native compiler) or something like "i686-w64-mingw32-"
+		# (terminating dash), based on the compiler name.
+		x="-${CC##*/}"
+		x="${x%-*}"
+		x="${x#-}"
+		[ -n "$x" ] && x="$x-"
+		rc_replaceln ARCH "$x"
+		rc_replaceln HAVE_CC 1
+		rc_save
+		exit 0
+	fi
+done
+
+echo "Can't find a working C compiler." >&2
+rc_undo
+rc_replaceln CC ""
+rc_save

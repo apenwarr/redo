@@ -1,0 +1,15 @@
+rc_include rc/run.rc
+
+if [ -n "$CAN_RUN" ]; then
+	cat >$3 <<-EOF
+		#!/bin/sh -e
+		# Run the given program, possibly under an emulator.
+		[ -n "\$1" ]
+		unset DISPLAY
+		exec $RUN "\$@"
+	EOF
+	chmod a+x "$3"
+	redo-stamp <$3
+else
+	echo "Cannot run programs; not creating run script." >&2
+fi

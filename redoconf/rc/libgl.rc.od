@@ -1,0 +1,11 @@
+rc_include rc/CC.rc rc/pkg-config.rc
+
+prog='
+#include <GL/gl.h>
+int x = GL_VERSION_1_1;
+void f() { glPopMatrix(); }
+'
+
+rc_pkg_detect LIBGL "gl" \
+	rc_compile cc link "$prog"
+rc_save

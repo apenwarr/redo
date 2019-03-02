@@ -1,0 +1,11 @@
+rc_include rc/CC.rc rc/pkg-config.rc
+
+prog='
+#include <png.h>
+const char *x = PNG_LIBPNG_VER_STRING;
+void f() { png_access_version_number(); }
+'
+
+rc_pkg_detect LIBPNG libpng \
+	rc_compile cc link "$prog"
+rc_save

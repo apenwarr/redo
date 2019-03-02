@@ -1,0 +1,24 @@
+rc_include rc/CC.rc rc/pkg-config.rc
+
+prog='
+#include <math.h>
+int x = FP_NORMAL;
+volatile float y;
+void f() { y = sin(y); }
+'
+
+rc_pkg_detect LIBM libm \
+	rc_compile cc link "$prog"
+if [ -z "$HAVE_LIBM" ]; then
+	rc_undo
+	rc_replaceln HAVE_LIBM 1
+	rc_appendln LIBM "-lm"
+	appendln LIBS "$LIBM"
+	if ! rc_compile cc link "$prog"; then
+		rc_undo
+		rc_replaceln HAVE_LIBM ""
+		rc_replaceln LIBM ""
+	fi
+fi
+	
+rc_save

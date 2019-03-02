@@ -1,0 +1,15 @@
+# See compile.od for more explanation.
+cat >$3 <<-EOF
+	#!/bin/sh -e
+	# Run the C/C++ compiler.
+	# Assumes config variables (CFLAGS, etc) are already set.
+	t="\$1" d="\$2" i="\$3"
+	IFS="$NL"
+	set -f
+	\$CC -o "\$t" \\
+	  -MMD -MF "\$d" \\
+	  \$CPPFLAGS \$CFLAGS \$CXXFLAGS \$FLAGS_PCH \$xCFLAGS \$OPTFLAGS \\
+	  -c "\$i"
+EOF
+chmod a+x "$3"
+redo-stamp <$3

@@ -1,0 +1,60 @@
+rc_include _all.rc
+
+# Tricky quoting: see _compile.od for details.
+if [ "$HAVE_SHLIB" = UNIX ]; then
+	cat >$3 <<-EOF
+		#!/bin/sh -e
+		LINK=$(shquote "$LINK")
+		LDFLAGS=$(shquote "$LDFLAGS")
+		OPTFLAGS=$(shquote "$OPTFLAGS")
+		LIBS=$(shquote "$LIBS")
+		o="\$1"
+		ob="\${o#*/}"
+		shift
+		IFS="$NL"
+		set -f
+		\$LINK -shared -o "\$o" \\
+		  -Wl,-soname,"\$ob" \\
+		  \$LDFLAGS \$OPTFLAGS \\
+		  "\$@" \\
+		  \$xLIBS \$LIBS
+	EOF
+elif [ "$HAVE_SHLIB" = MACOS ]; then
+	cat >$3 <<-EOF
+		#!/bin/sh -e
+		LINK=$(shquote "$LINK")
+		LDFLAGS=$(shquote "$LDFLAGS")
+		OPTFLAGS=$(shquote "$OPTFLAGS")
+		LIBS=$(shquote "$LIBS")
+		LIBDIR=$(shquote "$LIBDIR")
+		o="\$1"
+		ob="\${o#*/}"
+		shift
+		IFS="$NL"
+		set -f
+		\$LINK -dynamiclib -o "\$o" \\
+		  -install_name "\$ob" \\
+		  \$LDFLAGS \$OPTFLAGS \\
+		  "\$@" \\
+		  \$xLIBS \$LIBS
+	EOF
+else
+	if [ -z "$HAVE_SHLIB" ]; then
+		echo "link-shlib.od: fatal:" \
+			"must include rc/shlib.rc to use shared libraries." >&2
+		exit 90
+	fi
+
+	# If no shared library support and we try to build one,
+	# compensate by building a static library instead in the
+	# same place.
+	cat >$3 <<-EOF
+		#!/bin/sh -e
+		o="\$1"
+		shift
+		rm -f "\$o"
+		ar q "\$o" "\$@"
+	EOF
+fi
+chmod a+x "$3"
+redo-stamp <$3

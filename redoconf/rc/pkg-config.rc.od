@@ -1,0 +1,16 @@
+rc_include
+
+for d in "$PKG_CONFIG" pkg-config; do
+	rc_undo
+	if "$d" --version >/dev/null 2>&1; then
+		rc_replaceln PKG_CONFIG "$d"
+		rc_replaceln HAVE_PKG_CONFIG 1
+		rc_save
+		exit 0
+	fi
+done
+
+# Failed
+rc_replaceln HAVE_PKG_CONFIG ""
+rc_replaceln PKG_CONFIG ""
+rc_save

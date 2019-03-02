@@ -1,0 +1,17 @@
+rc_include rc/CC.rc
+
+base="${1#*/}"
+lib="${base%.autolib.rc}"
+LIB=$(echo "$lib" | tr 'a-z.' 'A-Z_')
+
+x="-l$lib"
+rc_appendln "LIB$LIB" "$x"
+appendln LIBS "$x"
+if rc_compile cc link ""; then
+	rc_replaceln "HAVE_$LIB" 1
+else
+	rc_undo
+	rc_replaceln "HAVE_$LIB" ""
+	rc_replaceln "LIB$LIB" ""
+fi
+rc_save

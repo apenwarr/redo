@@ -1,0 +1,4 @@
+rc_include
+
+rc_appendln CPPFLAGS "-DEXTRA_RC_INCLUDED=1"
+rc_save

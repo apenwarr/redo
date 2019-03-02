@@ -1,0 +1,11 @@
+rc_include rc/CC.rc rc/pkg-config.rc
+
+prog='
+#include <X11/Xutil.h>
+int x = XYBitmap;
+void f() { XCreateRegion(); }
+'
+
+rc_pkg_detect LIBX11 "x11" \
+	rc_compile cc link "$prog"
+rc_save

@@ -1,0 +1,8 @@
+rc_include rc/CC.rc
+
+rc_appendln CPPFLAGS "-Wall"
+if rc_compile cc nolink; then
+	rc_save
+else
+	rc_undo
+fi

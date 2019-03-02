@@ -1,0 +1,11 @@
+rc_include rc/CC.rc rc/pkg-config.rc
+
+prog='
+#include <SDL.h>
+int x = SDL_INIT_TIMER;
+void f() { SDL_Init(0); }
+'
+
+rc_pkg_detect LIBSDL "sdl" \
+	rc_compile cc link "$prog"
+rc_save

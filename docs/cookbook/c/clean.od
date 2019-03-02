@@ -1,0 +1,6 @@
+# runs from the output directory
+rm -f *~ .*~ *.rc *.log *.gch *.stamp \
+	*.[oa] *.deps \
+	*.so *.so.* *.ver \
+	*.exe *.list \
+	hello

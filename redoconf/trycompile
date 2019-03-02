@@ -1,0 +1,71 @@
+#!/bin/sh -e
+die() {
+	echo "$0: trycompile: $*" >&2
+	exit 99
+}
+
+ctype=$1
+linktype=$2
+code=$3
+case $ctype in
+	cc)
+		[ -n "$CC" ] || die 'must set $CC first.'
+		useCC="$CC"
+		useCF="$CFLAGS"
+		useExt=".c"
+		;;
+	cxx)
+		[ -n "$CXX" ] || die 'must set $CXX first.'
+		useCC="$CXX"
+		useCF="$CXXFLAGS"
+		useExt=".cc"
+		;;
+	*)
+		die "unknown compile type '$ctype'"
+		;;
+esac
+case $linktype in
+	link|run)
+		[ -n "$LINK" ] || die 'must set $LINK first.'
+		;;
+	nolink)
+		;;
+	*)
+		die "unknown link type '$linktype'"
+		;;
+esac
+base="try.$$.tmp"
+out="$base.o"
+out2="$base.exe"
+src="$base$useExt"
+rm -f "$src" "$out" "$out2"
+set -x
+: "[trycompile]" "$@"
+main=
+[ -n "$RCC_NO_MAIN" ] || main="int main() { return 0; }"
+printf '%s' "
+    $code
+
+    $main
+" >"$src"
+NL="
+"
+IFS="$NL"
+set +e
+set -f
+# We intentionally want to split the variables here,
+# splitting on $NL, so we don't quote them.
+# 'set -f' prevents interpreting wildcards, which
+# we don't want to treat as special.
+(
+	$useCC $CPPFLAGS $useCF -o "$out" -c "$src" || exit
+	if [ "$linktype" = "link" -o "$linktype" = "run" ]; then
+		$LINK $LDFLAGS -o "$out2" "$out" $LIBS || exit
+	fi
+	if [ "$linktype" = "run" ]; then
+		$RUN "./$out2" || exit
+	fi
+)
+rv=$?
+rm -f "$src" "$out" "$out2"
+exit "$rv"
