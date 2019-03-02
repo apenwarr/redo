@@ -478,6 +478,11 @@ def run(targets, shouldbuildfunc):
     else:
         selflock = myfile = me = None
 
+    for t in targets:
+        if '\n' in t:
+            err('%r: filenames containing newlines are not allowed.\n' % t)
+            return 204
+
     def cheat():
         if not selflock:
             return 0
