@@ -85,6 +85,8 @@ class PrettyLog(object):
                 elif env.v.VERBOSE or env.v.XTRACE or env.v.DEBUG:
                     self._pretty(pid, GREEN, '%s (done)' % name)
                     self.file.write('\n')
+            elif kind == 'resumed':
+                self._pretty(pid, GREEN, '%s (resumed)' % text)
             elif kind == 'locked':
                 if env.v.DEBUG_LOCKS:
                     self._pretty(pid, GREEN, '%s (locked...)' % text)

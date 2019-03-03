@@ -66,8 +66,10 @@ def catlog(t):
     Note: this function's behaviour depends on global command-line options.
     """
     global total_lines, status
+    lines_written = 0
+    interrupted = 0
     if t in already:
-        return
+        return 0
     if t != '-':
         depth.append(t)
     _fix_depth()
@@ -178,7 +180,9 @@ def catlog(t):
                     if opt.recursive:
                         if loglock:
                             loglock.unlock()
-                        catlog(os.path.join(mydir, text))
+                        got = catlog(os.path.join(mydir, text))
+                        interrupted += got
+                        lines_written += got
                         if loglock:
                             loglock.waitlock(shared=True)
                     already.add(fixname)
@@ -186,24 +190,37 @@ def catlog(t):
                 if opt.debug_locks:
                     logs.meta(kind, relname, pid=pid)
                     logs.write(line.rstrip())
+                    lines_written += 1
                 elif fixname not in already:
                     logs.meta('do', relname, pid=pid)
+                    lines_written += 1
                 if opt.recursive:
                     assert text
                     if loglock:
                         loglock.unlock()
-                    catlog(os.path.join(mydir, text))
+                    got = catlog(os.path.join(mydir, text))
+                    interrupted += got
+                    lines_written += got
                     if loglock:
                         loglock.waitlock(shared=True)
                 already.add(fixname)
             elif kind == 'done':
                 rv, name = text.split(' ', 1)
                 logs.meta(kind, rv + ' ' + _rel(topdir, mydir, name))
+                lines_written += 1
             else:
                 logs.write(line.rstrip())
+                lines_written += 1
         else:
             if opt.details:
+                if interrupted:
+                    d = env.v.DEPTH
+                    env.v.DEPTH = env.v.DEPTH[:-2]
+                    logs.meta('resumed', t)
+                    env.v.DEPTH = d
+                    interrupted = 0
                 logs.write(line.rstrip())
+                lines_written += 1
     if loglock:
         loglock.unlock()
     if status:
@@ -217,6 +234,7 @@ def catlog(t):
         assert depth[-1] == t
         depth.pop(-1)
     _fix_depth()
+    return lines_written
 
 
 def main():
