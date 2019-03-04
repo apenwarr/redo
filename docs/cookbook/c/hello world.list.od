@@ -23,6 +23,6 @@ redo-ifchange "$S/sources"
 	done | uniq
 
 	printf '%s\n' "$LIBGTK2" "$LIBQT4"
-) >$3
+) >"$3"
 
-redo-stamp <$3
+redo-stamp <"$3"

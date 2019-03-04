@@ -522,6 +522,18 @@ x2=$(cd shlink && basename "$(pwd -L)")
 [ "$x1" = "t" ] || fail 122
 [ "$x2" = "shlink" ] || fail 123
 
+# Reported by Wayne Scott on FreeBSD 7.0 (ancient). Apparently the sh (or
+# bash?) there prints "$3: ambiguous redirect" if you redirect to it without
+# putting the $3 in quotes (ie >"$3").  I hadn't seen that before, even
+# though it's not obvious to most sh users that the > argument is implicitly
+# quoted.
+set a b "shelltest.tmp log.tmp"
+rm -f "$3" $3
+echo hello >$3 || fail 130
+[ -e "$3" ] || fail 131
+[ ! -e "shelltest.tmp" ] || fail 132
+rm -f "$3" $3
+
 [ -e shelltest.failed ] && exit 41
 [ -e shelltest.warned ] && exit 42
 exit 40
