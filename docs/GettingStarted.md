@@ -26,13 +26,13 @@ If the tests pass, you can either add $PWD/redo/bin to your PATH, or install
 redo on your system.  To install for all users, put it in /usr/local:
 
 ```sh
-	PREFIX=/usr/local sudo ./redo install
+	DESTDIR= PREFIX=/usr/local sudo ./do install
 ```
 
 Or to install it just for yourself (without needing root access), put it in
 your home directory:
 ```sh
-	PREFIX=$HOME ./redo install
+	DESTDIR= PREFIX=$HOME ./do install
 ```
 
 

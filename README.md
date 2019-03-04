@@ -11,14 +11,23 @@ This version, sometimes called apenwarr/redo, is probably the most advanced
 one, including parallel builds, improved logging, extensive automated tests,
 and helpful debugging features.
 
-To build and test redo, run `./do -j10 test`.  To install it, run
-`DESTDIR=/tmp/testinstall PREFIX=/usr/local ./do -j10 install`.
+To build and test redo, run:
+```sh
+	./do -j10 test
+```
+
+To install it, run something like this:
+```sh
+	DESTDIR= PREFIX=/usr/local ./do -j10 install
+```
 
 ---
 
 - View the [documentation](https://redo.rtfd.io) via readthedocs.org
 - Visit the [source code](https://github.com/apenwarr/redo) on github
 - Discussions and support via the
-    mailing list ([archives](https://groups.google.com/group/redo-list)).
+    mailing list ([archives](https://groups.google.com/group/redo-list)). 
     You can subscribe by sending any email message to
-    `redo-list+subscribe@googlegroups.com` (note the plus sign).
+    `redo-list+subscribe@googlegroups.com` (note the plus sign).  You can
+    send questions or feedback (with or without subscribing) by sending
+    messages to `redo-list@googlegroups.com`.
