@@ -323,8 +323,8 @@ foo=`exit 1`; [ "$?" != 0 ] || fail 72
 f1() { echo 1; }
 f2(){ echo 2;}
 f3()(echo 3)
-f4() { :; }
-: $(quiet_stderr eval 'f4()if true; then echo 4; fi')
+f4() { :; }  # Note: redefined on next line
+quiet_stderr eval 'f4()if true; then echo 4; fi'
 f5() ( exit 5 )
 [ "$(f1)" = 1 ] || fail 81
 [ "$(f2)" = 2 ] || fail 82
@@ -499,7 +499,7 @@ false
 # so we ended up always using bash, which leads people to write .do scripts
 # with bashisms.
 set x y z
-# dotparams.od might warn 115
+# dotparams.od might warn 115, but should never return nonzero
 . ./dotparams.od a b || fail 117
 [ "$1-$2-$3" = "x-y-z" ] || fail 116
 
@@ -508,7 +508,7 @@ set x y z
 # dock it some points so it doesn't always end up as the primary shell.
 [ 1 == 1 ] 2>/dev/null && warn 118
 
-# Some shells apparently don't support left padding in printf
+# Some shells or OSes apparently don't support left padding in printf
 x=$(printf "a%-5sc" "b")
 [ "$x" = "ab    c" ] || warn 119
 
