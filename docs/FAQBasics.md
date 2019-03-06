@@ -35,16 +35,11 @@ specific to ruby programs, or python programs, or Java or .Net programs.
 redo isn't like those systems; it's more like make.  It doesn't know
 anything about your system or the language your program is written in.
 
-The good news is: redo will work with *any* programming language with about
-equal difficulty.  The bad news is: you might have to fill in more details
-than you would if you just use ANT to compile a Java program.
-
-So the short version is: cross-platform builds are about equally easy in
-make and redo.  It's not any easier, but it's not any harder.
-
-It would be possible to make an automake-like or cmake-like tool that
-generates .do files for your project, just like automake generates
-Makefiles.  But that's beyond the scope of redo itself.
+However, there is a new project called [redoconf](/cookbook/redoconf-simple/)
+which is now part of the redo distribution.  It works kind of like
+`autoconf` does with make; drop it into your project and it will help with
+auto-detection, cross-compiling, and portability, so you can concentrate on
+actually writing your program.
 
 
 # Can I set my dircolors to highlight .do files in ls output?

@@ -28,7 +28,8 @@ plugins:
         - cookbook/container/*.initrd
         - cookbook/container/*.layer
         - cookbook/container/*.list
-        - cookbook/c/out.*
+        - cookbook/*/out/*
+        - cookbook/*/out.*
         - "t/*"
         - "*.eps"
         - "*.gz"
@@ -51,6 +52,7 @@ nav:
     - Text substitution (default.do, redo-always, redo-stamp): cookbook/defaults/index.md
     - R plots and LaTeX to pdf (side effects, multiple outputs): cookbook/latex/index.md
     - Docker and kvm containers (from scratch): cookbook/container/index.md
+    - Portable C++ programs (using redoconf): cookbook/redoconf-simple/index.md
   - FAQ:
     - Basics: FAQBasics.md
     - Semantics: FAQSemantics.md

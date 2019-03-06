@@ -1,4 +1,4 @@
-rc_include rc/CC.rc
+rc_include rc/Wall.rc
 
 rc_appendln CPPFLAGS "-Wextra"
 if rc_compile cc nolink; then

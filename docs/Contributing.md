@@ -17,7 +17,7 @@ have a copy of redo.
 
 Nowadays, redo is good enough for real production use, and some people
 are using it for real work.  That said, it has
-not reached version 1.0 and there are surely still bugs.
+not reached version 1.0 and there are always going to be bugs.
 
 If you run into a problem, it's really helpful if you report it to the
 mailing list below (with or without subscribing first).  We really want to
@@ -29,21 +29,21 @@ Small feature additions are also welcome, but you might want to ask on the
 mailing list before you start working on it.  The code is still evolving and
 might not be the same by the time you submit your pull request.
 
-The best things you can do for redo are:
+Contributions to [redoconf](/cookbook/redoconf-simple/) are very welcome.
+For example, you might want to contribute detectors for new libraries or
+compilers.
+
+Some of the best things you can do for redo are:
 
 - Convert your projects to using it.  Without users, no project is
   successful.
 
-- Build new infrastructure around redo, especially things to make it easier
-  for people to get started.  For example, an automake-like tool that filled
-  in default redo build rules for common program types would probably be
-  very popular.
-
 - Convince your favourite OS distro to build and include (up to date!) redo
-  packages.
+  packages.  We especially need someone to help with getting redo included
+  in debian.
 
 - Help proofreading this documentation, and send patches or pull requests
-  with improvements.
+  with improvements and additions.
 
 - Join the mailing list (below) to discuss design changes or bugs.
 
@@ -52,7 +52,7 @@ The best things you can do for redo are:
 
 # Mailing list
 
-You should join the `redo-list@googlegroups.com` mailing list.
+You should join the `redo-list@googlegroups.com` mailing list!
 
 You can find the mailing list archives here:
 <http://groups.google.com/group/redo-list>

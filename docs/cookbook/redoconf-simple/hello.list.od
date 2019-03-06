@@ -1,0 +1,14 @@
+rc_include all.rc
+
+# We include $LIBM here just as example of how to
+# specify an auto-detected library as part of the
+# linker settings for a binary.  We don't actually
+# use it for anything.  Note that $LIBM was detected
+# up above in the rc_include, because all.rc depends
+# on rc/libm.rc. If the library is not available,
+# $LIBM will be blank.
+cat <<-EOF
+	hello.cc
+	ssltest.c
+	$LIBM
+EOF

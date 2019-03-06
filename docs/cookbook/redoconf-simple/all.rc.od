@@ -1,0 +1,34 @@
+# Specify which redoconf modules to use when building
+# our program.
+#
+# The rc_include function is available in every *.od
+# script in a redoconf project.
+rc_include \
+	rc/CXX.required.rc \
+	rc/Wextra.rc \
+	rc/all.hpp.precompiled.rc \
+	rc/openssl__ssl.h.rc \
+	rc/openssl__opensslv.h.rc \
+	rc/libssl.rc \
+	rc/libm.rc
+
+# We'll link *all* our binaries with the detected
+# $LIBSSL by default. We rc_included rc/libssl.rc
+# instead of rc/libssl.required.rc, so if it's
+# not available, this line won't add any
+# libraries. It'll be up to the program to check
+# for HAVE_LIBSSL before trying to call it.
+#
+# If we wanted to only link $LIBSSL into certain
+# binaries, we would include $LIBSSL explicitly in
+# the .list.od file for those binaries.  Since we're
+# putting it here, it doesn't have to be in the .list
+# file.
+rc_appendln LIBS "$LIBSSL"
+
+# Combine all the redoconf settings we've collected
+# above, and write them to $3 (all.rc). all.rc is
+# a special .rc file that is used when generating
+# the automatic ./compile and ./link scripts, among
+# others.
+rc_save

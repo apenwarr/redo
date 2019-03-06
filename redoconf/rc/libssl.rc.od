@@ -2,6 +2,8 @@ rc_include rc/CC.rc rc/pkg-config.rc
 
 prog="
 #include <openssl/ssl.h>
+
+void f() { SSL_library_init(); }
 "
 
 rc_pkg_detect LIBSSL "libssl libcrypto" \

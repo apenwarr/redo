@@ -1,0 +1,3 @@
+# This script gets called from inside the out/
+# directory when someone runs "redo" or "redo all".
+redo-ifchange hello

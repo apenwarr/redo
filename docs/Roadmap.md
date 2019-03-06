@@ -309,21 +309,3 @@ consider bundling redo with a particular (optional) sh implementation, and
 maybe also unix-like tools, that it will use by default.  An obvious
 candidate would be busybox, which has a win32 version called
 [busybox-w32](https://frippery.org/busybox/).
-
-
-### redoconf
-
-redo is fundamentally a low-level tool that doesn't know as much about
-compiling specific programming languages as do higher-level tools like
-[cmake](https://cmake.org/).
-
-Similarly, `make` doesn't know much about specific programming languages
-(and what it does know is hopelessly out of date, but cannot be deleted or
-updated because it would break backward compatibility with old Makefiles).
-This is why `autoconf` and `automake` were created: to automatically fill in
-the language- and platform-specific blanks, while letting `make` still
-handle executing the low level instructions.
-
-It might be useful to have a redo-native autoconf/automake-like system,
-although you can already use autoconf with redo, so this might not be
-essential.
