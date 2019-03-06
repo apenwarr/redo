@@ -29,6 +29,17 @@ for layer in $layers; do
 	ln "$layer.layer" "$dir/$cid/layer.tar"
 	parent=$layer
 done <$1.layers
+last_cid=$cid
 
-tar -C "$dir" -cf - $ids >$3
+# The seemingly-redundant "repositories" file seems to be needed by newer
+# docker versions.
+cat >"$dir/repositories" <<-EOF
+	{
+	    "$2":{
+	        "latest":"$last_cid"
+	    }
+	}
+EOF
+
+tar -C "$dir" -cf - $ids repositories >$3
 rm -rf "$dir"
