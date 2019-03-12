@@ -240,9 +240,15 @@ class _BuildJob(object):
         # reading a previous instance created during this session.  It
         # should always see either the old or new instance.
         if env.v.LOG:
-            lfd, lfname = tempfile.mkstemp(prefix='redo.', suffix='.log.tmp')
+            lfend = state.logname(self.sf.id)
+            # Make sure the temp file is in the same directory as lfend,
+            # so we can be sure of our ability to rename it atomically later.
+            lfd, lfname = tempfile.mkstemp(
+                prefix='redo.',
+                suffix='.log.tmp',
+                dir=os.path.dirname(lfend))
             os.fdopen(lfd, 'w')
-            os.rename(lfname, state.logname(self.sf.id))
+            os.rename(lfname, lfend)
         dof = state.File(name=os.path.join(dodir, dofile))
         dof.set_static()
         dof.save()
