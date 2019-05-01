@@ -513,7 +513,7 @@ x=$(printf "a%-5sc" "b")
 [ "$x" = "ab    c" ] || warn 119
 
 # Make sure cd supports -L and -P options properly
-rm -f shlink
+rm -f shlink ../shlink
 ln -s . shlink
 (quiet_stderr cd -L shlink/shlink/shlink/../shlink) || fail 120
 (quiet_stderr cd -P shlink/shlink/shlink/../shlink) && fail 121

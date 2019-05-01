@@ -17,6 +17,9 @@ usage: do [-d] [-x] [-v] [-c] <targets...>
   It will never rebuild a target it has already built, unless you use -c.
 "
 
+# CDPATH apparently causes unexpected 'cd' output on some platforms.
+unset CDPATH
+
 # By default, no output coloring.
 green=""
 bold=""

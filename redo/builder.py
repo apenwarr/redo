@@ -309,6 +309,8 @@ class _BuildJob(object):
         # now.
         assert state.is_flushed()
         newp = os.path.realpath(dodir)
+        # CDPATH apparently caused unexpected 'cd' output on some platforms.
+        os.unsetenv('CDPATH')
         os.environ['REDO_PWD'] = state.relpath(newp, env.v.STARTDIR)
         os.environ['REDO_TARGET'] = basename + ext
         os.environ['REDO_DEPTH'] = env.v.DEPTH + '  '
