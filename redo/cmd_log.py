@@ -190,9 +190,11 @@ def catlog(t):
                 if opt.debug_locks:
                     logs.meta(kind, relname, pid=pid)
                     logs.write(line.rstrip())
+                    interrupted += 1
                     lines_written += 1
                 elif fixname not in already:
                     logs.meta('do', relname, pid=pid)
+                    interrupted += 1
                     lines_written += 1
                 if opt.recursive:
                     assert text
