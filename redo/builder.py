@@ -19,6 +19,7 @@ def _try_stat(filename):
 
 
 log_reader_pid = None
+stderr_fd = None
 
 
 def close_stdin():
@@ -46,7 +47,7 @@ def start_stdin_log_reader(status, details, pretty, color,
     if pid:
         # parent
         log_reader_pid = pid
-        stderr_fd = os.dup(2) # save our stderr for after the log pipe gets closed
+        stderr_fd = os.dup(2)  # save for after the log pipe gets closed
         os.close(r)
         os.close(aw)
         b = os.read(ar, 8)
@@ -97,7 +98,6 @@ def start_stdin_log_reader(status, details, pretty, color,
 
 def await_log_reader():
     """Await the redo-log instance we redirected stderr to, if any."""
-    global stderr_fd
     if not env.v.LOG:
         return
     if log_reader_pid > 0:
