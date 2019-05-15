@@ -8,7 +8,7 @@ subprocess.check_call([
 ], close_fds=False)
 
 h = hashlib.sha256()
-f = open(sys.argv[2])
+f = open(sys.argv[2], 'rb')
 while 1:
     b = f.read(65536)
     if not b: break
