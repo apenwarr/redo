@@ -5,7 +5,7 @@ import hashlib, os, subprocess, sys
 subprocess.check_call([
     'redo-ifchange',
     sys.argv[2],
-])
+], close_fds=False)
 
 h = hashlib.sha256()
 f = open(sys.argv[2])

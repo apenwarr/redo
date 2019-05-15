@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """Generate a docker 1.0-style manifest for a docker image."""
-import json, os, subprocess, sys, time
+import json, os, sys, time
 
 j = json.load(open('template.json'))
 layerid = open(sys.argv[1] + '.list.sha256').read().strip()
