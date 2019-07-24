@@ -49,6 +49,12 @@ if [ -n "$NO_SLOW_TESTS" ]; then
 	echo " -- NO_SLOW_TESTS is set."
 	echo "skipping debian image."
 	no_debian=1
+	# TODO(apenwarr): docker test isn't "slow" exactly, but error prone.
+	#  It might not work correctly on modern versions of docker.
+	#  Until we resolve this, just disable it from a toplevel 'redo test',
+	#  which sets NO_SLOW_TESTS.
+	echo "skipping docker test."
+	no_docker=1
 fi
 
 add() { targets="$targets $*"; }
