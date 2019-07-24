@@ -196,7 +196,7 @@ _normpath()
 	fi
 	set -f
 	IFS=/
-	for d in $path; do
+	for d in ${path%/}; do
 		#echo "NP out='$out' d='$d'" >&2
 		if [ "$d" = ".." ]; then
 			out=$(_updir "${out%/}")/

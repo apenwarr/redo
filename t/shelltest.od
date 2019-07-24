@@ -46,6 +46,15 @@ quiet_stderr()
 	fi
 }
 
+(
+	x="/a/b/c/"
+	IFS=/
+	f() {
+		[ "$2" = "a" ] || fail 2
+		[ "$#" = "4" ] || warn 2a
+	}
+	f $x
+)
 
 name=foo.o.o
 ext=.o
