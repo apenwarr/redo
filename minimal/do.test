@@ -136,9 +136,9 @@ mkdir y
 ln -s . y/x
 check "/usr/__does_not/b"  _realpath "/usr/__does_not/a/../b" "$x"
 check "foo"  _realpath "y/x/x/x/x/x/../foo" "$PWD"
-check "$(/bin/pwd)/foo"  _realpath "$PWD/y/x/x/x/x/x/../foo" "$PWD"
+check "$(env pwd)/foo"  _realpath "$PWD/y/x/x/x/x/x/../foo" "$PWD"
 check "foo/blam"  _realpath "y/x/x/x/x/x/../foo/spam/../blam" "$PWD"
-check "$(/bin/pwd)/foo/blam"  _realpath "$PWD/y/x/x/../foo/spam/../blam" "$PWD"
+check "$(env pwd)/foo/blam"  _realpath "$PWD/y/x/x/../foo/spam/../blam" "$PWD"
 
 
 SECTION _find_dofile

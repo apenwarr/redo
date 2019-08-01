@@ -24,7 +24,7 @@ usage() {
 }
 
 mydir=$(dirname "$0")
-cd "$(/bin/pwd)" && cd "$mydir" || die "can't find self in dir: $mydir"
+cd "$(env pwd)" && cd "$mydir" || die "can't find self in dir: $mydir"
 
 args=
 while [ "$1" != "${1#-}" ]; do

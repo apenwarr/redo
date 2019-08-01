@@ -14,10 +14,10 @@ for iter in 10 20; do
 		cd y/x/x/x/x/x
 		IFS=$(printf '\n')
 		redo-ifchange static x/x/x/static $PWD/static \
-			$(/bin/pwd)/static /etc/passwd
+			$(env pwd)/static /etc/passwd
 		redo-ifchange $PWD/../static 2>/dev/null && exit 35
 		redo-ifchange 1.dyn x/x/x/2.dyn $PWD/3.dyn \
-			 $PWD/../4.dyn $(/bin/pwd)/5.dyn
+			 $PWD/../4.dyn $(env pwd)/5.dyn
 	)
 	[ -e y/1.dyn ] || exit $((iter + 1))
 	[ -e y/2.dyn ] || exit $((iter + 2))
