@@ -36,7 +36,7 @@ def main():
                             is_checked=is_checked,
                             set_checked=set_checked,
                             log_override=log_override):
-                print state.relpath(os.path.join(env.v.BASE, f.name), cwd)
+                print(state.relpath(os.path.join(env.v.BASE, f.name), cwd))
 
 
 if __name__ == '__main__':

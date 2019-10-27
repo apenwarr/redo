@@ -11,7 +11,7 @@ def _nice(t):
 def _try_stat(filename):
     try:
         return os.lstat(filename)
-    except OSError, e:
+    except OSError as e:
         if e.errno == errno.ENOENT:
             return None
         else:
@@ -90,7 +90,7 @@ def start_stdin_log_reader(status, details, pretty, color,
                 argv.append('--color' if color >= 2 else '--no-color')
             argv.append('-')
             os.execvp(argv[0], argv)
-        except Exception, e:  # pylint: disable=broad-except
+        except Exception as e:  # pylint: disable=broad-except
             sys.stderr.write('redo-log: exec: %s\n' % e)
         finally:
             os._exit(99)
@@ -138,7 +138,7 @@ class _BuildJob(object):
                 if is_target:
                     meta('unchanged', state.target_relpath(self.t))
                 return self._finalize(0)
-        except helpers.ImmediateReturn, e:
+        except helpers.ImmediateReturn as e:
             return self._finalize(e.rv)
 
         if env.v.NO_OOB or dirty == True:  # pylint: disable=singleton-comparison
@@ -398,7 +398,7 @@ class _BuildJob(object):
                 helpers.unlink(self.tmpname)
                 try:
                     newf = open(self.tmpname, 'w')
-                except IOError, e:
+                except IOError as e:
                     dnt = os.path.dirname(os.path.abspath(t))
                     if not os.path.exists(dnt):
                         # This could happen, so report a simple error message
@@ -424,7 +424,7 @@ class _BuildJob(object):
                 try:
                     # Atomically replace the target file
                     os.rename(self.tmpname, t)
-                except OSError, e:
+                except OSError as e:
                     # This could happen for, eg. a permissions error on
                     # the target directory.
                     err('%s: rename %s: %s\n' % (t, self.tmpname, e))

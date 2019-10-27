@@ -46,14 +46,14 @@ def db():
     dbfile = '%s/db.sqlite3' % dbdir
     try:
         os.mkdir(dbdir)
-    except OSError, e:
+    except OSError as e:
         if e.errno == errno.EEXIST:
             pass  # if it exists, that's okay
         else:
             raise
 
     _lockfile = os.open(os.path.join(env.v.BASE, '.redo/locks'),
-                        os.O_RDWR | os.O_CREAT, 0666)
+                        os.O_RDWR | os.O_CREAT, 0o666)
     close_on_exec(_lockfile, True)
     if env.is_toplevel and detect_broken_locks():
         env.mark_locks_broken()
@@ -508,7 +508,7 @@ class Lock(object):
         assert not self.owned
         try:
             fcntl.lockf(_lockfile, fcntl.LOCK_EX|fcntl.LOCK_NB, 1, self.fid)
-        except IOError, e:
+        except IOError as e:
             if e.errno in (errno.EAGAIN, errno.EACCES):
                 pass  # someone else has it locked
             else:

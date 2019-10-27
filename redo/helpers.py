@@ -16,7 +16,7 @@ def unlink(f):
     """
     try:
         os.unlink(f)
-    except OSError, e:
+    except OSError as e:
         if e.errno == errno.ENOENT:
             pass  # it doesn't exist, that's what you asked for
 

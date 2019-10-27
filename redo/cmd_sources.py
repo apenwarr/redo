@@ -16,7 +16,7 @@ def main():
     cwd = os.getcwd()
     for f in state.files():
         if f.is_source():
-            print state.relpath(os.path.join(env.v.BASE, f.name), cwd)
+            print(state.relpath(os.path.join(env.v.BASE, f.name), cwd))
 
 
 if __name__ == '__main__':

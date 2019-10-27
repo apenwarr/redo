@@ -102,7 +102,7 @@ def catlog(t):
         if not f:
             try:
                 f = open(logname)
-            except IOError, e:
+            except IOError as e:
                 if e.errno == errno.ENOENT:
                     # ignore files without logs
                     pass
@@ -231,7 +231,7 @@ def catlog(t):
         status = None
     if line_head:
         # partial line never got terminated
-        print line_head
+        print(line_head)
     if t != '-':
         assert depth[-1] == t
         depth.pop(-1)
@@ -274,7 +274,7 @@ def main():
             catlog(t)
     except KeyboardInterrupt:
         sys.exit(200)
-    except IOError, e:
+    except IOError as e:
         if e.errno == errno.EPIPE:
             pass
         else:

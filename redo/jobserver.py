@@ -98,7 +98,7 @@ def _create_tokens(n):
     global _mytokens, _cheats
     assert n >= 0
     assert _cheats >= 0
-    for _ in xrange(n):
+    for _ in range(n):
         if _cheats > 0:
             _cheats -= 1
         else:
@@ -118,7 +118,7 @@ def _release(n):
     assert _mytokens >= n
     _debug('%d,%d -> release(%d)\n' % (_mytokens, _cheats, n))
     n_to_share = 0
-    for _ in xrange(n):
+    for _ in range(n):
         _mytokens -= 1
         if _cheats > 0:
             _cheats -= 1
@@ -176,7 +176,7 @@ def _try_read(fd, n):
         signal.setitimer(signal.ITIMER_REAL, 0.01, 0.01)  # emergency fallback
         try:
             b = os.read(fd, 1)
-        except OSError, e:
+        except OSError as e:
             if e.errno in (errno.EAGAIN, errno.EINTR):
                 # interrupted or it was nonblocking
                 return None  # try again
@@ -297,7 +297,7 @@ def _wait(want_token, max_delay):
     Returns:
       None
     """
-    rfds = _waitfds.keys()
+    rfds = list(_waitfds.keys())
     if want_token:
         rfds.append(_tokenfds[0])
     assert rfds

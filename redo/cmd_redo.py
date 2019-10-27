@@ -48,7 +48,7 @@ def main():
 
     if opt.version:
         from . import version
-        print version.TAG
+        print(version.TAG)
         sys.exit(0)
     if opt.debug:
         os.environ['REDO_DEBUG'] = str(opt.debug or 0)
@@ -114,7 +114,7 @@ def main():
             finally:
                 try:
                     jobserver.force_return_tokens()
-                except Exception, e:  # pylint: disable=broad-except
+                except Exception as e:  # pylint: disable=broad-except
                     traceback.print_exc(100, sys.stderr)
                     err('unexpected error: %r\n' % e)
                     retcode = 1
