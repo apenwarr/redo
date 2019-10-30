@@ -18,6 +18,11 @@ def _try_stat(filename):
         else:
             raise
 
+def _has_pep446():
+    """Test the python version whether the PEP making file descriptors 
+    non-inheritable applies"""
+    return sys.version_info >= (3,4)
+
 
 log_reader_pid = None
 stderr_fd = None
@@ -42,6 +47,7 @@ def start_stdin_log_reader(status, details, pretty, color,
     global stderr_fd
     r, w = os.pipe()    # main pipe to redo-log
     ar, aw = os.pipe()  # ack pipe from redo-log --ack-fd
+    if _has_pep446(): os.set_inheritable(aw, True)
     sys.stdout.flush()
     sys.stderr.flush()
     pid = os.fork()
