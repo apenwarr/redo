@@ -1,6 +1,11 @@
 from __future__ import print_function
 import sys, os, markdown, re
-from BeautifulSoup import BeautifulSoup
+try:
+    from BeautifulSoup import BeautifulSoup
+    bsver = 3
+except ModuleNotFoundError:
+    from bs4 import BeautifulSoup
+    bsver = 4
 
 def _split_lines(s):
     return re.findall(r'([^\n]*\n?)', s)
@@ -180,7 +185,10 @@ def do_definition(tag):
 
 def do_list(tag):
     for i in tag:
-        name = getattr(i, 'name', '').lower()
+        name = getattr(i, 'name', '')
+        # BeautifulSoup4 sometimes results in 'tag' having attributes that have
+        # content 'None'
+        name = name.lower() if name is not None else ''
         if not name and not str(i).strip():
             pass
         elif name != 'li':
@@ -195,7 +203,11 @@ def do_list(tag):
 
 
 def do(tag):
-    name = getattr(tag, 'name', '').lower()
+    name = getattr(tag, 'name', None)
+    # BeautifulSoup4 sometimes results in 'tag' having attributes that have
+    # content 'None'
+    name = name.lower() if name is not None else ''
+
     if not name:
         text(tag)
     elif name == 'h1':
@@ -274,7 +286,12 @@ if AUTHOR:
 
 html = markdown.markdown(inp)
 open(htmlfile, 'w').write(html)
-soup = BeautifulSoup(html, convertEntities=BeautifulSoup.HTML_ENTITIES)
+
+if(bsver == 3):
+    soup = BeautifulSoup(html, convertEntities=BeautifulSoup.HTML_ENTITIES)
+elif(bsver == 4):
+    soup = BeautifulSoup(html, features = "html.parser")
+else: assert 0
 
 macro('.TH', PROD.upper(), SECTION, DATE, VENDOR, GROUPNAME)
 macro('.ad', 'l')  # left justified
