@@ -184,7 +184,11 @@ def relpath(t, base):
     base = os.path.normpath(_realdirpath(base))
     tparts = t.split('/')
     bparts = base.split('/')
-    for tp, bp in zip(tparts, bparts):
+
+    # zip must not return an iterator in python 3, because the source lists of
+    # the iterators are changed. The iterator does not notice that and ends too
+    # soon.
+    for tp, bp in list(zip(tparts, bparts)):
         if tp != bp:
             break
         tparts.pop(0)
