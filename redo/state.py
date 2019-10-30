@@ -278,7 +278,8 @@ class File(object):
         (self.id, self.name, self.is_generated, self.is_override,
          self.checked_runid, self.changed_runid, self.failed_runid,
          self.stamp, self.csum) = cols
-        if self.name == ALWAYS and self.changed_runid < env.v.RUNID:
+        if self.name == ALWAYS and (
+            self.changed_runid is None or self.changed_runid < env.v.RUNID):
             self.changed_runid = env.v.RUNID
 
     def __init__(self, fid=None, name=None, cols=None, allow_add=True):
