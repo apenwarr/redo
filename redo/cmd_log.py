@@ -264,7 +264,7 @@ def main():
             # their old stderr.
             ack_fd = int(opt.ack_fd)
             assert ack_fd > 2
-            if os.write(ack_fd, 'REDO-OK\n') != 8:
+            if os.write(ack_fd, b'REDO-OK\n') != 8:
                 raise Exception('write to ack_fd returned wrong length')
             os.close(ack_fd)
         queue += targets

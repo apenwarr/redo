@@ -246,7 +246,7 @@ if len(sys.argv) != 3:
 
 infile = sys.argv[1]
 htmlfile = sys.argv[2]
-lines += open(infile).read().decode('utf8').split('\n')
+lines += open(infile, 'rb').read().decode('utf8').split('\n')
 
 # parse pandoc-style document headers (not part of markdown)
 g = re.match(r'^%\s+(.*?)\((.*?)\)\s+(.*)$', lines[0])

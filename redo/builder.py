@@ -62,7 +62,7 @@ def start_stdin_log_reader(status, details, pretty, color,
             # subprocess died without sending us anything: that's bad.
             err('failed to start redo-log subprocess; cannot continue.\n')
             os._exit(99)
-        assert b == 'REDO-OK\n'
+        assert b == b'REDO-OK\n'
         # now we know the subproc is running and will report our errors
         # to stderr, so it's okay to lose our own stderr.
         os.close(ar)
@@ -218,7 +218,7 @@ class _BuildJob(object):
         ffd, fname = tempfile.mkstemp(prefix='redo.', suffix='.tmp')
         helpers.close_on_exec(ffd, True)
         os.unlink(fname)
-        self.outfile = os.fdopen(ffd, 'w+')
+        self.outfile = os.fdopen(ffd, 'w+b')
         # this will run in the dofile's directory, so use only basenames here
         arg1 = basename + ext  # target name (including extension)
         arg2 = basename        # target name (without extension)
@@ -404,7 +404,7 @@ class _BuildJob(object):
                 # script wrote to stdout.  Copy its contents to the tmpfile.
                 helpers.unlink(self.tmpname)
                 try:
-                    newf = open(self.tmpname, 'w')
+                    newf = open(self.tmpname, 'wb')
                 except IOError as e:
                     dnt = os.path.dirname(os.path.abspath(t))
                     if not os.path.exists(dnt):

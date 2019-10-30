@@ -128,7 +128,7 @@ def _release(n):
     assert _cheats >= 0
     if n_to_share:
         _debug('PUT tokenfds %d\n' % n_to_share)
-        os.write(_tokenfds[1], 't' * n_to_share)
+        os.write(_tokenfds[1], b't' * n_to_share)
 
 
 def _release_except_mine():
@@ -189,7 +189,7 @@ def _try_read(fd, n):
 
 
 def _try_read_all(fd, n):
-    bb = ''
+    bb = b''
     while 1:
         b = _try_read(fd, n)
         if not b:
