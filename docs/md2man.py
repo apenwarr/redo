@@ -1,3 +1,4 @@
+from __future__ import print_function
 import sys, os, markdown, re
 from BeautifulSoup import BeautifulSoup
 

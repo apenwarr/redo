@@ -1,4 +1,5 @@
 """redo-log: print past build logs. """
+from __future__ import print_function
 import errno, fcntl, os, re, struct, sys, time
 import termios
 from .atoi import atoi

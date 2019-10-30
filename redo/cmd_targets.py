@@ -1,4 +1,5 @@
 """redo-targets: list the known targets (not sources)."""
+from __future__ import print_function
 import sys, os
 from . import env, logs, state
 

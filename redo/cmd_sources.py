@@ -1,4 +1,5 @@
 """redo-sources: list the known source (not target) files."""
+from __future__ import print_function
 import sys, os
 from . import env, logs, state
 

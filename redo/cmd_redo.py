@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from __future__ import print_function
 import sys, os, traceback
 from . import builder, env, helpers, jobserver, logs, options, state
 from .atoi import atoi

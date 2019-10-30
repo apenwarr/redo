@@ -1,4 +1,5 @@
 """Code for parallel-building a set of targets, if needed."""
+from __future__ import print_function
 import errno, os, stat, signal, sys, tempfile, time
 from . import cycles, env, helpers, jobserver, logs, paths, state
 from .logs import debug2, err, warn, meta

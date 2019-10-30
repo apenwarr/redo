@@ -1,4 +1,5 @@
 """redo-ood: list out-of-date (ood) targets."""
+from __future__ import print_function
 import sys, os
 from . import deps, env, logs, state
 
