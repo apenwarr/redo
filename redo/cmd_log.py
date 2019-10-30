@@ -277,7 +277,15 @@ def main():
         sys.exit(200)
     except IOError as e:
         if e.errno == errno.EPIPE:
-            pass
+            # this happens for example if calling `redo-log | head`, so stdout
+            # is piped into another program that closes the pipe before reading
+            # all our output.
+            # from https://docs.python.org/3/library/signal.html#note-on-sigpipe:
+            # Python flushes standard streams on exit; redirect remaining output
+            # to devnull to avoid another BrokenPipeError at shutdown
+            devnull = os.open(os.devnull, os.O_WRONLY)
+            os.dup2(devnull, sys.stdout.fileno())
+            sys.exit(141)  # =128+13: "Terminated by SIGPIPE (signal 13)"
         else:
             raise
 
