@@ -22,7 +22,7 @@ def read(fname):
 setuptools.setup(
     name = 'redo-tools',
     version = redo.version.TAG.replace('-', '+', 1),
-    python_requires='>=2.7, <3.0',
+    python_requires='>=2.7',
     author = 'Avery Pennarun',
     author_email = 'apenwarr@gmail.com',
     description = ('djb redo: a recursive, general purpose build system.'),
