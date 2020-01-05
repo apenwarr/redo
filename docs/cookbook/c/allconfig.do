@@ -36,7 +36,7 @@ for dir in $dirs; do
 	  rc_include rc/CC.rc &&
 	  [ -n "$HAVE_CC" ] &&
 	  echo "$dir"
-	) || (echo "Skipping $dir' - no working C compiler." >&2)
+	) || (echo "Skipping '$dir' - no working C compiler." >&2)
 done >$3
 
 wait
