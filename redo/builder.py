@@ -1,4 +1,5 @@
 """Code for parallel-building a set of targets, if needed."""
+from __future__ import print_function
 import errno, os, stat, signal, sys, tempfile, time
 from . import cycles, env, helpers, jobserver, logs, paths, state
 from .logs import debug2, err, warn, meta
@@ -11,11 +12,16 @@ def _nice(t):
 def _try_stat(filename):
     try:
         return os.lstat(filename)
-    except OSError, e:
+    except OSError as e:
         if e.errno == errno.ENOENT:
             return None
         else:
             raise
+
+def _has_pep446():
+    """Test the python version whether the PEP making file descriptors 
+    non-inheritable applies"""
+    return sys.version_info >= (3,4)
 
 
 log_reader_pid = None
@@ -41,6 +47,7 @@ def start_stdin_log_reader(status, details, pretty, color,
     global stderr_fd
     r, w = os.pipe()    # main pipe to redo-log
     ar, aw = os.pipe()  # ack pipe from redo-log --ack-fd
+    if _has_pep446(): os.set_inheritable(aw, True)
     sys.stdout.flush()
     sys.stderr.flush()
     pid = os.fork()
@@ -55,7 +62,7 @@ def start_stdin_log_reader(status, details, pretty, color,
             # subprocess died without sending us anything: that's bad.
             err('failed to start redo-log subprocess; cannot continue.\n')
             os._exit(99)
-        assert b == 'REDO-OK\n'
+        assert b == b'REDO-OK\n'
         # now we know the subproc is running and will report our errors
         # to stderr, so it's okay to lose our own stderr.
         os.close(ar)
@@ -90,7 +97,7 @@ def start_stdin_log_reader(status, details, pretty, color,
                 argv.append('--color' if color >= 2 else '--no-color')
             argv.append('-')
             os.execvp(argv[0], argv)
-        except Exception, e:  # pylint: disable=broad-except
+        except Exception as e:  # pylint: disable=broad-except
             sys.stderr.write('redo-log: exec: %s\n' % e)
         finally:
             os._exit(99)
@@ -138,7 +145,7 @@ class _BuildJob(object):
                 if is_target:
                     meta('unchanged', state.target_relpath(self.t))
                 return self._finalize(0)
-        except helpers.ImmediateReturn, e:
+        except helpers.ImmediateReturn as e:
             return self._finalize(e.rv)
 
         if env.v.NO_OOB or dirty == True:  # pylint: disable=singleton-comparison
@@ -211,7 +218,7 @@ class _BuildJob(object):
         ffd, fname = tempfile.mkstemp(prefix='redo.', suffix='.tmp')
         helpers.close_on_exec(ffd, True)
         os.unlink(fname)
-        self.outfile = os.fdopen(ffd, 'w+')
+        self.outfile = os.fdopen(ffd, 'w+b')
         # this will run in the dofile's directory, so use only basenames here
         arg1 = basename + ext  # target name (including extension)
         arg2 = basename        # target name (without extension)
@@ -397,8 +404,8 @@ class _BuildJob(object):
                 # script wrote to stdout.  Copy its contents to the tmpfile.
                 helpers.unlink(self.tmpname)
                 try:
-                    newf = open(self.tmpname, 'w')
-                except IOError, e:
+                    newf = open(self.tmpname, 'wb')
+                except IOError as e:
                     dnt = os.path.dirname(os.path.abspath(t))
                     if not os.path.exists(dnt):
                         # This could happen, so report a simple error message
@@ -424,7 +431,7 @@ class _BuildJob(object):
                 try:
                     # Atomically replace the target file
                     os.rename(self.tmpname, t)
-                except OSError, e:
+                except OSError as e:
                     # This could happen for, eg. a permissions error on
                     # the target directory.
                     err('%s: rename %s: %s\n' % (t, self.tmpname, e))

@@ -1,4 +1,5 @@
 """redo-targets: list the known targets (not sources)."""
+from __future__ import print_function
 import sys, os
 from . import env, logs, state
 
@@ -16,7 +17,7 @@ def main():
     cwd = os.getcwd()
     for f in state.files():
         if f.is_target():
-            print state.relpath(os.path.join(env.v.BASE, f.name), cwd)
+            print(state.relpath(os.path.join(env.v.BASE, f.name), cwd))
 
 
 if __name__ == '__main__':

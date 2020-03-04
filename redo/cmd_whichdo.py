@@ -26,7 +26,7 @@ def main():
         relpath = os.path.relpath(dopath, '.')
         exists = os.path.exists(dopath)
         assert '\n' not in relpath
-        print relpath
+        print(relpath)
         if exists:
             sys.exit(0)
     sys.exit(1)   # no appropriate dofile found

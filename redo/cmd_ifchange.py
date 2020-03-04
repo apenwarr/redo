@@ -52,7 +52,7 @@ def main():
             finally:
                 try:
                     jobserver.force_return_tokens()
-                except Exception, e:  # pylint: disable=broad-except
+                except Exception as e:  # pylint: disable=broad-except
                     traceback.print_exc(100, sys.stderr)
                     err('unexpected error: %r\n' % e)
                     rv = 1

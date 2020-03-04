@@ -1,4 +1,5 @@
 """redo-log: print past build logs. """
+from __future__ import print_function
 import errno, fcntl, os, re, struct, sys, time
 import termios
 from .atoi import atoi
@@ -102,7 +103,7 @@ def catlog(t):
         if not f:
             try:
                 f = open(logname)
-            except IOError, e:
+            except IOError as e:
                 if e.errno == errno.ENOENT:
                     # ignore files without logs
                     pass
@@ -231,7 +232,7 @@ def catlog(t):
         status = None
     if line_head:
         # partial line never got terminated
-        print line_head
+        print(line_head)
     if t != '-':
         assert depth[-1] == t
         depth.pop(-1)
@@ -263,7 +264,7 @@ def main():
             # their old stderr.
             ack_fd = int(opt.ack_fd)
             assert ack_fd > 2
-            if os.write(ack_fd, 'REDO-OK\n') != 8:
+            if os.write(ack_fd, b'REDO-OK\n') != 8:
                 raise Exception('write to ack_fd returned wrong length')
             os.close(ack_fd)
         queue += targets
@@ -274,9 +275,17 @@ def main():
             catlog(t)
     except KeyboardInterrupt:
         sys.exit(200)
-    except IOError, e:
+    except IOError as e:
         if e.errno == errno.EPIPE:
-            pass
+            # this happens for example if calling `redo-log | head`, so stdout
+            # is piped into another program that closes the pipe before reading
+            # all our output.
+            # from https://docs.python.org/3/library/signal.html#note-on-sigpipe:
+            # Python flushes standard streams on exit; redirect remaining output
+            # to devnull to avoid another BrokenPipeError at shutdown
+            devnull = os.open(os.devnull, os.O_WRONLY)
+            os.dup2(devnull, sys.stdout.fileno())
+            sys.exit(141)  # =128+13: "Terminated by SIGPIPE (signal 13)"
         else:
             raise
 

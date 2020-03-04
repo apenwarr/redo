@@ -1,2 +1,2 @@
 redo version/clean
-rm -f whichpython python py *.pyc */*.pyc
+rm -f python py *.pyc */*.pyc

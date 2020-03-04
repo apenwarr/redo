@@ -46,14 +46,14 @@ def db():
     dbfile = '%s/db.sqlite3' % dbdir
     try:
         os.mkdir(dbdir)
-    except OSError, e:
+    except OSError as e:
         if e.errno == errno.EEXIST:
             pass  # if it exists, that's okay
         else:
             raise
 
     _lockfile = os.open(os.path.join(env.v.BASE, '.redo/locks'),
-                        os.O_RDWR | os.O_CREAT, 0666)
+                        os.O_RDWR | os.O_CREAT, 0o666)
     close_on_exec(_lockfile, True)
     if env.is_toplevel and detect_broken_locks():
         env.mark_locks_broken()
@@ -184,7 +184,11 @@ def relpath(t, base):
     base = os.path.normpath(_realdirpath(base))
     tparts = t.split('/')
     bparts = base.split('/')
-    for tp, bp in zip(tparts, bparts):
+
+    # zip must not return an iterator in python 3, because the source lists of
+    # the iterators are changed. The iterator does not notice that and ends too
+    # soon.
+    for tp, bp in list(zip(tparts, bparts)):
         if tp != bp:
             break
         tparts.pop(0)
@@ -278,7 +282,8 @@ class File(object):
         (self.id, self.name, self.is_generated, self.is_override,
          self.checked_runid, self.changed_runid, self.failed_runid,
          self.stamp, self.csum) = cols
-        if self.name == ALWAYS and self.changed_runid < env.v.RUNID:
+        if self.name == ALWAYS and (
+            self.changed_runid is None or self.changed_runid < env.v.RUNID):
             self.changed_runid = env.v.RUNID
 
     def __init__(self, fid=None, name=None, cols=None, allow_add=True):
@@ -508,7 +513,7 @@ class Lock(object):
         assert not self.owned
         try:
             fcntl.lockf(_lockfile, fcntl.LOCK_EX|fcntl.LOCK_NB, 1, self.fid)
-        except IOError, e:
+        except IOError as e:
             if e.errno in (errno.EAGAIN, errno.EACCES):
                 pass  # someone else has it locked
             else:
