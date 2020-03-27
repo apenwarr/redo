@@ -256,7 +256,7 @@ this version of redo are almost, but not quite, appropriate for testing any
 redo implementation.  If you really must write a new version of redo, we
 invite you to thoroughly test it against the existing test suite to ensure
 compatibility.  You can also steal our tests (with attribution, of course)
-and include them in your own source package.  We'd also love it it you
+and include them in your own source package.  We'd also love it if you
 contribute more automated tests when you find a bug, or send us patches if
 you find a test which is accidentally incompatible (as opposed to finding a
 real bug) with other redo implementations.
