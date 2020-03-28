@@ -234,7 +234,7 @@ files in the source directory.  But that's not quite right either.  What
 does it mean, if I have a `hello.cc` source file, and I type `redo hello.o`
 in the source directory?  Nothing good.  The source directory isn't where
 `hello.o` is supposed to end up.  So we want to prevent that from even
-trying work work.
+trying to work.
 
 Conversely, some targets do *not* depend on the particular output platform.
 For example, if you want to generate a list of all source files in the
