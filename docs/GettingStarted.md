@@ -38,12 +38,6 @@ your home directory:
 
 # Pre-compiled packages
 
-## MacOS
-
-redo is available from the [Homebrew](https://brew.sh/) project:
-
-	brew install redo
-
 ## Linux
 
 Various linux distributions include redo under different names.  Most of the
