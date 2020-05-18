@@ -46,7 +46,7 @@ once per run) combined with all the cleanliness of recursive `make` (you
 don't have code from one module stomping on code from another module).
 
 (Disclaimer: my current implementation is not as fast as `make` for some
-things, because it's written in python.  Eventually I'll rewrite it an C and
+things, because it's written in python.  Eventually I'll rewrite it in C and
 it'll be very, very fast.)
 
 The easiest way to show it is to jump into an example.  Here's one for
