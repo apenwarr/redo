@@ -479,7 +479,7 @@ def force_return_tokens():
         _debug('%d,%d -> force_return_tokens: recovering final token\n'
                % (_mytokens, _cheats))
         _destroy_tokens(_cheats)
-        os.write(_cheatfds[1], 't' * _cheats)
+        os.write(_cheatfds[1], b't' * _cheats)
     assert state.is_flushed()
 
 
