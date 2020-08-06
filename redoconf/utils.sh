@@ -17,38 +17,20 @@ contains_line() {
 	esac
 }
 
-# Split the first (up to) 20 words from $1,
-# returning a string where the words are separated
-# by $NL instead.
+# Split words from $@, returning a string where the words
+# are separated by $NL instead.
 #
-# To allow words including whitespace, you can backslash
-# escape the whitespace (eg. hello\ world).  Backslashes
-# will be removed from the output string.
+# To allow words including whitespace, you can use the usual
+# shell quoting mechanisms like backslash (\), single or
+# double quotes.
 #
 # We can use this to read pkg-config output, among other
 # things.
-#
-# TODO: find a POSIX sh way to eliminate the word limit.
-#  I couldn't find an easy way to split on non-backslashed
-#  whitespace without a fork-exec, which is too slow.
-#  If we resorted to bashisms, we could use 'read -a',
-#  but that's not portable.
 rc_splitwords() {
-	xecho "$1" | (
-		read v0 v1 v2 v3 v4 v5 v6 v7 v8 v9 \
-		     v10 v11 v12 v13 v14 v15 v16 v17 v18 v19 \
-		     x
-		if [ -n "$x" ]; then
-			echo "rc_splitwords: too many words" >&2
-			exit 97
-		fi
-		for d in "$v0" "$v1" "$v2" "$v3" "$v4" \
-		         "$v5" "$v6" "$v7" "$v8" "$v9" \
-		         "$v10" "$v11" "$v12" "$v13" "$v14" \
-		         "$v15" "$v16" "$v17" "$v18" "$v19"; do
-			[ -z "$d" ] || xecho "$d"
-		done
-	)
+    eval "set -- $@"
+    for w in "$@"; do
+        [ -z "$w" ] || xecho "$w"
+    done
 }
 
 # Escape single-quote characters so they can
