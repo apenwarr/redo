@@ -1,4 +1,4 @@
-redo-ifchange doc.list
+redo-ifchange doc.list ../redo/py
 xargs redo-ifchange ../mkdocs.yml <doc.list
 
 # Most people don't have mkdocs installed, or are using an obsolete one,
@@ -13,7 +13,7 @@ exit(not ok)
 if ! type mkdocs >/dev/null 2>/dev/null; then
 	echo "Warning: mkdocs is missing; can't generate website." >&2
 	redo-ifcreate /usr/bin/mkdocs
-elif ! python -c "$check" "$ver"; then
+elif ! ../redo/py -c "$check" "$ver"; then
 	echo "Warning: mkdocs is too old ($ver); need at least 1.0.4." >&2
 	mkd=$(which mkdocs 2>/dev/null || :)
 	[ -x "$mkd" ] && redo-ifchange "$mkd"
