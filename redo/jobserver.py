@@ -178,17 +178,17 @@ def _try_read(fd, n):
         signal.setitimer(signal.ITIMER_REAL, 0.01, 0.01)  # emergency fallback
         try:
             b = os.read(fd, 1)
-        except TimeoutError:
+        finally:
+            signal.setitimer(signal.ITIMER_REAL, 0, 0)
+            signal.signal(signal.SIGALRM, oldh)
+    except TimeoutError:
+        return None  # try again
+    except OSError as e:
+        if e.errno in (errno.EAGAIN, errno.EINTR):
+            # interrupted or it was nonblocking
             return None  # try again
-        except OSError as e:
-            if e.errno in (errno.EAGAIN, errno.EINTR):
-                # interrupted or it was nonblocking
-                return None  # try again
-            else:
-                raise
-    finally:
-        signal.setitimer(signal.ITIMER_REAL, 0, 0)
-        signal.signal(signal.SIGALRM, oldh)
+        else:
+            raise
     return b
 
 
