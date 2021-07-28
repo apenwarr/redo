@@ -1,5 +1,4 @@
 # This script starts with $PWD=output dir, $S=input dir.
-REDOCONF="$S/redoconf"
 if [ ! -d "$S" ] || [ ! -f "$REDOCONF/default.do.sh" ]; then
 	echo "default.do.sh: \$S is not set correctly." >&2
 	exit 99

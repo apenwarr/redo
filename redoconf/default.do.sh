@@ -1,6 +1,5 @@
 # This script starts with $PWD=output dir, $S=input dir.
-read -r S <src
-REDOCONF="$S/redoconf"
+{ read -r S ; read -r REDOCONF ; } <src
 if [ ! -d "$S" ] || [ ! -f "$REDOCONF/default.do.sh" ]; then
 	echo "default.do.sh: \$S is not set correctly." >&2
 	exit 99
