@@ -382,6 +382,7 @@ _do()
 			echo "$PWD/$target" >>"$DO_BUILT"
 			if [ ! -e "$tmp" ]; then
 				# if $3 wasn't created, copy from stdout file
+				mkdir -p "$(qdirname "$tmp")"
 				cat <&4 >$tmp
 				# if that's zero length too, forget it
 				[ -s "$tmp" ] || rm -f "$tmp"
