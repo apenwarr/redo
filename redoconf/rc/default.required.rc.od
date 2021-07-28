@@ -9,3 +9,4 @@ if [ -z "$v" ]; then
 	echo "$NAME is required in order to build." >&2
 	exit 1
 fi
+rc_save
