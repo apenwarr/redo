@@ -4,7 +4,7 @@
 # For the full version, visit http://github.com/apenwarr/redo
 #
 # The author disclaims copyright to this source file and hereby places it in
-# the public domain. (2010 12 14; updated 2019 02 24)
+# the public domain. (2010 12 14; updated 2021 08 06)
 #
 USAGE="
 usage: do [-d] [-x] [-v] [-c] <targets...>
@@ -315,10 +315,10 @@ _run_dofile()
 	local line1
 	set -e
 	read line1 <"$PWD/$dofile" || true
-	cmd=${line1#"#!/"}
+	cmd=${line1#"#!"}
 	if [ "$cmd" != "$line1" ]; then
 		set -$_do_opt_verbose$_do_opt_exec
-		exec /$cmd "$PWD/$dofile" "$@"
+		exec $cmd "$PWD/$dofile" "$@"
 	else
 		set -$_do_opt_verbose$_do_opt_exec
 		# If $dofile is empty, "." might not change $? at
