@@ -110,7 +110,7 @@ even have the ability to choose the output filename; for an input of
 `paper.*` directly.  You can't ask it to put just one of them in $3.
 
 The easiest way to handle this situation in redo is to use a "virtual
-target", which is a target name that doesn't actually get created has a file,
+target", which is a target name that doesn't actually get created as a file,
 and has only side effects.  You've seen these before: when we use `all.do`
 or `clean.do`, we don't expect to produce a file named `all` or `clean`.  We
 expect redo to run a collection of other commands.  In `make`, these are
