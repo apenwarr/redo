@@ -217,7 +217,7 @@ collecting many of these links):
   be simple and failsafe, so it doesn't understand how to "redo" targets more
   than once.
 
-- Christian Neukirchen's [redo-c](https://github.com/chneukirchen/redo-c), a
+- Leah Neukirchen's [redo-c](https://github.com/leahneukirchen/redo-c), a
   C implementation.
 
 - Jonathan de Boyne Pollard's [fork of Alan Grosskurth's redo](http://jdebp.eu./Softwares/redo/grosskurth-redo.html)
