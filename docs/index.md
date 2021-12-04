@@ -238,6 +238,8 @@ collecting many of these links):
 - catenate's [credo](https://github.com/catenate/credo), a (very
   rearchitected) variant written for the Inferno Shell.
 
+- Ross Light's [port of apenwarr's redo](https://github.com/zombiezen/redo-rs) in Rust
+
 The original redo design is so simple and elegant that many individuals
 have been
 inspired to (and able to) write their own version of it.  In the honoured
