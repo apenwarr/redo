@@ -19,8 +19,11 @@ read py <redo/whichpython
 echo "Installing to: $DESTDIR$PREFIX"
 
 # make dirs
-"$INSTALL" -d "$MANDIR/man1" "$DOCDIR" "$BINDIR" \
+for d in "$MANDIR/man1" "$DOCDIR" "$BINDIR" \
 	"$LIBDIR" "$LIBDIR/version"
+do
+  if [ ! -d "$d" ]; then "$INSTALL" -d "$d"; fi
+done
 
 # docs
 for d in docs/*.1; do
