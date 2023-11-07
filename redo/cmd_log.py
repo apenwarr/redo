@@ -84,9 +84,9 @@ def catlog(t):
     else:
         try:
             sf = state.File(name=t, allow_add=False)
-        except KeyError:
-            sys.stderr.write('redo-log: [%s] %r: not known to redo.\n'
-                             % (os.getcwd(), t,))
+        except KeyError as e:
+            sys.stderr.write('redo-log: [%s] %r: not known to redo (%s).\n'
+                             % (os.getcwd(), t, e,))
             sys.exit(24)
         fid = sf.id
         del sf
