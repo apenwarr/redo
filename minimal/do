@@ -355,7 +355,7 @@ _do()
 		fi
 		target=$PWD/$target
 		tmp=$PWD/$tmp
-		cd "$dodir" || return 99
+		cd "${dodir:-.}" || return 99
 		target=$(_relpath "$target" "$PWD") || return 98
 		tmp=$(_relpath "$tmp" "$PWD") || return 97
 		base=${target%$ext}
