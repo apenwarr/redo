@@ -227,19 +227,33 @@ def setup(maxjobs):
     if ofs >= 0:
         s = flags[ofs+len(FIND):]
         (arg, junk) = s.split(' ', 1)
-        (a, b) = arg.split(',', 1)
-        a = atoi(a)
-        b = atoi(b)
-        if a <= 0 or b <= 0:
-            logs.err('invalid --jobserver-auth: %r\n' % arg)
-            raise helpers.ImmediateReturn(200)
-        if not helpers.fd_exists(a) or not helpers.fd_exists(b):
-            logs.err('broken --jobserver-auth from parent process:\n')
-            logs.err('  using GNU make? prefix your Makefile rule with "+"\n')
-            logs.err(
-                '  otherwise, see ' +
-                'https://redo.rtfd.io/en/latest/FAQParallel/#MAKEFLAGS\n')
-            raise helpers.ImmediateReturn(200)
+        if arg.startswith('fifo:'):
+            # GNU Make 4.3+ named pipe jobserver format: fifo:/path/to/pipe
+            fifo_path = arg[5:]
+            try:
+                # Open the named pipe for both reading and writing.
+                # O_RDWR avoids blocking that would occur with O_RDONLY.
+                fd = os.open(fifo_path, os.O_RDWR)
+                a = fd
+                b = fd
+            except OSError as e:
+                logs.err('cannot open jobserver fifo %r: %s\n' % (fifo_path, e))
+                raise helpers.ImmediateReturn(200)
+        else:
+            # Traditional pipe jobserver format: R,W (two file descriptors)
+            (a, b) = arg.split(',', 1)
+            a = atoi(a)
+            b = atoi(b)
+            if a <= 0 or b <= 0:
+                logs.err('invalid --jobserver-auth: %r\n' % arg)
+                raise helpers.ImmediateReturn(200)
+            if not helpers.fd_exists(a) or not helpers.fd_exists(b):
+                logs.err('broken --jobserver-auth from parent process:\n')
+                logs.err('  using GNU make? prefix your Makefile rule with "+"\n')
+                logs.err(
+                    '  otherwise, see ' +
+                    'https://redo.rtfd.io/en/latest/FAQParallel/#MAKEFLAGS\n')
+                raise helpers.ImmediateReturn(200)
         if maxjobs == 1:
             # user requested exactly one token, which means they want to
             # serialize us, even if the parent redo is running in parallel.
