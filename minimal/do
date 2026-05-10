@@ -118,6 +118,7 @@ if [ -z "$DO_BUILT" -a "$_cmd" != "redo-whichdo" ]; then
 	        echo "#!/bin/sh" >"$DO_PATH/$d"
 		chmod a+rx "$DO_PATH/$d"
 	done
+	echo "cat >/dev/null" >>"$DO_PATH/redo-stamp"
 fi
 
 
