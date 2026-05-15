@@ -201,10 +201,7 @@ trick:
 	subdir/all:
 		+redo subdir/all
 
-There are a few other programs that also close file descriptors.  For
-example, if your .do file starts with `#!/usr/bin/env xonsh`, you might
-run into [a bug in xonsh where it closes file descriptors
-incorrectly](https://github.com/xonsh/xonsh/issues/2984).
+There are a few other programs that also close file descriptors.
 
 If you really can't stop your program from closing file descriptors that it
 shouldn't, you can work around the problem by unsetting `MAKEFLAGS`.  This
